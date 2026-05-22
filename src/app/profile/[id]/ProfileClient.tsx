@@ -348,73 +348,49 @@ export default function ProfileClient() {
     }
   };
 
-  const handleContact = async () => {
-    if (!currentUser || !profile) return;
-    if (isMe) return;
+  async function startConversation() {
+    if (!currentUser || isMe) return
 
-    if (!loggedInProfile) {
-      router.push('/login');
-      return;
+    // Check if conversation already exists between these two users
+    const { data: existing } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', currentUser.id)
+
+    const myConvIds = (existing ?? []).map(p => p.conversation_id)
+
+    let existingConvId: string | null = null
+    if (myConvIds.length > 0) {
+      const { data: shared } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', targetId)
+        .in('conversation_id', myConvIds)
+        .limit(1)
+        .single()
+      existingConvId = shared?.conversation_id ?? null
     }
 
-    try {
-      const { data: existingChats, error: chatsErr } = await supabase
-        .from('chats')
-        .select('*');
-      
-      if (chatsErr) throw chatsErr;
-
-      let existingChatId = '';
-      if (existingChats) {
-        existingChats.forEach((c: any) => {
-          if (
-            c.members &&
-            c.members.includes(loggedInProfile.uid) &&
-            c.members.includes(profile.uid)
-          ) {
-            existingChatId = c.id;
-          }
-        });
-      }
-
-      if (existingChatId) {
-        router.push(`/inbox?chat=${existingChatId}`);
-      } else {
-        const { data: newChat, error: createChatErr } = await supabase
-          .from('chats')
-          .insert({
-            members: [loggedInProfile.uid, profile.uid],
-            member_names: [loggedInProfile.full_name ?? loggedInProfile.username, profile.name],
-            last_message: `Hello ${profile.name}, I am reaching out to you from your portfolio profile.`,
-            last_message_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (createChatErr) throw createChatErr;
-
-        if (newChat) {
-          const { error: msgErr } = await supabase
-            .from('messages')
-            .insert({
-              chat_id: newChat.id,
-              sender_id: loggedInProfile.uid,
-              sender_name: loggedInProfile.full_name ?? loggedInProfile.username,
-              text: `Hello ${profile.name}, I am reaching out to you from your portfolio profile.`,
-            });
-          
-          if (msgErr) {
-            console.error("Error creating initial message:", msgErr.message);
-          }
-
-          router.push(`/inbox?chat=${newChat.id}`);
-        }
-      }
-    } catch (err: any) {
-      console.warn("Failed to start online chat thread. Directing to fallback simulator:", err.message);
-      router.push(`/inbox?chat=mock-thread`);
+    if (existingConvId) {
+      router.push(`/inbox?conversation=${existingConvId}`)
+      return
     }
-  };
+
+    const { data: conv } = await supabase
+      .from('conversations')
+      .insert({ last_message_at: new Date().toISOString() })
+      .select('id')
+      .single()
+
+    if (!conv) return
+
+    await supabase.from('conversation_participants').insert([
+      { conversation_id: conv.id, user_id: currentUser.id },
+      { conversation_id: conv.id, user_id: targetId },
+    ])
+
+    router.push(`/inbox?conversation=${conv.id}`)
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -618,7 +594,7 @@ export default function ProfileClient() {
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>
                 <button
-                  onClick={handleContact}
+                  onClick={startConversation}
                   className="bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-4.5 py-2.5 rounded-xl cursor-pointer transition border border-borderGlass active:scale-95 flex items-center gap-1.5 shadow-sm"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
