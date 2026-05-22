@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fuentes locales inyectadas desde layout.tsx */
+  --font-sans: var(--font-sans), 'Geist', system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-display), 'Switzer', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Paleta Oficial de BareFolio (Modo Claro) */
+  --bg-primary: #FAFAFA; /* Bare White */
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --border-glass: rgba(16, 16, 16, 0.08); /* Bare Black con opacidad */
+  --border-primary: #F4F4F4; /* Soft Grey */
+  --accent: #4E4BB9; /* Bare Indigo */
+  --accent-hover: #3E3B9E;
+  --text-primary: #101010; /* Bare Black */
+  --text-secondary: #737373; /* Gris suave neutro */
+  --blur-amount: 20px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-card: var(--bg-card);
+  --color-border-glass: var(--border-glass);
+  --color-border-primary: var(--border-primary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Paleta Oficial de BareFolio (Modo Oscuro) */
+    --bg-primary: #101010; /* Bare Black */
+    --bg-card: rgba(24, 24, 24, 0.8); /* Soft Black */
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --border-primary: #1D1D1F; /* Soft Black borders */
+    --accent: #4E4BB9; /* Bare Indigo */
+    --accent-hover: #5F5CCB; /* Más brillante para mejorar legibilidad en oscuro */
+    --text-primary: #FAFAFA; /* Bare White */
+    --text-secondary: #A3A3A3;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
+
+.glass {
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  border: 1px solid var(--border-glass);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+
