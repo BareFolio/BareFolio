@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
-import { X, Briefcase, FileText, Image as ImageIcon, Users } from 'lucide-react';
+import { X, Briefcase, FileText, Image as ImageIcon } from 'lucide-react';
 
 export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { profile } = useApp();
-  const [contentType, setContentType] = useState<'project' | 'post' | 'brief' | 'community'>('project');
+  const { currentUser, profile } = useApp();
+  const [contentType, setContentType] = useState<'project' | 'post' | 'brief'>('project');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [technique, setTechnique] = useState('Graphic Design');
@@ -21,64 +22,69 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
   const canCreateBrief = profile.profile_type === 'studio' || profile.profile_type === 'brand';
   const canCreateProject = profile.profile_type !== 'brand';
 
+  async function uploadImages(files: File[]): Promise<string[]> {
+    const uploads = files.map(async (file) => {
+      const ext = file.name.split('.').pop()
+      const path = `${crypto.randomUUID()}.${ext}`
+      const { error } = await supabase.storage
+        .from('project-images')
+        .upload(path, file, { cacheControl: '3600', upsert: false })
+      if (error) throw error
+      const { data } = supabase.storage.from('project-images').getPublicUrl(path)
+      return data.publicUrl
+    })
+    return Promise.all(uploads)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    if (!currentUser) return
+    setLoading(true)
     try {
       if (contentType === 'project') {
+        const imageUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : []
+        const coverUrl = imageUrls[0] ?? null
+        const verStatus = profile?.verified ? 'approved' : 'pending'
         const { error } = await supabase.from('projects').insert({
-          creator_id: profile.uid,
-          creator_name: profile.full_name ?? profile.username,
-          title,
-          description: desc,
-          palette_hex: ['#1A1A1A', '#E6E6E6', '#0071E3'],
-          technique,
-          mood,
-        });
-        if (error) {
-          console.warn("Could not insert project row. Database migrations might be pending. Using offline mock simulation:", error.message);
-        }
+          user_id: currentUser.id,
+          title: title.trim(),
+          description: desc.trim() || null,
+          cover_url: coverUrl,
+          images: imageUrls,
+          discipline: technique || null,
+          atmosphere: mood || null,
+          tags: [],
+          verification_status: verStatus,
+        })
+        if (error) throw error
       } else if (contentType === 'post') {
+        const mediaUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : []
         const { error } = await supabase.from('posts').insert({
-          creator_id: profile.uid,
-          content: desc,
-        });
-        if (error) {
-          console.warn("Could not insert post row. Database migrations might be pending. Using offline mock simulation:", error.message);
-        }
+          user_id: currentUser.id,
+          content: desc.trim(),
+          media_urls: mediaUrls,
+        })
+        if (error) throw error
       } else if (contentType === 'brief') {
         const { error } = await supabase.from('briefs').insert({
-          studio_id: profile.uid,
-          title,
-          description: desc,
-          budget,
-          modality,
-          active: true,
-        });
-        if (error) {
-          console.warn("Could not insert brief row. Database migrations might be pending. Using offline mock simulation:", error.message);
-        }
-      } else if (contentType === 'community') {
-        const { error } = await supabase.from('communities').insert({
-          name: title,
-          description: desc,
-          created_by: profile.uid,
-        });
-        if (error) {
-          console.warn("Could not insert community row. Database migrations might be pending. Using offline mock simulation:", error.message);
-        }
+          user_id: currentUser.id,
+          title: title.trim(),
+          description: desc.trim() || null,
+          disciplines: [],
+          budget: budget || null,
+          tags: [],
+        })
+        if (error) throw error
       }
-      
-      // Reset inputs
-      setTitle('');
-      setDesc('');
-      onClose();
-    } catch (err) {
-      console.error("Error creating publication:", err);
-      // Fail gracefully and close modal so UX doesn't freeze
-      onClose();
+      setTitle('')
+      setDesc('')
+      setSelectedFiles([])
+      onClose()
+    } catch (err: any) {
+      console.error('Error creating publication:', err)
+      onClose()
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   };
 
@@ -129,33 +135,23 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
             </button>
           )}
 
-          <button 
-            type="button"
-            onClick={() => setContentType('community')} 
-            className={`flex-1 min-w-[75px] py-2 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${contentType === 'community' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Group</span>
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {contentType !== 'post' && (
             <div>
               <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">
-                {contentType === 'community' ? 'Group Channel Name' : 'Title'}
+                Title
               </label>
-              <input 
-                type="text" 
-                value={title} 
-                onChange={(e) => setTitle(e.target.value)} 
-                required 
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
                 placeholder={
-                  contentType === 'project' 
-                    ? "e.g. Atmospheric Brand Visual Identity" 
-                    : contentType === 'brief'
-                    ? "e.g. Conceptual Cosmetic Box Redesign"
-                    : "e.g. Brutalist Typography Vanguards"
+                  contentType === 'project'
+                    ? "e.g. Atmospheric Brand Visual Identity"
+                    : "e.g. Conceptual Cosmetic Box Redesign"
                 }
                 className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl focus:outline-none focus:border-accent text-sm text-neutral-900 dark:text-white" 
               />
@@ -172,17 +168,33 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
               required 
               rows={4} 
               placeholder={
-                contentType === 'post' 
-                  ? "Share a quick design update, work-in-progress link, or creative thought..." 
+                contentType === 'post'
+                  ? "Share a quick design update, work-in-progress link, or creative thought..."
                   : contentType === 'project'
                   ? "Describe the creative direction of this project, concept, process and toolstack..."
-                  : contentType === 'brief'
-                  ? "Detail the project scope, expected results, talent requirements, and deadlines..."
-                  : "Explain the community's creative goals, topics of interest, and rules of engagement..."
+                  : "Detail the project scope, expected results, talent requirements, and deadlines..."
               }
               className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl focus:outline-none focus:border-accent text-sm resize-none text-neutral-900 dark:text-white" 
             />
           </div>
+
+          {(contentType === 'project' || contentType === 'post') && (
+            <div>
+              <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">
+                Images <span className="text-neutral-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={e => setSelectedFiles(Array.from(e.target.files ?? []))}
+                className="w-full text-xs text-neutral-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-neutral-100 dark:file:bg-neutral-800 file:text-neutral-700 dark:file:text-neutral-300 cursor-pointer"
+              />
+              {selectedFiles.length > 0 && (
+                <p className="text-[10px] text-neutral-400 mt-1">{selectedFiles.length} file(s) selected</p>
+              )}
+            </div>
+          )}
 
           {contentType === 'project' && (
             <div className="grid grid-cols-2 gap-4">
