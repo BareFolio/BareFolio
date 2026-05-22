@@ -84,6 +84,7 @@ export interface CollectionItem {
   created_at: string
 }
 
+// Composite PK (follower_id + following_id) — no id field; incompatible with generic { id: string } utilities
 export interface Follow {
   follower_id: string
   following_id: string
@@ -107,6 +108,7 @@ export interface Message {
   sender?: Profile
 }
 
+// type discriminant is NOT a DB column — callers must add { type: 'project'|'post'|'brief' } when building from raw rows
 export type FeedItem =
   | ({ type: 'project' } & Project)
   | ({ type: 'post' } & Post)
