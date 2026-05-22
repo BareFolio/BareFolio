@@ -25,7 +25,7 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
   async function uploadImages(files: File[]): Promise<string[]> {
     const uploads = files.map(async (file) => {
       const ext = file.name.split('.').pop()
-      const path = `${crypto.randomUUID()}.${ext}`
+      const path = `${currentUser!.id}/${crypto.randomUUID()}.${ext}`
       const { error } = await supabase.storage
         .from('project-images')
         .upload(path, file, { cacheControl: '3600', upsert: false })

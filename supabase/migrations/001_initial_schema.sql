@@ -248,13 +248,20 @@ CREATE POLICY "conversations_select" ON public.conversations FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.conversation_participants cp WHERE cp.conversation_id = id AND cp.user_id = auth.uid())
 );
 CREATE POLICY "conversations_insert" ON public.conversations FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "conversations_update" ON public.conversations FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.conversation_participants cp WHERE cp.conversation_id = id AND cp.user_id = auth.uid())
+);
 
 -- conversation_participants policies
 CREATE POLICY "conv_participants_select" ON public.conversation_participants FOR SELECT USING (
   user_id = auth.uid() OR
   EXISTS (SELECT 1 FROM public.conversation_participants cp WHERE cp.conversation_id = conversation_id AND cp.user_id = auth.uid())
 );
-CREATE POLICY "conv_participants_insert" ON public.conversation_participants FOR INSERT WITH CHECK (true);
+-- Only allow inserting yourself, or adding others to a conversation you already belong to
+CREATE POLICY "conv_participants_insert" ON public.conversation_participants FOR INSERT WITH CHECK (
+  user_id = auth.uid() OR
+  EXISTS (SELECT 1 FROM public.conversation_participants cp WHERE cp.conversation_id = conversation_id AND cp.user_id = auth.uid())
+);
 
 -- messages policies
 CREATE POLICY "messages_select" ON public.messages FOR SELECT USING (
