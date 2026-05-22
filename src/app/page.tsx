@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
-import type { FeedItem as DBFeedItem } from '@/lib/database.types';
+import type { FeedItem as DBFeedItem, ContentType } from '@/lib/database.types';
 import {
   Sparkles,
   MapPin,
@@ -79,7 +79,7 @@ function getPlaceholderGradient(title: string) {
 }
 
 export default function HomePage() {
-  const { profile } = useApp();
+  const { profile, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<'all' | 'forYou'>('all');
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
@@ -88,13 +88,61 @@ export default function HomePage() {
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
   const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
 
-  const toggleLike = (id: string) => {
-    setLikedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  async function toggleLike(targetType: ContentType, targetId: string) {
+    if (!currentUser) return
+    // Optimistic local update
+    setLikedIds(prev => ({ ...prev, [targetId]: !prev[targetId] }))
 
-  const toggleSave = (id: string) => {
-    setSavedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+    const existing = await supabase
+      .from('likes')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('target_type', targetType)
+      .eq('target_id', targetId)
+      .single()
+
+    if (existing.data) {
+      await supabase.from('likes').delete().eq('id', existing.data.id)
+    } else {
+      await supabase.from('likes').insert({ user_id: currentUser.id, target_type: targetType, target_id: targetId })
+    }
+  }
+
+  async function getOrCreateDefaultCollection(userId: string): Promise<string> {
+    const { data: existing } = await supabase
+      .from('collections')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('name', 'Saved')
+      .single()
+    if (existing) return existing.id
+    const { data: created } = await supabase
+      .from('collections')
+      .insert({ user_id: userId, name: 'Saved', is_public: false })
+      .select('id')
+      .single()
+    return created!.id
+  }
+
+  async function toggleSave(targetType: ContentType, targetId: string) {
+    if (!currentUser) return
+    // Optimistic local update
+    setSavedIds(prev => ({ ...prev, [targetId]: !prev[targetId] }))
+
+    const collectionId = await getOrCreateDefaultCollection(currentUser.id)
+    const { data: existing } = await supabase
+      .from('collection_items')
+      .select('id')
+      .eq('collection_id', collectionId)
+      .eq('target_type', targetType)
+      .eq('target_id', targetId)
+      .single()
+    if (existing) {
+      await supabase.from('collection_items').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('collection_items').insert({ collection_id: collectionId, target_type: targetType, target_id: targetId })
+    }
+  }
 
   useEffect(() => {
     async function loadFeed() {
@@ -265,14 +313,14 @@ export default function HomePage() {
                     {/* Hover state content */}
                     <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4 text-white z-10">
                       <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleSave(item.id); }}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSave('project', item.id); }}
                           className={`p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isSaved ? 'bg-accent text-white scale-105' : 'bg-white/20 hover:bg-white/45'}`}
                         >
                           <FolderPlus className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleLike(item.id); }}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleLike('project', item.id); }}
                           className={`p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isLiked ? 'bg-red-500 text-white scale-105' : 'bg-white/20 hover:bg-white/45'}`}
                         >
                           <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -357,8 +405,8 @@ export default function HomePage() {
                       </p>
                     </div>
 
-                    <button 
-                      onClick={() => toggleSave(item.id)}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSave('brief', item.id); }}
                       className={`p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition ${isSaved ? 'text-accent' : 'text-neutral-400'}`}
                     >
                       <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
@@ -424,8 +472,8 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <button 
-                      onClick={() => toggleLike(item.id)}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleLike('post', item.id); }}
                       className={`p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition ${isLiked ? 'text-red-500 scale-105' : 'text-neutral-400'}`}
                     >
                       <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
