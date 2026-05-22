@@ -35,8 +35,8 @@ export default function Header({ onCreateClick }: HeaderProps) {
     <header className="hidden md:flex fixed top-0 left-0 right-0 z-40 glass border-b border-borderGlass shadow-sm items-center h-24 px-6 md:px-8 gap-8 justify-between">
 
       {/* LEFT: Isologo + Wordmark + Nav */}
-      <div className="flex items-center gap-6 min-w-0">
-        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+      <div className="flex items-center gap-[50px] min-w-0">
+        <Link href="/" className="flex items-center gap-[10px] flex-shrink-0">
           <Logo variant="symbol" className="h-8 w-8" />
           <Logo variant="full" className="h-5 w-auto" />
         </Link>
