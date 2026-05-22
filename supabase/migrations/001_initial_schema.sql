@@ -132,15 +132,30 @@ CREATE INDEX posts_user_id_idx ON public.posts(user_id);
 CREATE INDEX briefs_user_id_idx ON public.briefs(user_id);
 CREATE INDEX messages_conversation_idx ON public.messages(conversation_id);
 CREATE INDEX messages_created_at_idx ON public.messages(created_at DESC);
+CREATE INDEX likes_target_idx ON public.likes(target_id);
+CREATE INDEX messages_sender_idx ON public.messages(sender_id);
+CREATE INDEX follows_following_idx ON public.follows(following_id);
+CREATE INDEX collection_items_collection_idx ON public.collection_items(collection_id);
+CREATE UNIQUE INDEX profiles_username_lower_idx ON public.profiles (LOWER(username));
 
 -- TRIGGER: pre-create profile row when auth user is created
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  base_username text;
 BEGIN
+  base_username := COALESCE(
+    NEW.raw_user_meta_data->>'username',
+    REGEXP_REPLACE(split_part(NEW.email, '@', 1), '[^a-zA-Z0-9_]', '', 'g')
+  );
+  -- Ensure it's not empty after sanitization
+  IF base_username = '' OR base_username IS NULL THEN
+    base_username := 'user';
+  END IF;
   INSERT INTO public.profiles (id, username, profile_type)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    base_username || '_' || SUBSTR(NEW.id::text, 1, 6),
     'creator'
   )
   ON CONFLICT (id) DO NOTHING;
@@ -232,7 +247,7 @@ CREATE POLICY "follows_delete_own" ON public.follows FOR DELETE USING (auth.uid(
 CREATE POLICY "conversations_select" ON public.conversations FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.conversation_participants cp WHERE cp.conversation_id = id AND cp.user_id = auth.uid())
 );
-CREATE POLICY "conversations_insert" ON public.conversations FOR INSERT WITH CHECK (true);
+CREATE POLICY "conversations_insert" ON public.conversations FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- conversation_participants policies
 CREATE POLICY "conv_participants_select" ON public.conversation_participants FOR SELECT USING (
@@ -251,12 +266,21 @@ CREATE POLICY "messages_insert" ON public.messages FOR INSERT WITH CHECK (
 );
 
 -- STORAGE BUCKETS (run in Supabase dashboard > Storage or via SQL editor)
-INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
-INSERT INTO storage.buckets (id, name, public) VALUES ('project-images', 'project-images', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('project-images', 'project-images', true) ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "avatars_select" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
-CREATE POLICY "avatars_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
-CREATE POLICY "avatars_update" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
+CREATE POLICY "avatars_insert" ON storage.objects FOR INSERT WITH CHECK (
+  bucket_id = 'avatars' AND auth.uid() IS NOT NULL AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+CREATE POLICY "avatars_update" ON storage.objects FOR UPDATE USING (
+  bucket_id = 'avatars' AND auth.uid() IS NOT NULL AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
 
 CREATE POLICY "project_images_select" ON storage.objects FOR SELECT USING (bucket_id = 'project-images');
-CREATE POLICY "project_images_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'project-images' AND auth.uid() IS NOT NULL);
+CREATE POLICY "project_images_insert" ON storage.objects FOR INSERT WITH CHECK (
+  bucket_id = 'project-images' AND auth.uid() IS NOT NULL AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
