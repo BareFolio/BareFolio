@@ -82,6 +82,7 @@ export default function HomePage() {
   const { profile, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<'all' | 'forYou'>('all');
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [forYouItems, setForYouItems] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
 
   // States for interactive highlights
@@ -142,6 +143,70 @@ export default function HomePage() {
     } else {
       await supabase.from('collection_items').insert({ collection_id: collectionId, target_type: targetType, target_id: targetId })
     }
+  }
+
+  async function loadForYouFeed(): Promise<void> {
+    if (!currentUser) { setForYouItems([]); return }
+
+    const { data: followData } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', currentUser.id)
+
+    const followingIds = (followData ?? []).map((f: { following_id: string }) => f.following_id)
+    if (followingIds.length === 0) { setForYouItems([]); return }
+
+    const [{ data: projects }, { data: posts }] = await Promise.all([
+      supabase
+        .from('projects')
+        .select('*, profile:profiles(id, username, full_name, avatar_url, profile_type)')
+        .eq('verification_status', 'approved')
+        .in('user_id', followingIds)
+        .order('created_at', { ascending: false })
+        .limit(40),
+      supabase
+        .from('posts')
+        .select('*, profile:profiles(id, username, full_name, avatar_url, profile_type)')
+        .in('user_id', followingIds)
+        .order('created_at', { ascending: false })
+        .limit(40),
+    ])
+
+    const dbItems = [
+      ...(projects ?? []).map((p: any) => ({ ...p, type: 'project' as const })),
+      ...(posts ?? []).map((p: any) => ({ ...p, type: 'post' as const })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    const items = dbItems.map((item: any) => {
+      if (item.type === 'project') {
+        return {
+          id: item.id,
+          type: 'project' as const,
+          title: item.title,
+          description: item.description || '',
+          creatorId: item.user_id,
+          creatorName: item.profile?.full_name || item.profile?.username || 'Creative Creator',
+          creatorAvatar: item.profile?.avatar_url ?? undefined,
+          paletteHex: item.palette ?? [],
+          technique: item.discipline || 'Visual Design',
+          mood: item.atmosphere || item.visual_language || 'Editorial',
+          createdAt: item.created_at,
+        } satisfies ProjectFeedItem
+      }
+      return {
+        id: item.id,
+        type: 'post' as const,
+        content: item.content || '',
+        creatorId: item.user_id,
+        creatorName: item.profile?.full_name || item.profile?.username || 'Independent Creator',
+        creatorUsername: item.profile?.username ?? undefined,
+        creatorAvatar: item.profile?.avatar_url ?? undefined,
+        location: item.location || 'Worldwide',
+        year: `Created in ${new Date(item.created_at).getFullYear()}`,
+        createdAt: item.created_at,
+      } satisfies PostFeedItem
+    })
+    setForYouItems(items as FeedItem[])
   }
 
   useEffect(() => {
@@ -237,15 +302,7 @@ export default function HomePage() {
 
   const finalFeed = feedItems;
 
-  // Curated tab filter
-  const displayedFeed = activeTab === 'all' 
-    ? finalFeed
-    : finalFeed.filter(item => {
-        // "For you" filters projects with high-end techniques or active briefs
-        if (item.type === 'project') return ['Graphic Design', 'Photography', 'Packaging'].includes(item.technique);
-        if (item.type === 'brief') return item.active;
-        return true;
-      });
+  const displayedFeed = activeTab === 'forYou' ? forYouItems : finalFeed;
 
   return (
     <div className="space-y-8 font-sans max-w-7xl mx-auto">
@@ -267,10 +324,10 @@ export default function HomePage() {
           </button>
           
           <button
-            onClick={() => setActiveTab('forYou')}
+            onClick={() => { setActiveTab('forYou'); loadForYouFeed() }}
             className={`text-xs font-semibold uppercase tracking-widest relative py-2 transition-all duration-300 cursor-pointer ${
-              activeTab === 'forYou' 
-                ? 'text-text-primary scale-105' 
+              activeTab === 'forYou'
+                ? 'text-text-primary scale-105'
                 : 'text-text-secondary hover:text-text-primary'
             }`}
           >

@@ -95,6 +95,9 @@ export default function ProfileClient() {
   // Disciplines Edit State
   const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
 
+  // Follow state
+  const [isFollowing, setIsFollowing] = useState(false)
+
   // Local post responses input state
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -291,6 +294,31 @@ export default function ProfileClient() {
       if (briefsChannel) supabase.removeChannel(briefsChannel);
     };
   }, [targetId, isMe]);
+
+  // Check follow status
+  useEffect(() => {
+    if (!currentUser || !targetId || targetId === currentUser.id) return
+    supabase
+      .from('follows')
+      .select('follower_id')
+      .eq('follower_id', currentUser.id)
+      .eq('following_id', targetId)
+      .single()
+      .then(({ data }) => setIsFollowing(!!data))
+  }, [currentUser, targetId])
+
+  async function toggleFollow() {
+    if (!currentUser || !targetId) return
+    if (isFollowing) {
+      await supabase.from('follows').delete()
+        .eq('follower_id', currentUser.id)
+        .eq('following_id', targetId)
+      setIsFollowing(false)
+    } else {
+      await supabase.from('follows').insert({ follower_id: currentUser.id, following_id: targetId })
+      setIsFollowing(true)
+    }
+  }
 
   // Handle profile edit save
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -584,8 +612,14 @@ export default function ProfileClient() {
             ) : (
               <>
                 <button
+                  onClick={toggleFollow}
+                  className={`text-xs font-semibold px-5 py-2.5 rounded-xl cursor-pointer transition active:scale-95 flex items-center gap-1.5 border shadow-sm ${isFollowing ? 'bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 border-borderGlass' : 'bg-accent text-white hover:bg-accent-hover border-transparent shadow-accent/10 shadow-md'}`}
+                >
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+                <button
                   onClick={handleContact}
-                  className="bg-accent text-white hover:bg-accent-hover text-xs font-semibold px-6 py-2.5 rounded-xl cursor-pointer transition active:scale-95 flex items-center gap-1.5 shadow-md shadow-accent/10"
+                  className="bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-4.5 py-2.5 rounded-xl cursor-pointer transition border border-borderGlass active:scale-95 flex items-center gap-1.5 shadow-sm"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Contact</span>
