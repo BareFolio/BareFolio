@@ -31,31 +31,18 @@ import {
 import Link from 'next/link';
 
 interface ProfileData {
-  uid: string;
-  name: string;
-  email: string;
-  role: 'seeker' | 'creator' | 'studio' | 'brand';
-  bio?: string;
-  location?: string;
-  avatarUrl?: string;
-  isPro?: boolean;
-  isAvailable?: boolean;
-  createdAt?: string;
-
-  // Questionnaire / Onboarding fields
-  username?: string;
-  practice?: string;
-  disciplines?: string[];
-  availabilityStatus?: string;
-  verificationFileUrl?: string;
-  isVerified?: boolean;
-  companyName?: string;
-  companyLink?: string;
-  teamSize?: string;
-  verificationMethod?: string;
-  verificationData?: string;
-  industry?: string;
-  disciplinesHiring?: string[];
+  uid: string
+  name: string        // mapped from full_name || username
+  email: string       // not in DB, keep as empty string
+  role: 'seeker' | 'creator' | 'studio' | 'brand'  // mapped from profile_type
+  bio?: string
+  location?: string
+  avatarUrl?: string  // mapped from avatar_url
+  website?: string    // mapped from website
+  disciplines?: string[]
+  isVerified?: boolean  // mapped from verified
+  username?: string
+  createdAt?: string
 }
 
 interface BriefData {
@@ -63,10 +50,7 @@ interface BriefData {
   title: string;
   description: string;
   budget: string;
-  modality: string;
   createdAt: string;
-  studioId: string;
-  active: boolean;
 }
 
 interface PostData {
@@ -84,213 +68,6 @@ interface PostData {
   showReplies?: boolean;
 }
 
-const FALLBACK_PROFILES: Record<string, ProfileData> = {
-  'alex-mcqueen': {
-    uid: 'alex-mcqueen',
-    name: 'Alexander McQueen',
-    email: 'alex@mcqueen.studio',
-    role: 'creator',
-    bio: 'Art Director & Editorial Designer of Haute Couture. Exploring the boundaries of typography and avant-garde minimalist design.',
-    location: 'Barcelona, Spain',
-    isPro: true,
-    isAvailable: true,
-    username: 'alexmcqueen',
-    practice: 'freelance',
-    disciplines: ['art direction', 'graphic design', 'branding'],
-    availabilityStatus: 'yes',
-    verificationFileUrl: 'mock://files/alex_portfolio.pdf',
-    isVerified: true
-  },
-  'luisa-barriga': {
-    uid: 'luisa-barriga',
-    name: 'Luisa Barriga',
-    email: 'luisa@barriga.photo',
-    role: 'creator',
-    bio: 'Architectural and still life photographer. Focused on the play of shadows, pure geometry, and organic texture.',
-    location: 'Madrid, Spain',
-    isPro: true,
-    isAvailable: true,
-    username: 'luisaphoto',
-    practice: 'freelance',
-    disciplines: ['photography', 'art direction'],
-    availabilityStatus: 'yes',
-    verificationFileUrl: 'mock://files/luisa_still_life.pdf',
-    isVerified: true
-  },
-  'estudio-v': {
-    uid: 'estudio-v',
-    name: 'Estudio V',
-    email: 'hello@estudiov.design',
-    role: 'studio',
-    bio: 'Conceptual branding and packaging boutique. We design honest, elegant, and environmentally friendly identities.',
-    location: 'Valencia, Spain',
-    isPro: true,
-    isAvailable: false,
-    companyName: 'Estudio V',
-    companyLink: 'https://estudiov.design',
-    disciplines: ['branding', 'packaging', 'art direction'],
-    teamSize: '4-10',
-    verificationMethod: 'corporate_email',
-    isVerified: true
-  },
-  'hugo-ux': {
-    uid: 'hugo-ux',
-    name: 'Hugo Bossio',
-    email: 'hugo@bossio.ux',
-    role: 'creator',
-    bio: 'Digital Product Designer and Spatial Concepts. I merge tactile interaction with high-contrast minimalist interfaces.',
-    location: 'Milan, Italy',
-    isPro: true,
-    isAvailable: true,
-    username: 'hugobossio',
-    practice: 'employee',
-    disciplines: ['interior design', 'motion design'],
-    availabilityStatus: 'depends',
-    verificationFileUrl: 'mock://files/hugo_concepts.pdf',
-    isVerified: true
-  },
-  'motion-hq': {
-    uid: 'motion-hq',
-    name: 'Kinetic Studio',
-    email: 'hello@kinetic.studio',
-    role: 'studio',
-    bio: 'Creative digital animation studio and motion branding for global brands.',
-    location: 'London, United Kingdom',
-    isPro: true,
-    isAvailable: false,
-    companyName: 'Kinetic Studio',
-    companyLink: 'https://kinetic.studio',
-    disciplines: ['animation', 'motion design', 'video editing'],
-    teamSize: '11-25',
-    verificationMethod: 'linkedin',
-    isVerified: true
-  }
-};
-
-const FALLBACK_PROJECTS: Record<string, ProjectData[]> = {
-  'alex-mcqueen': [
-    {
-      id: 'demo-1',
-      title: 'Minimalist Editorial Layout - Issue 12',
-      creatorId: 'alex-mcqueen',
-      creatorName: 'Alexander McQueen',
-      paletteHex: ['#FFFFFF', '#1A1A1A', '#C5A880'],
-      technique: 'Graphic Design',
-      mood: 'Minimalist'
-    },
-    {
-      id: 'demo-6',
-      title: 'The Brutalist Cookbook - Typography Posters',
-      creatorId: 'alex-mcqueen',
-      creatorName: 'Alexander McQueen',
-      paletteHex: ['#F3F3F3', '#FF3B30', '#000000'],
-      technique: 'Graphic Design',
-      mood: 'Brutalist'
-    }
-  ],
-  'luisa-barriga': [
-    {
-      id: 'demo-2',
-      title: 'Sombra y Luz: A Study of Architectural Geometry',
-      creatorId: 'luisa-barriga',
-      creatorName: 'Luisa Barriga',
-      paletteHex: ['#E6E6E6', '#8C8C8C', '#2A2A2A'],
-      technique: 'Photography',
-      mood: 'Classic'
-    }
-  ],
-  'estudio-v': [
-    {
-      id: 'demo-3',
-      title: 'Atmosfera Cosmética - Organic Clay Packaging Design',
-      creatorId: 'estudio-v',
-      creatorName: 'Estudio V',
-      paletteHex: ['#E9E0D2', '#D3C2B0', '#7E6B5A'],
-      technique: 'Packaging',
-      mood: 'Minimalist'
-    }
-  ],
-  'hugo-ux': [
-    {
-      id: 'demo-4',
-      title: 'Interactive Spatial Dashboard Concept',
-      creatorId: 'hugo-ux',
-      creatorName: 'Hugo Bossio',
-      paletteHex: ['#0A84FF', '#121214', '#303032'],
-      technique: 'UX/UI',
-      mood: 'Cyberpunk'
-    }
-  ]
-};
-
-const FALLBACK_BRIEFS: Record<string, BriefData[]> = {
-  'estudio-v': [
-    {
-      id: 'brief-demo-1',
-      title: 'Visual Identity Redesign - Boutique Hotel',
-      description: 'We are seeking a seasoned brand identity designer to create stationary guides, typography rules, and premium logo layouts for a luxury organic hotel in the Pyrenees.',
-      budget: '$3,200',
-      modality: 'Remote / Freelance',
-      createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-      studioId: 'estudio-v',
-      active: true
-    },
-    {
-      id: 'brief-demo-2',
-      title: 'Sustainable Packaging - Skincare Line',
-      description: 'Development of biodegradable containers and box outlines for a locally-sourced organic soaps and creams line.',
-      budget: '$2,500',
-      modality: 'Remote',
-      createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-      studioId: 'estudio-v',
-      active: true
-    }
-  ]
-};
-
-const FALLBACK_POSTS: PostData[] = [
-  {
-    id: 'fallback-post-1',
-    creator_id: 'alex-mcqueen',
-    authorName: 'Alexander McQueen',
-    authorUsername: 'alexmcqueen',
-    authorRole: 'creator',
-    content: 'Just finalized the brutalist typography layout for the upcoming print issue of BareFolio. The interaction of high-contrast letterforms against uncoated raw cream stock is stunning! What do you all think? #graphicdesign #typography #printdev',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    likes: 42,
-    liked: false,
-    replies: [
-      { sender: 'Luisa Barriga', text: 'The kerning on that heading is absolute perfection, Alexander!' },
-      { sender: 'Hugo Bossio', text: 'Outstanding! The tactile raw stock matches the aesthetic beautifully.' }
-    ]
-  },
-  {
-    id: 'fallback-post-2',
-    creator_id: 'luisa-barriga',
-    authorName: 'Luisa Barriga',
-    authorUsername: 'luisaphoto',
-    authorRole: 'creator',
-    content: 'Chasing the shadows at milan brutalist concrete pavilion. The natural golden hour contrasts this afternoon are creating some incredible geometric textures. Photographic series dropping in my portfolio folder soon! #photography #geometry #minimalism',
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    likes: 29,
-    liked: false,
-    replies: []
-  },
-  {
-    id: 'fallback-post-3',
-    creator_id: 'estudio-v',
-    authorName: 'Estudio V',
-    authorUsername: 'estudiov',
-    authorRole: 'studio',
-    content: 'Developing conceptual sustainable packaging containers for our organic clay collection. Materials matter, but visual honesty matters more. ✨ #packaging #sustainabledesign #branding',
-    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    likes: 56,
-    liked: false,
-    replies: [
-      { sender: 'Alexander McQueen', text: 'This material study looks incredibly organic. Count me in for a review!' }
-    ]
-  }
-];
 
 export default function ProfileClient() {
   const { profile: loggedInProfile, currentUser } = useApp();
@@ -313,19 +90,10 @@ export default function ProfileClient() {
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editLocation, setEditLocation] = useState('');
-  const [editIsAvailable, setEditIsAvailable] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
 
-  // Questionnaire Edit States
-  const [editUsername, setEditUsername] = useState('');
-  const [editPractice, setEditPractice] = useState('');
+  // Disciplines Edit State
   const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
-  const [editAvailabilityStatus, setEditAvailabilityStatus] = useState('');
-  const [editCompanyName, setEditCompanyName] = useState('');
-  const [editCompanyLink, setEditCompanyLink] = useState('');
-  const [editTeamSize, setEditTeamSize] = useState('');
-  const [editIndustry, setEditIndustry] = useState('');
-  const [editDisciplinesHiring, setEditDisciplinesHiring] = useState<string[]>([]);
 
   // Local post responses input state
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -360,51 +128,31 @@ export default function ProfileClient() {
         if (pData) {
           const formattedProfile: ProfileData = {
             uid: pData.id,
-            name: pData.name,
-            email: pData.email,
-            role: pData.role as any,
+            name: pData.full_name || pData.username || '',
+            email: '',
+            role: pData.profile_type as 'seeker' | 'creator' | 'studio' | 'brand',
             bio: pData.bio || '',
             location: pData.location || '',
             avatarUrl: pData.avatar_url || '',
-            isPro: pData.is_pro || false,
-            isAvailable: pData.is_available ?? true,
-            createdAt: pData.created_at,
-
-            username: pData.username || '',
-            practice: pData.practice || '',
+            website: pData.website || '',
             disciplines: pData.disciplines || [],
-            availabilityStatus: pData.availability_status || '',
-            verificationFileUrl: pData.verification_file_url || '',
-            isVerified: pData.is_verified || false,
-            companyName: pData.company_name || '',
-            companyLink: pData.company_link || '',
-            teamSize: pData.team_size || '',
-            verificationMethod: pData.verification_method || '',
-            verificationData: pData.verification_data || '',
-            industry: pData.industry || '',
-            disciplinesHiring: pData.disciplines_hiring || [],
+            isVerified: pData.verified || false,
+            username: pData.username || '',
+            createdAt: pData.created_at,
           };
-          
+
           setProfile(formattedProfile);
           setEditName(formattedProfile.name || '');
           setEditBio(formattedProfile.bio || '');
           setEditLocation(formattedProfile.location || '');
-          setEditIsAvailable(formattedProfile.isAvailable ?? true);
-          setEditUsername(formattedProfile.username || '');
-          setEditPractice(formattedProfile.practice || '');
           setEditDisciplines(formattedProfile.disciplines || []);
-          setEditAvailabilityStatus(formattedProfile.availabilityStatus || '');
-          setEditCompanyName(formattedProfile.companyName || '');
-          setEditCompanyLink(formattedProfile.companyLink || '');
-          setEditTeamSize(formattedProfile.teamSize || '');
-          setEditIndustry(formattedProfile.industry || '');
-          setEditDisciplinesHiring(formattedProfile.disciplinesHiring || []);
 
           // Fetch projects
           const { data: projsData, error: projsErr } = await supabase
             .from('projects')
             .select('*')
-            .eq('creator_id', targetId)
+            .eq('user_id', targetId)
+            .eq('verification_status', 'approved')
             .order('created_at', { ascending: false });
 
           if (projsErr) {
@@ -413,11 +161,11 @@ export default function ProfileClient() {
             const formattedProjects = projsData.map((p: any) => ({
               id: p.id,
               title: p.title,
-              creatorId: p.creator_id,
-              creatorName: p.creator_name,
-              paletteHex: p.palette_hex || [],
-              technique: p.technique,
-              mood: p.mood,
+              creatorId: p.user_id,
+              description: p.description,
+              coverUrl: p.cover_url,
+              discipline: p.discipline,
+              tags: p.tags || [],
             }));
             setProjects(formattedProjects);
           }
@@ -427,17 +175,17 @@ export default function ProfileClient() {
             .from('posts')
             .select(`
               id,
-              creator_id,
+              user_id,
               content,
               created_at,
-              profiles:creator_id (
-                name,
+              profiles:user_id (
+                full_name,
                 avatar_url,
-                role,
+                profile_type,
                 username
               )
             `)
-            .eq('creator_id', targetId)
+            .eq('user_id', targetId)
             .order('created_at', { ascending: false });
 
           if (postsErr) {
@@ -447,12 +195,12 @@ export default function ProfileClient() {
               const profileData = p.profiles || {};
               return {
                 id: p.id,
-                creator_id: p.creator_id,
+                creator_id: p.user_id,
                 content: p.content,
                 created_at: p.created_at,
-                authorName: profileData.name || formattedProfile.name,
+                authorName: profileData.full_name || formattedProfile.name,
                 authorUsername: profileData.username || formattedProfile.username || 'creative',
-                authorRole: profileData.role || formattedProfile.role,
+                authorRole: profileData.profile_type || formattedProfile.role,
                 authorAvatar: profileData.avatar_url || formattedProfile.avatarUrl || '',
                 likes: Math.floor(Math.random() * 15) + 1,
                 liked: false,
@@ -464,11 +212,11 @@ export default function ProfileClient() {
           }
 
           // Fetch briefs if user is a studio or brand
-          if (pData.role === 'studio' || pData.role === 'brand') {
+          if (pData.profile_type === 'studio' || pData.profile_type === 'brand') {
             const { data: briefsData, error: briefsErr } = await supabase
               .from('briefs')
               .select('*')
-              .eq('studio_id', targetId)
+              .eq('user_id', targetId)
               .order('created_at', { ascending: false });
 
             if (briefsErr) {
@@ -479,10 +227,7 @@ export default function ProfileClient() {
                 title: b.title,
                 description: b.description,
                 budget: b.budget,
-                modality: b.modality,
                 createdAt: b.created_at,
-                studioId: b.studio_id,
-                active: b.active ?? true,
               }));
               setBriefs(formattedBriefs);
             }
@@ -495,125 +240,7 @@ export default function ProfileClient() {
       }
     };
 
-    // If it's a fallback profile id, load it as local mockup
-    if (FALLBACK_PROFILES[targetId]) {
-      const mockProfile = FALLBACK_PROFILES[targetId];
-      setProfile(mockProfile);
-      
-      const localProjects = FALLBACK_PROJECTS[targetId] || [];
-      const localBriefs = FALLBACK_BRIEFS[targetId] || [];
-      const localPosts = FALLBACK_POSTS.filter(p => p.creator_id === targetId);
-
-      setEditName(mockProfile.name || '');
-      setEditBio(mockProfile.bio || '');
-      setEditLocation(mockProfile.location || '');
-      setEditIsAvailable(mockProfile.isAvailable ?? true);
-      setEditUsername(mockProfile.username || '');
-      setEditPractice(mockProfile.practice || '');
-      setEditDisciplines(mockProfile.disciplines || []);
-      setEditAvailabilityStatus(mockProfile.availabilityStatus || '');
-      setEditCompanyName(mockProfile.companyName || '');
-      setEditCompanyLink(mockProfile.companyLink || '');
-      setEditTeamSize(mockProfile.teamSize || '');
-      setEditIndustry(mockProfile.industry || '');
-      setEditDisciplinesHiring(mockProfile.disciplinesHiring || []);
-
-      // Query dynamic projects & merge
-      supabase
-        .from('projects')
-        .select('*')
-        .eq('creator_id', targetId)
-        .then(({ data, error }) => {
-          if (error) {
-            setProjects(localProjects);
-          } else if (data) {
-            const formatted = data.map((p: any) => ({
-              id: p.id,
-              title: p.title,
-              creatorId: p.creator_id,
-              creatorName: p.creator_name,
-              paletteHex: p.palette_hex || [],
-              technique: p.technique,
-              mood: p.mood,
-            }));
-            const merged = [...formatted, ...localProjects.filter(lp => !formatted.some(fp => fp.id === lp.id))];
-            setProjects(merged);
-          }
-        });
-
-      // Query dynamic posts & merge
-      supabase
-        .from('posts')
-        .select(`
-          id,
-          creator_id,
-          content,
-          created_at,
-          profiles:creator_id (
-            name,
-            avatar_url,
-            role,
-            username
-          )
-        `)
-        .eq('creator_id', targetId)
-        .order('created_at', { ascending: false })
-        .then(({ data, error }) => {
-          if (error) {
-            setProfilePosts(localPosts);
-          } else if (data) {
-            const formatted = data.map((p: any) => {
-              const profileData = p.profiles || {};
-              return {
-                id: p.id,
-                creator_id: p.creator_id,
-                content: p.content,
-                created_at: p.created_at,
-                authorName: profileData.name || mockProfile.name,
-                authorUsername: profileData.username || mockProfile.username || 'creative',
-                authorRole: profileData.role || mockProfile.role,
-                authorAvatar: profileData.avatar_url || mockProfile.avatarUrl || '',
-                likes: Math.floor(Math.random() * 15) + 1,
-                liked: false,
-                replies: [],
-                showReplies: false
-              };
-            });
-            const merged = [...formatted, ...localPosts.filter(lp => !formatted.some(fp => fp.id === lp.id))];
-            setProfilePosts(merged);
-          }
-        });
-
-      if (mockProfile.role === 'studio' || mockProfile.role === 'brand') {
-        supabase
-          .from('briefs')
-          .select('*')
-          .eq('studio_id', targetId)
-          .then(({ data, error }) => {
-            if (error) {
-              setBriefs(localBriefs);
-            } else if (data) {
-              const formatted = data.map((b: any) => ({
-                id: b.id,
-                title: b.title,
-                description: b.description,
-                budget: b.budget,
-                modality: b.modality,
-                createdAt: b.created_at,
-                studioId: b.studio_id,
-                active: b.active ?? true,
-              }));
-              const merged = [...formatted, ...localBriefs.filter(lb => !formatted.some(fb => fb.id === lb.id))];
-              setBriefs(merged);
-            }
-          });
-      }
-
-      setLoading(false);
-      return;
-    }
-
-    // Real Supabase data loader
+    // Load real Supabase data
     fetchRealProfileData();
 
     // Setup real-time listener for profiles, projects, and briefs
@@ -637,7 +264,7 @@ export default function ProfileClient() {
         .channel(`profile-${targetId}-projects`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'projects', filter: `creator_id=eq.${targetId}` },
+          { event: '*', schema: 'public', table: 'projects', filter: `user_id=eq.${targetId}` },
           () => {
             fetchRealProfileData();
           }
@@ -648,7 +275,7 @@ export default function ProfileClient() {
         .channel(`profile-${targetId}-briefs`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'briefs', filter: `studio_id=eq.${targetId}` },
+          { event: '*', schema: 'public', table: 'briefs', filter: `user_id=eq.${targetId}` },
           () => {
             fetchRealProfileData();
           }
@@ -671,29 +298,12 @@ export default function ProfileClient() {
     if (!currentUser || !isMe || !profile) return;
     setSaveLoading(true);
 
-    const updatePayload: any = {
-      name: editName,
-      bio: editBio,
-      location: editLocation,
-      is_available: editIsAvailable
+    const updatePayload: Record<string, unknown> = {
+      full_name: editName.trim() || null,
+      bio: editBio.trim() || null,
+      location: editLocation.trim() || null,
+      disciplines: editDisciplines,
     };
-
-    if (profile.role === 'creator') {
-      updatePayload.username = editUsername;
-      updatePayload.practice = editPractice;
-      updatePayload.disciplines = editDisciplines;
-      updatePayload.availability_status = editAvailabilityStatus;
-    } else if (profile.role === 'studio') {
-      updatePayload.company_name = editCompanyName;
-      updatePayload.company_link = editCompanyLink;
-      updatePayload.disciplines = editDisciplines;
-      updatePayload.team_size = editTeamSize;
-    } else if (profile.role === 'brand') {
-      updatePayload.company_name = editCompanyName;
-      updatePayload.company_link = editCompanyLink;
-      updatePayload.industry = editIndustry;
-      updatePayload.disciplines_hiring = editDisciplinesHiring;
-    }
 
     try {
       const { error } = await supabase
@@ -907,10 +517,10 @@ export default function ProfileClient() {
       <div className="glass rounded-3xl overflow-hidden border border-borderGlass shadow-xl relative">
         <div className={`w-full h-44 bg-gradient-to-r ${bannerGrad} relative overflow-hidden flex items-end p-6`}>
           <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
-          {profile.isPro && (
+          {profile.isVerified && (
             <span className="absolute top-4 right-4 bg-accent/20 backdrop-blur-md text-accent border border-accent/30 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
               <Sparkles className="w-3 h-3" />
-              <span>PRO Member</span>
+              <span>Verified Member</span>
             </span>
           )}
         </div>
@@ -921,15 +531,12 @@ export default function ProfileClient() {
             <div className="w-full h-full rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center font-display font-black text-2xl text-neutral-800 dark:text-white border-2 border-white dark:border-[#121214] uppercase">
               {profile.name.substring(0, 2)}
             </div>
-            {profile.isAvailable && isCreative && (
-              <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-[#121214] rounded-full animate-pulse" title="Available for opportunities" />
-            )}
           </div>
 
           <div className="flex-1 space-y-1">
             <div className="flex flex-col md:flex-row md:items-center gap-2 justify-center md:justify-start">
               <h2 className="text-2xl font-display font-black tracking-tight text-neutral-900 dark:text-white">
-                {profile.companyName || profile.name}
+                {profile.name}
               </h2>
               <span className="text-[9px] bg-accent/10 text-accent font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider self-center border border-accent/15">
                 {profile.role}
@@ -947,12 +554,6 @@ export default function ProfileClient() {
                 <Mail className="w-3.5 h-3.5" />
                 <span>{profile.email}</span>
               </span>
-              {isCreative && (
-                <span className="flex items-center gap-1 font-semibold text-green-600 dark:text-green-500">
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>{profile.isAvailable ? 'Available' : 'Busy'}</span>
-                </span>
-              )}
               {profile.username && (
                 <span className="text-neutral-400 font-mono text-[11px]">
                   @{profile.username}
@@ -1277,9 +878,6 @@ export default function ProfileClient() {
                 <div key={brief.id} className="glass p-6 rounded-2xl border border-borderGlass shadow-sm hover:shadow-md transition duration-200 space-y-3">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <span className="text-[9px] bg-accent/10 text-accent font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-accent/10">
-                        {brief.modality}
-                      </span>
                       <h3 className="text-lg font-display font-black text-neutral-900 dark:text-white pt-1">
                         {brief.title}
                       </h3>
@@ -1398,63 +996,19 @@ export default function ProfileClient() {
                   </div>
                 )}
 
-                {/* Creator Specific Metadata */}
-                {isCreative && (
-                  <>
-                    {profile.practice && (
-                      <div>
-                        <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Current Practice Type</h4>
-                        <p className="font-semibold text-sm capitalize text-neutral-800 dark:text-neutral-200">
-                          {profile.practice.replace('_', ' ')}
-                        </p>
-                      </div>
-                    )}
-                    {profile.availabilityStatus && (
-                      <div>
-                        <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Availability to Opportunities</h4>
-                        <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">
-                          {profile.availabilityStatus === 'yes' ? '✓ Actively looking / Available immediately' : 
-                           profile.availabilityStatus === 'depends' ? '✦ Negotiable (Depends on brief details)' : 
-                           profile.availabilityStatus === 'not_now' ? '✕ Currently booked / Not available' : 'Awaiting status updates'}
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Studio/Brand Specific Metadata */}
-                {isScout && (
-                  <>
-                    {profile.companyLink && (
-                      <div>
-                        <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Official Digital Link</h4>
-                        <a 
-                          href={profile.companyLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-sm text-accent hover:underline break-all"
-                        >
-                          {profile.companyLink}
-                        </a>
-                      </div>
-                    )}
-                    {profile.teamSize && (
-                      <div>
-                        <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Team & Agency Size</h4>
-                        <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">
-                          {profile.teamSize} Connected Members
-                        </p>
-                      </div>
-                    )}
-                    {profile.industry && (
-                      <div>
-                        <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Industry Sector</h4>
-                        <p className="font-semibold text-sm capitalize text-neutral-800 dark:text-neutral-200">
-                          {profile.industry}
-                        </p>
-                      </div>
-                    )}
-                  </>
+                {/* Website / Digital Link */}
+                {profile.website && (
+                  <div>
+                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Official Digital Link</h4>
+                    <a
+                      href={profile.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-sm text-accent hover:underline break-all"
+                    >
+                      {profile.website}
+                    </a>
+                  </div>
                 )}
               </div>
 
@@ -1490,19 +1044,6 @@ export default function ProfileClient() {
                   </div>
                 )}
 
-                {profile.role === 'brand' && profile.disciplinesHiring && profile.disciplinesHiring.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Actively Hiring / Seeking Talents</h4>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {profile.disciplinesHiring.map((d, i) => (
-                        <span key={i} className="text-[9px] bg-green-500/10 border border-green-500/15 text-green-600 dark:text-green-500 font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider">
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div>
                   <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Onboarding Verification Status</h4>
                   <div className="flex items-center gap-1.5 mt-1.5">
@@ -1518,15 +1059,6 @@ export default function ProfileClient() {
                       </>
                     )}
                   </div>
-                  {profile.verificationFileUrl && (
-                    <div className="mt-2.5 bg-neutral-50 dark:bg-neutral-800 p-2.5 rounded-xl border border-borderGlass flex items-center justify-between">
-                      <span className="text-[9px] font-mono text-neutral-500 break-all">{profile.verificationFileUrl.replace('mock://files/', '')}</span>
-                      <a href="#" onClick={(e) => e.preventDefault()} className="text-[9px] font-black uppercase text-accent hover:underline flex items-center">
-                        <FileText className="w-3.5 h-3.5 mr-0.5" />
-                        <span>View Project PDF</span>
-                      </a>
-                    </div>
-                  )}
                 </div>
 
                 <div>
@@ -1563,185 +1095,38 @@ export default function ProfileClient() {
                 />
               </div>
 
-              {profile.role === 'creator' && (
-                <div>
-                  <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Username</label>
-                  <input 
-                    type="text" 
-                    value={editUsername} 
-                    onChange={(e) => setEditUsername(e.target.value)} 
-                    placeholder="alexmcqueen"
-                    className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                  />
-                </div>
-              )}
-
-              {(profile.role === 'studio' || profile.role === 'brand') && (
-                <>
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Company / Studio Name</label>
-                    <input 
-                      type="text" 
-                      value={editCompanyName} 
-                      onChange={(e) => setEditCompanyName(e.target.value)} 
-                      placeholder="Agency or Brand Name"
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Official Digital Link (Website)</label>
-                    <input 
-                      type="text" 
-                      value={editCompanyLink} 
-                      onChange={(e) => setEditCompanyLink(e.target.value)} 
-                      placeholder="https://agency.com"
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                    />
-                  </div>
-                </>
-              )}
-
               <div>
                 <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Corporate Location</label>
-                <input 
-                  type="text" 
-                  value={editLocation} 
-                  onChange={(e) => setEditLocation(e.target.value)} 
+                <input
+                  type="text"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
                   placeholder="e.g. Barcelona, Spain"
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
+                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
                 />
               </div>
 
               <div>
                 <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Biography / Short Description</label>
-                <textarea 
-                  value={editBio} 
-                  onChange={(e) => setEditBio(e.target.value)} 
-                  rows={3} 
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  rows={3}
                   placeholder="Describe your design vision, creative process, or brand offerings..."
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs resize-none border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
+                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs resize-none border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
                 />
               </div>
 
-              {/* Creator Specific Forms */}
-              {profile.role === 'creator' && (
-                <>
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Current Practice</label>
-                    <select 
-                      value={editPractice} 
-                      onChange={(e) => setEditPractice(e.target.value)} 
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
-                    >
-                      <option value="">Select current practice...</option>
-                      <option value="student">Student</option>
-                      <option value="starting_career">Starting Career</option>
-                      <option value="freelance">Freelance</option>
-                      <option value="employee">Employee</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Core Disciplines (Comma Separated)</label>
-                    <input 
-                      type="text" 
-                      value={editDisciplines.join(', ')} 
-                      onChange={(e) => setEditDisciplines(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} 
-                      placeholder="e.g. graphic design, typography, art direction"
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Availability to Opportunities</label>
-                    <select 
-                      value={editAvailabilityStatus} 
-                      onChange={(e) => setEditAvailabilityStatus(e.target.value)} 
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
-                    >
-                      <option value="">Select availability...</option>
-                      <option value="yes">Yes, actively looking</option>
-                      <option value="depends">Depends on the brief details</option>
-                      <option value="not_now">Not now</option>
-                      <option value="dont_know">Don't know yet</option>
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Studio Specific Forms */}
-              {profile.role === 'studio' && (
-                <>
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Team Size</label>
-                    <select 
-                      value={editTeamSize} 
-                      onChange={(e) => setEditTeamSize(e.target.value)} 
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
-                    >
-                      <option value="">Select team size...</option>
-                      <option value="1-3">1-3 People</option>
-                      <option value="4-10">4-10 People</option>
-                      <option value="11-25">11-25 People</option>
-                      <option value="26-50">26-50 People</option>
-                      <option value="50+">More than 50 People</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Core Offerings (Comma Separated)</label>
-                    <input 
-                      type="text" 
-                      value={editDisciplines.join(', ')} 
-                      onChange={(e) => setEditDisciplines(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} 
-                      placeholder="e.g. branding, packaging, animation"
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Brand Specific Forms */}
-              {profile.role === 'brand' && (
-                <>
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Industry</label>
-                    <input 
-                      type="text" 
-                      value={editIndustry} 
-                      onChange={(e) => setEditIndustry(e.target.value)} 
-                      placeholder="e.g. Fashion & Lifestyle, Tech, Restaurants"
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Seeking to Hire (Comma Separated)</label>
-                    <input 
-                      type="text" 
-                      value={editDisciplinesHiring.join(', ')} 
-                      onChange={(e) => setEditDisciplinesHiring(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} 
-                      placeholder="e.g. fashion design, video editing, branding"
-                      className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
-                    />
-                  </div>
-                </>
-              )}
-
-              {isCreative && (
-                <div className="flex items-center gap-3 py-2 bg-neutral-50 dark:bg-neutral-900/40 p-3 rounded-xl border border-borderGlass/50">
-                  <input 
-                    type="checkbox" 
-                    id="isAvailable" 
-                    checked={editIsAvailable} 
-                    onChange={(e) => setEditIsAvailable(e.target.checked)} 
-                    className="w-4 h-4 text-accent border-borderGlass rounded focus:ring-accent" 
-                  />
-                  <label htmlFor="isAvailable" className="font-semibold text-neutral-700 dark:text-neutral-300 select-none cursor-pointer">
-                    Show "Available" status badge publicly
-                  </label>
-                </div>
-              )}
+              <div>
+                <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Disciplines (Comma Separated)</label>
+                <input
+                  type="text"
+                  value={editDisciplines.join(', ')}
+                  onChange={(e) => setEditDisciplines(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                  placeholder="e.g. graphic design, typography, art direction"
+                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
+                />
+              </div>
 
               <button 
                 type="submit" 
