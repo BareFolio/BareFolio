@@ -549,7 +549,7 @@ export default function ExplorePage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="space-y-6">
       
       {/* Title Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-borderGlass pb-4 gap-4">
@@ -583,9 +583,10 @@ export default function ExplorePage() {
       </div>
 
       {subTab === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          
-          {/* Left Column - Swiss Editorial Filters (Sticky & Desktop only) */}
+        <div className={selectedCategory === 'inspiration' ? 'space-y-6' : 'grid grid-cols-1 md:grid-cols-4 gap-8'}>
+
+          {/* Left Column - Swiss Editorial Filters (hidden on inspiration) */}
+          {selectedCategory !== 'inspiration' && (
           <div className="hidden md:block md:col-span-1 space-y-6 sticky top-24 self-start max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 scrollbar-thin">
             <div className="flex items-center justify-between border-b border-borderGlass pb-3">
               <span className="text-xs font-display font-black tracking-tight text-neutral-800 dark:text-neutral-200 uppercase">
@@ -759,23 +760,38 @@ export default function ExplorePage() {
             </div>
 
           </div>
+          )}
 
           {/* Right Column - Catalog Results Grid */}
-          <div className="col-span-1 md:col-span-3 space-y-6">
+          <div className={selectedCategory === 'inspiration' ? 'space-y-6' : 'col-span-1 md:col-span-3 space-y-6'}>
             
             {/* Quick Filters + Search bar */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="relative w-full md:max-w-md">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400">
-                  <Search className="w-4 h-4" />
-                </span>
-                <input 
-                  type="text" 
-                  placeholder={`Search ${selectedCategory}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-accent text-sm"
-                />
+              <div className="flex items-center gap-2 w-full md:max-w-lg">
+                <div className="relative flex-1">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400">
+                    <Search className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder={`Search ${selectedCategory}...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-accent text-sm"
+                  />
+                </div>
+                {selectedCategory === 'inspiration' && (
+                  <button
+                    onClick={() => {
+                      setSelectedDiscipline(null);
+                      setSelectedSensibility(null);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-3 rounded-xl border border-borderGlass bg-neutral-100 dark:bg-neutral-800/80 text-neutral-500 hover:text-accent hover:border-accent transition text-xs font-semibold cursor-pointer"
+                    title="Filters"
+                  >
+                    <Sliders className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               
               {/* Quick Overhauled Categories selector */}

@@ -38,7 +38,7 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
   return (
     <div className="flex flex-col min-h-screen bg-bg-primary dark:bg-[#121214] text-neutral-900 dark:text-neutral-100 font-sans">
       <Header onCreateClick={() => setIsCreateOpen(true)} />
-      <main className="flex-1 pt-6 md:pt-32 pb-24 md:pb-8 max-w-7xl mx-auto w-full px-6 overflow-y-auto">
+      <main className="flex-1 pt-6 md:pt-32 pb-24 md:pb-8 w-full px-4 md:px-8">
         {children}
       </main>
       <TabBar onCreateClick={() => setIsCreateOpen(true)} />

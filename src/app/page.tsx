@@ -308,7 +308,7 @@ export default function HomePage() {
   const displayedFeed = activeTab === 'forYou' ? forYouItems : finalFeed;
 
   return (
-    <div className="space-y-8 font-sans max-w-7xl mx-auto">
+    <div className="space-y-8 font-sans">
       {/* Editorial Header tabs */}
       <div className="flex items-center justify-between border-b border-borderGlass pb-4">
         <div className="flex items-center gap-6">
