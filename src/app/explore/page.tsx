@@ -75,6 +75,7 @@ interface ProjectItem {
   id: string;
   creatorId: string;
   creatorName: string;
+  coverUrl?: string;
   title: string;
   description?: string;
   paletteHex?: string[];
@@ -256,7 +257,7 @@ export default function ExplorePage() {
   const [subTab, setSubTab] = useState<'grid' | 'swipe'>('grid');
   
   // Category selected state: Projects, Creators, Studios, Briefs, Communities
-  const [selectedCategory, setSelectedCategory] = useState<'projects' | 'creators' | 'studios' | 'briefs' | 'communities'>('projects');
+  const [selectedCategory, setSelectedCategory] = useState<'inspiration' | 'projects' | 'creators' | 'studios' | 'briefs' | 'communities'>('inspiration');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Swiss Editorial Filter States
@@ -283,17 +284,21 @@ export default function ExplorePage() {
     setLoading(true);
     try {
       // 1. Projects
-      const { data: projData } = await supabase.from('projects').select('*');
+      const { data: projData } = await supabase
+        .from('projects')
+        .select('*, profile:profiles(id, username, full_name)')
+        .eq('verification_status', 'approved');
       if (projData) {
         setDbProjects(projData.map((p: any) => ({
           id: p.id,
-          creatorId: p.creator_id,
-          creatorName: p.creator_name,
+          creatorId: p.user_id,
+          creatorName: (p.profile as any)?.full_name || (p.profile as any)?.username || 'Creator',
+          coverUrl: p.cover_url ?? undefined,
           title: p.title,
           description: p.description,
-          paletteHex: p.palette_hex || [],
-          technique: p.technique,
-          mood: p.mood
+          paletteHex: [],
+          technique: p.discipline || 'Visual Design',
+          mood: p.atmosphere || 'Minimalist',
         })));
       }
 
@@ -775,7 +780,7 @@ export default function ExplorePage() {
               
               {/* Quick Overhauled Categories selector */}
               <div className="flex gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
-                {(['projects', 'creators', 'studios', 'briefs', 'communities'] as const).map((cat) => (
+                {(['inspiration', 'projects', 'creators', 'studios', 'briefs', 'communities'] as const).map((cat) => (
                   <button
                     key={cat}
                     onClick={() => {
@@ -783,8 +788,8 @@ export default function ExplorePage() {
                       setSearchQuery('');
                     }}
                     className={`px-4.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer border whitespace-nowrap uppercase tracking-wider transition duration-200 ${
-                      selectedCategory === cat 
-                        ? 'bg-accent text-white border-accent shadow-sm' 
+                      selectedCategory === cat
+                        ? 'bg-accent text-white border-accent shadow-sm'
                         : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 border-borderGlass hover:border-neutral-400'
                     }`}
                   >
@@ -800,7 +805,43 @@ export default function ExplorePage() {
               </div>
             ) : (
               <div className="min-h-[300px]">
-                
+
+                {/* INSPIRATION: full-width image-only grid */}
+                {selectedCategory === 'inspiration' && (
+                  <div>
+                    {dbProjects.length === 0 ? (
+                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
+                        No projects yet. Be the first to publish.
+                      </div>
+                    ) : (
+                      <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+                        {dbProjects.map((project) => {
+                          const gradients = ['from-[#FF9A9E] to-[#FECFEF]','from-[#A1C4FD] to-[#C2E9FB]','from-[#F6D365] to-[#FDA085]','from-[#84FAB0] to-[#8FD3F4]','from-[#E0C3FC] to-[#8EC5FC]'];
+                          let sum = 0; for (let i = 0; i < project.title.length; i++) sum += project.title.charCodeAt(i);
+                          const gradient = gradients[sum % gradients.length];
+                          const heightClass = project.title.length % 3 === 0 ? 'h-56' : project.title.length % 2 === 0 ? 'h-72' : 'h-44';
+                          return (
+                            <div key={project.id} className="break-inside-avoid rounded-xl overflow-hidden group relative cursor-pointer">
+                              <div className={`relative w-full ${heightClass}`}>
+                                {project.coverUrl ? (
+                                  <img src={project.coverUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className={`w-full h-full bg-gradient-to-tr ${gradient}`} />
+                                )}
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                                  <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">
+                                    {project.creatorName}
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* CATEGORY 1: PROJECTS GRID */}
                 {selectedCategory === 'projects' && (
                   <div>

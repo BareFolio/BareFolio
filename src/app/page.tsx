@@ -20,6 +20,7 @@ interface ProjectFeedItem {
   type: 'project';
   title: string;
   description: string;
+  coverUrl?: string;
   creatorId: string;
   creatorName: string;
   creatorAvatar?: string;
@@ -187,6 +188,7 @@ export default function HomePage() {
           creatorId: item.user_id,
           creatorName: item.profile?.full_name || item.profile?.username || 'Creative Creator',
           creatorAvatar: item.profile?.avatar_url ?? undefined,
+          coverUrl: item.cover_url ?? undefined,
           paletteHex: item.palette ?? [],
           technique: item.discipline || 'Visual Design',
           mood: item.atmosphere || item.visual_language || 'Editorial',
@@ -248,6 +250,7 @@ export default function HomePage() {
             creatorName: item.profile?.full_name || item.profile?.username || 'Creative Creator',
             creatorAvatar: item.profile?.avatar_url ?? undefined,
             paletteHex: item.palette ?? [],
+            coverUrl: item.cover_url ?? undefined,
             technique: item.discipline || 'Visual Design',
             mood: item.atmosphere || item.visual_language || 'Editorial',
             createdAt: item.created_at,
@@ -350,220 +353,47 @@ export default function HomePage() {
           <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        /* Pinterest-style Masonry Columns Grid */
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-          {displayedFeed.map((item) => {
-            const isLiked = likedIds[item.id] || false;
-            const isSaved = savedIds[item.id] || false;
-
-            if (item.type === 'project') {
+        /* Image-only masonry grid — projects only */
+        <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
+          {displayedFeed
+            .filter((item): item is ProjectFeedItem => item.type === 'project')
+            .map((item) => {
+              const isLiked = likedIds[item.id] || false;
+              const isSaved = savedIds[item.id] || false;
               const gradient = getPlaceholderGradient(item.title);
-              // Dynamic height mapping based on title length
-              const heightClass = item.title.length % 3 === 0 ? 'h-64' : item.title.length % 2 === 0 ? 'h-80' : 'h-52';
+              const heightClass = item.title.length % 3 === 0 ? 'h-56' : item.title.length % 2 === 0 ? 'h-72' : 'h-44';
 
               return (
-                <div 
+                <div
                   key={item.id}
-                  className="break-inside-avoid glass rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-500 group border border-borderGlass flex flex-col relative"
+                  className="break-inside-avoid rounded-xl overflow-hidden group relative cursor-pointer"
                 >
-                  <div className={`relative w-full ${heightClass} bg-gradient-to-tr ${gradient} transition-transform duration-700 overflow-hidden`}>
-                    {/* Hover state content */}
-                    <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4 text-white z-10">
-                      <div className="flex justify-end gap-2">
+                  <div className={`relative w-full ${heightClass}`}>
+                    {item.coverUrl ? (
+                      <img src={item.coverUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-tr ${gradient}`} />
+                    )}
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-start justify-end p-2">
+                      <div className="flex gap-1.5">
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleSave('project', item.id); }}
-                          className={`p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isSaved ? 'bg-accent text-white scale-105' : 'bg-white/20 hover:bg-white/45'}`}
+                          className={`p-1.5 rounded-full backdrop-blur-md transition cursor-pointer ${isSaved ? 'bg-accent' : 'bg-black/40 hover:bg-black/60'}`}
                         >
-                          <FolderPlus className="w-4 h-4" />
+                          <FolderPlus className="w-3.5 h-3.5 text-white" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleLike('project', item.id); }}
-                          className={`p-2 rounded-full backdrop-blur-md transition cursor-pointer ${isLiked ? 'bg-red-500 text-white scale-105' : 'bg-white/20 hover:bg-white/45'}`}
+                          className={`p-1.5 rounded-full backdrop-blur-md transition cursor-pointer ${isLiked ? 'bg-red-500' : 'bg-black/40 hover:bg-black/60'}`}
                         >
-                          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                          <Heart className={`w-3.5 h-3.5 text-white ${isLiked ? 'fill-current' : ''}`} />
                         </button>
                       </div>
-
-                      <div>
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-accent mb-1 inline-block">
-                          {item.technique}
-                        </span>
-                        <h4 className="text-sm font-display font-black leading-tight line-clamp-2">
-                          {item.title}
-                        </h4>
-                        <Link 
-                          href={`/profile/${item.creatorId}`}
-                          className="text-[10px] text-white/80 mt-1 truncate hover:underline hover:text-white block font-sans font-medium"
-                        >
-                          by {item.creatorName}
-                        </Link>
-                      </div>
                     </div>
-                  </div>
-
-                  {/* Portfolio metadata footer */}
-                  <div className="p-4 bg-white/40 dark:bg-neutral-900/40 backdrop-blur-md flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <Link 
-                        href={`/profile/${item.creatorId}`}
-                        className="flex items-center gap-2 group/author hover:opacity-85 transition truncate"
-                      >
-                        <div className="w-5.5 h-5.5 rounded-full bg-accent/10 text-accent flex items-center justify-center font-bold text-[9px] uppercase">
-                          {item.creatorName.substring(0, 2)}
-                        </div>
-                        <span className="text-xs text-text-primary font-bold truncate max-w-[120px] group-hover/author:text-accent transition">
-                          {item.creatorName}
-                        </span>
-                      </Link>
-                      <span className="text-[9px] bg-neutral-100 dark:bg-neutral-800 text-text-secondary font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        {item.mood}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-text-secondary font-sans leading-relaxed line-clamp-2">
-                      {item.description}
-                    </p>
-
-                    {item.paletteHex && item.paletteHex.length > 0 && (
-                      <div className="flex gap-1.5 items-center mt-2 border-t border-borderGlass/50 pt-2">
-                        {item.paletteHex.slice(0, 3).map((hex, i) => (
-                          <div 
-                            key={i} 
-                            className="w-3.5 h-3.5 rounded-full border border-neutral-200 dark:border-neutral-700/80 shadow-sm" 
-                            style={{ backgroundColor: hex }} 
-                            title={hex}
-                          />
-                        ))}
-                        <span className="text-[9px] text-text-secondary font-medium ml-1">Palette</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               );
-            }
-
-            if (item.type === 'brief') {
-              return (
-                <div 
-                  key={item.id}
-                  className="break-inside-avoid glass rounded-2xl p-5 hover:shadow-xl transition-all duration-500 border border-borderGlass flex flex-col gap-4 bg-white/30 dark:bg-neutral-900/30"
-                >
-                  {/* Brief header */}
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] text-accent uppercase font-bold tracking-widest font-display">
-                        {item.modality}
-                      </span>
-                      <h4 className="text-base font-display font-black leading-tight text-text-primary mt-1">
-                        {item.title}
-                      </h4>
-                      <p className="text-[11px] text-text-secondary font-medium font-sans">
-                        {item.studioName}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleSave('brief', item.id); }}
-                      className={`p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition ${isSaved ? 'text-accent' : 'text-neutral-400'}`}
-                    >
-                      <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
-
-                  <p className="text-[11px] text-text-secondary leading-relaxed font-sans">
-                    {item.description}
-                  </p>
-
-                  {/* 3-column detailed job stats */}
-                  <div className="grid grid-cols-3 gap-2 border-t border-b border-borderGlass py-3.5">
-                    <div className="text-center border-r border-borderGlass">
-                      <p className="text-xs font-display font-black text-text-primary">{item.budget}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-text-secondary mt-0.5">Budget</p>
-                    </div>
-                    <div className="text-center border-r border-borderGlass">
-                      <p className="text-xs font-display font-black text-text-primary">{item.deadline}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-text-secondary mt-0.5">Deadline</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-display font-black text-text-primary">{item.duration}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-text-secondary mt-0.5">Duration</p>
-                    </div>
-                  </div>
-
-                  {/* Call to action */}
-                  <button className="w-full bg-accent/10 hover:bg-accent hover:text-white text-accent text-xs font-bold py-2.5 rounded-xl transition duration-300 flex items-center justify-center gap-1.5 cursor-pointer">
-                    <span>Apply</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            }
-
-            if (item.type === 'post') {
-              return (
-                <div 
-                  key={item.id}
-                  className="break-inside-avoid glass rounded-2xl p-5 hover:shadow-xl transition-all duration-500 border border-borderGlass flex flex-col gap-4 bg-white/20 dark:bg-neutral-900/20"
-                >
-                  {/* Creator snapshot header */}
-                  <div className="flex items-center justify-between border-b border-borderGlass/50 pb-3">
-                    <div className="flex items-center gap-2.5 truncate">
-                      {item.creatorAvatar ? (
-                        <img 
-                          src={item.creatorAvatar} 
-                          alt={item.creatorName} 
-                          className="w-8 h-8 rounded-full object-cover border border-neutral-100"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center font-bold text-xs uppercase">
-                          {item.creatorName.substring(0, 2)}
-                        </div>
-                      )}
-                      <div className="truncate">
-                        <h4 className="text-xs font-bold text-text-primary truncate">{item.creatorName}</h4>
-                        <div className="flex items-center gap-1.5 text-[9px] text-text-secondary mt-0.5 font-medium">
-                          <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />{item.location}</span>
-                          <span>·</span>
-                          <span>{item.year}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleLike('post', item.id); }}
-                      className={`p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition ${isLiked ? 'text-red-500 scale-105' : 'text-neutral-400'}`}
-                    >
-                      <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
-
-                  {/* Thought details */}
-                  <p className="text-xs text-text-primary leading-relaxed font-sans font-medium whitespace-pre-wrap">
-                    "{item.content}"
-                  </p>
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2 mt-1">
-                    <Link 
-                      href={`/profile/${item.creatorId}`}
-                      className="flex-1 bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 text-center text-[10px] uppercase tracking-widest font-bold py-2 rounded-lg transition duration-200 text-text-primary"
-                    >
-                      View profile
-                    </Link>
-                    <Link 
-                      href={`/inbox?user=${item.creatorId}`}
-                      className="flex-1 bg-accent/5 hover:bg-accent/15 text-accent text-center text-[10px] uppercase tracking-widest font-bold py-2 rounded-lg transition duration-200 flex items-center justify-center gap-1"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      <span>Message</span>
-                    </Link>
-                  </div>
-                </div>
-              );
-            }
-
-            return null;
-          })}
+            })}
         </div>
       )}
     </div>

@@ -18,6 +18,7 @@ export default function InboxPage() {
   const searchParams = useSearchParams()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const [inboxTab, setInboxTab] = useState<'chats' | 'communities'>('chats')
   const [conversations, setConversations] = useState<ConversationWithDetails[]>([])
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
     searchParams.get('conversation')
@@ -138,18 +139,39 @@ export default function InboxPage() {
     <div className="flex h-[calc(100vh-4rem)] border border-borderGlass rounded-2xl overflow-hidden">
       {/* Conversation List */}
       <div className="w-72 flex-shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col">
-        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-accent" />
-          <h2 className="font-semibold text-sm">Inbox</h2>
+        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-lg p-0.5 gap-0.5">
+            <button
+              onClick={() => setInboxTab('chats')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition ${inboxTab === 'chats' ? 'bg-white dark:bg-neutral-700 text-text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              Chats
+            </button>
+            <button
+              onClick={() => setInboxTab('communities')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition ${inboxTab === 'communities' ? 'bg-white dark:bg-neutral-700 text-text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              Communities
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 && (
+          {inboxTab === 'communities' && (
+            <div className="p-6 text-center flex flex-col items-center gap-3 mt-8">
+              <MessageSquare className="w-8 h-8 text-neutral-300 dark:text-neutral-600" />
+              <p className="text-xs text-neutral-400 font-medium">Communities coming soon</p>
+              <p className="text-[10px] text-neutral-500">Group spaces for studios and collectives will appear here.</p>
+            </div>
+          )}
+          {inboxTab === 'chats' && conversations.length === 0 && (
             <div className="p-6 text-center">
               <p className="text-xs text-neutral-400">No conversations yet.</p>
               <p className="text-[10px] text-neutral-500 mt-1">Visit a profile and click Contact to start one.</p>
             </div>
           )}
-          {conversations.map((conv) => (
+          {inboxTab === 'chats' && conversations.map((conv) => (
             <button
               key={conv.id}
               onClick={() => setSelectedConversationId(conv.id)}
