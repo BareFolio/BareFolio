@@ -152,15 +152,15 @@ export default function ProfileClient() {
 
         const fp: ProfileData = {
           uid: pData.id,
-          name: pData.full_name || pData.username || '',
-          email: '',
-          role: pData.profile_type as ProfileData['role'],
+          name: pData.full_name || pData.name || pData.username || '',
+          email: pData.email || '',
+          role: (pData.profile_type || pData.role || 'creator') as ProfileData['role'],
           bio: pData.bio || '',
           location: pData.location || '',
           avatarUrl: pData.avatar_url || '',
           website: pData.website || '',
           disciplines: pData.disciplines || [],
-          isVerified: pData.verified || false,
+          isVerified: pData.verified ?? pData.is_verified ?? false,
           username: pData.username || '',
           createdAt: pData.created_at,
         };

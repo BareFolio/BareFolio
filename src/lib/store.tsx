@@ -103,6 +103,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       setLoading(false)
 
+      try {
+        supabase.removeChannel(supabase.channel(`profile-${user.id}`));
+      } catch (err) {
+        console.error('Error removing channel:', err);
+      }
+
       profileSubscription = supabase
         .channel(`profile-${user.id}`)
         .on(
