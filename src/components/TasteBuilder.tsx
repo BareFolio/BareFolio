@@ -438,6 +438,8 @@ export default function TasteBuilder({
   const isDismiss = dragX < -60;
   const progress  = Math.min(Math.abs(dragX) / DRAG_THRESHOLD, 1);
   const nextScale = 0.92 + 0.08 * progress;
+  const dragPercentage = Math.min(Math.abs(dragX) / 300, 1);
+  const opacity = flyDir !== 0 ? 0 : 1 - dragPercentage * 0.85;
 
   // ── Drag handlers ──────────────────────────────────────────────────────────
 
@@ -491,7 +493,7 @@ export default function TasteBuilder({
 
   if (inline) {
     return (
-      <div className="relative w-full h-[calc(100vh-160px)] min-h-[550px] flex items-center justify-center select-none overflow-visible">
+      <div className="relative w-full h-[calc(100vh-80px)] min-h-[720px] flex items-center justify-center select-none overflow-visible">
 
         {/* Anchored < Close Button (top-left) */}
         <button
@@ -510,24 +512,27 @@ export default function TasteBuilder({
           <X className="w-5 h-5 text-white" />
         </button>
 
-        {/* Center Stack Container */}
-        <div className="relative w-[360px] h-[520px] overflow-visible flex items-center justify-center z-10">
+        {/* Center Stack Container (25% larger size) */}
+        <div className="relative w-[450px] h-[650px] overflow-visible flex items-center justify-center z-10">
 
-          {/* Background Card */}
+          {/* Background Card (Key reconciled to grow in place) */}
           {nextCard && (
             <div
+              key={nextCard.id}
               className="absolute inset-0 pointer-events-none rounded-[28px] overflow-hidden bg-neutral-100 shadow-md border border-neutral-200"
               style={{
                 transform: `scale(${nextScale})`,
-                transition: 'transform 0.15s ease',
+                opacity: progress * 0.6 + 0.4,
+                transition: 'transform 0.15s ease, opacity 0.15s ease',
               }}
             >
               <img src={nextCard.image} alt="" className="w-full h-full object-cover" draggable={false} />
             </div>
           )}
 
-          {/* Active Drag Card */}
+          {/* Active Drag Card (Key reconciled, fades out as it's swiped) */}
           <div
+            key={card.id}
             onMouseDown={e => startDrag(e.clientX)}
             onMouseMove={e => moveDrag(e.clientX)}
             onMouseUp={endDrag}
@@ -538,7 +543,8 @@ export default function TasteBuilder({
             className="absolute inset-0 rounded-[28px] overflow-hidden bg-neutral-100 shadow-2xl cursor-grab active:cursor-grabbing border border-neutral-200/50"
             style={{
               transform: `translateX(${dragX}px) rotate(${rotation}deg)`,
-              transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+              opacity: opacity,
+              transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease-out',
               transformOrigin: 'center bottom',
             }}
           >
@@ -642,11 +648,13 @@ export default function TasteBuilder({
 
         {nextCard && (
           <div
-            className="absolute rounded-[28px] overflow-hidden shadow-lg pointer-events-none"
+            key={nextCard.id}
+            className="absolute rounded-[28px] overflow-hidden shadow-lg pointer-events-none border border-neutral-200"
             style={{
-              width: 360, height: 520,
+              width: 450, height: 650,
               transform: `scale(${nextScale})`,
-              transition: 'transform 0.15s ease',
+              opacity: progress * 0.6 + 0.4,
+              transition: 'transform 0.15s ease, opacity 0.15s ease',
             }}
           >
             <img src={nextCard.image} alt="" className="w-full h-full object-cover" draggable={false} />
@@ -654,6 +662,7 @@ export default function TasteBuilder({
         )}
 
         <div
+          key={card.id}
           onMouseDown={e => startDrag(e.clientX)}
           onMouseMove={e => moveDrag(e.clientX)}
           onMouseUp={endDrag}
@@ -661,20 +670,21 @@ export default function TasteBuilder({
           onTouchStart={e => startDrag(e.touches[0].clientX)}
           onTouchMove={e => moveDrag(e.touches[0].clientX)}
           onTouchEnd={endDrag}
-          className="absolute rounded-[28px] overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing"
+          className="absolute rounded-[28px] overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing border border-neutral-200/50"
           style={{
-            width: 360, height: 520,
+            width: 450, height: 650,
             transform: `translateX(${dragX}px) rotate(${rotation}deg)`,
-            transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+            opacity: opacity,
+            transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease-out',
             transformOrigin: 'center bottom',
           }}
         >
           <img src={card.image} alt="" className="w-full h-full object-cover" draggable={false} />
-          {isKeep    && <div className="absolute top-6 right-5 bg-[#5B5BD6] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border-2 border-white shadow">Keep</div>}
-          {isDismiss && <div className="absolute top-6 left-5 bg-[#101010] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border-2 border-white shadow">Dismiss</div>}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pt-16 pb-5 px-5">
+          {isKeep    && <div className="absolute top-6 right-5 bg-accent text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest border border-white/20 shadow-md">Keep</div>}
+          {isDismiss && <div className="absolute top-6 left-5 bg-[#101010] text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest border border-white/10 shadow-md">Dismiss</div>}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pt-24 pb-6 px-6">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-full bg-neutral-400 flex items-center justify-center text-[10px] font-bold text-white uppercase flex-shrink-0">{card.avatar}</div>
+              <div className="w-8 h-8 rounded-full bg-neutral-400 flex items-center justify-center text-[10px] font-bold text-white uppercase flex-shrink-0">{card.avatar}</div>
               <span className="text-white text-sm font-semibold">{card.author}</span>
             </div>
             <div className="flex flex-wrap gap-2">
