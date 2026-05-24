@@ -517,7 +517,7 @@ export default function ProfileClient() {
       </div>
 
       {/* ── ROW A — justo bajo la línea del banner ── */}
-      <div className="mt-4 flex items-stretch gap-6">
+      <div className="mt-4 flex flex-col md:flex-row md:items-stretch gap-6">
 
         {/* LEFT: Nombre + disciplinas + location + bio */}
         <div className="flex-1 flex flex-col gap-3">
@@ -571,7 +571,7 @@ export default function ProfileClient() {
         </div>
 
         {/* RIGHT: Stats + botones + tabs */}
-        <div className="flex-shrink-0" style={{ minWidth: '340px' }}>
+        <div className="flex-shrink-0 md:min-w-[340px]">
 
           {/* Stats */}
           <div className="flex items-stretch">
