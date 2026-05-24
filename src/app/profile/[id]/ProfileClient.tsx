@@ -537,17 +537,10 @@ export default function ProfileClient() {
               )}
             </div>
 
-            {/* Location */}
-            {profile.location && (
-              <div className="flex items-center gap-1 mt-2">
-                <MapPin className="w-3 h-3 text-neutral-400 flex-shrink-0" />
-                <span className="text-xs text-neutral-400">{profile.location}</span>
-              </div>
-            )}
           </div>
 
           {/* Bio + website + username */}
-          <div className="pl-32">
+          <div>
             {profile.bio && (
               <p className="text-sm text-neutral-600 leading-relaxed max-w-sm mt-1">{profile.bio}</p>
             )}
