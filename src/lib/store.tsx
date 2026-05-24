@@ -93,13 +93,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (error) {
-        console.error('Error fetching profile:', error.message)
+      if (!data) {
+        // Create a default profile row if one doesn't exist (e.g. signed up before trigger was active)
+        const baseUsername = user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') : 'user';
+        const uniqueUsername = `${baseUsername}_${user.id.slice(0, 6)}`;
+        
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            username: uniqueUsername,
+            full_name: user.user_metadata?.full_name || baseUsername,
+            profile_type: 'creator'
+          })
+          .select('*')
+          .maybeSingle();
+
+        if (newProfile) {
+          setProfile(mapProfile(newProfile as Profile));
+        } else {
+          console.error('Error creating default profile row:', insertError?.message);
+        }
       } else if (data) {
         setProfile(mapProfile(data as Profile))
       }
+
 
       setLoading(false)
 

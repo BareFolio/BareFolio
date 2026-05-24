@@ -153,10 +153,47 @@ export default function ProfileClient() {
         const { data: pData, error: profileErr } = await query.maybeSingle();
 
         if (profileErr || !pData) {
+          // Auto-create missing profile row if it is their own profile (e.g. registered before schema trigger existed)
+          if (isMe && currentUser) {
+            const baseUsername = currentUser.email ? currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') : 'user';
+            const uniqueUsername = `${baseUsername}_${currentUser.id.slice(0, 6)}`;
+            
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .insert({
+                id: currentUser.id,
+                username: uniqueUsername,
+                full_name: currentUser.user_metadata?.full_name || baseUsername,
+                profile_type: 'creator'
+              })
+              .select('*')
+              .maybeSingle();
+
+            if (newProfile) {
+              const fp: ProfileData = {
+                uid: newProfile.id,
+                name: newProfile.full_name || newProfile.username || '',
+                email: '',
+                role: newProfile.profile_type as ProfileData['role'],
+                bio: newProfile.bio || '',
+                location: newProfile.location || '',
+                avatarUrl: newProfile.avatar_url || '',
+                website: newProfile.website || '',
+                disciplines: newProfile.disciplines || [],
+                isVerified: newProfile.verified || false,
+                username: newProfile.username || '',
+                createdAt: newProfile.created_at,
+              };
+              setProfile(fp);
+              setLoading(false);
+              return;
+            }
+          }
           setProfile(null);
           setLoading(false);
           return;
         }
+
 
 
         const fp: ProfileData = {
