@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, Bookmark, Check, ChevronLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 // ── Analysis screen ───────────────────────────────────────────────────────────
 
@@ -280,6 +281,7 @@ export default function TasteBuilder({
   const [isDragging, setIsDragging] = useState(false);
   const [flyDir, setFlyDir]         = useState<0 | 1 | -1>(0);
   const [saved, setSaved]           = useState(false);
+  const [dbCards, setDbCards]       = useState<CardType[]>([]);
   const startX = useRef(0);
 
   useEffect(() => {
@@ -289,11 +291,62 @@ export default function TasteBuilder({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*, profile:profiles(username, full_name, avatar_url)')
+          .eq('verification_status', 'approved')
+          .limit(30);
+
+        if (error) {
+          console.error('Error fetching approved projects:', error);
+          return;
+        }
+
+        if (data) {
+          const mappedCards: CardType[] = data.map((p: any) => {
+            const author = p.profile?.full_name || p.profile?.username || 'Anonymous';
+            const initials = author
+              .split(' ')
+              .filter(Boolean)
+              .map((n: string) => n[0])
+              .join('')
+              .slice(0, 2)
+              .toUpperCase() || 'U';
+
+            const tags = Array.isArray(p.discipline)
+              ? p.discipline
+              : (p.discipline ? [p.discipline] : ['Design']);
+
+            return {
+              id: p.id.toString(),
+              image: p.cover_url || 'https://picsum.photos/seed/default/600/900',
+              author,
+              avatar: initials,
+              tags
+            };
+          });
+          setDbCards(mappedCards);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching projects:', err);
+      }
+    };
+
+    if (isOpen) {
+      fetchProjects();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
+  const activeDeck = dbCards.length >= 5 ? [...dbCards, ...CARDS] : CARDS;
+
   // Cards cycle infinitely until 10 matches
-  const card     = CARDS[index % CARDS.length];
-  const nextCard = CARDS[(index + 1) % CARDS.length];
+  const card     = activeDeck[index % activeDeck.length];
+  const nextCard = activeDeck[(index + 1) % activeDeck.length];
 
   const rotation  = Math.min(Math.max(dragX / 20, -15), 15);
   const isKeep    = dragX > 60;
@@ -319,7 +372,7 @@ export default function TasteBuilder({
     const newMatches = dir === 1 ? matchCount + 1 : matchCount;
     if (dir === 1) {
       setMatchCount(newMatches);
-      setMatchedCards(prev => [...prev, CARDS[index % CARDS.length]]);
+      setMatchedCards(prev => [...prev, activeDeck[index % activeDeck.length]]);
     }
     setTimeout(() => {
       if (newMatches >= 10) {
@@ -566,7 +619,7 @@ export default function TasteBuilder({
           <div className="mt-1">
             <div className="w-16 h-0.5 bg-[#101010] rounded-full mb-1" />
             <p className="text-xs text-neutral-400">Building your taste</p>
-            <p className="text-xs text-neutral-400 mt-0.5">{index + 1}/{TOTAL}</p>
+            <p className="text-xs text-neutral-400 mt-0.5">{index + 1}/{activeDeck.length}</p>
           </div>
         </div>
       </div>
