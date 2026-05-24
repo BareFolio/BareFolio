@@ -121,6 +121,7 @@ export default function ProfileClient() {
 
   // Follow
   const [isFollowing, setIsFollowing] = useState(false);
+  const [dbHasFullName, setDbHasFullName] = useState(false);
 
   // Posts interaction
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -163,24 +164,26 @@ export default function ProfileClient() {
               .insert({
                 id: currentUser.id,
                 username: uniqueUsername,
-                full_name: currentUser.user_metadata?.full_name || baseUsername,
-                profile_type: 'creator'
+                name: currentUser.user_metadata?.full_name || baseUsername,
+                email: currentUser.email || '',
+                role: 'creator'
               })
               .select('*')
               .maybeSingle();
 
             if (newProfile) {
+              setDbHasFullName('full_name' in newProfile);
               const fp: ProfileData = {
                 uid: newProfile.id,
-                name: newProfile.full_name || newProfile.username || '',
-                email: '',
-                role: newProfile.profile_type as ProfileData['role'],
+                name: newProfile.full_name || newProfile.name || newProfile.username || '',
+                email: newProfile.email || '',
+                role: (newProfile.profile_type || newProfile.role) as ProfileData['role'],
                 bio: newProfile.bio || '',
                 location: newProfile.location || '',
                 avatarUrl: newProfile.avatar_url || '',
                 website: newProfile.website || '',
                 disciplines: newProfile.disciplines || [],
-                isVerified: newProfile.verified || false,
+                isVerified: newProfile.verified ?? newProfile.is_verified ?? false,
                 username: newProfile.username || '',
                 createdAt: newProfile.created_at,
               };
@@ -194,19 +197,19 @@ export default function ProfileClient() {
           return;
         }
 
-
+        setDbHasFullName('full_name' in pData);
 
         const fp: ProfileData = {
           uid: pData.id,
-          name: pData.full_name || pData.username || '',
-          email: '',
-          role: pData.profile_type as ProfileData['role'],
+          name: pData.full_name || pData.name || pData.username || '',
+          email: pData.email || '',
+          role: (pData.profile_type || pData.role) as ProfileData['role'],
           bio: pData.bio || '',
           location: pData.location || '',
           avatarUrl: pData.avatar_url || '',
           website: pData.website || '',
           disciplines: pData.disciplines || [],
-          isVerified: pData.verified || false,
+          isVerified: pData.verified ?? pData.is_verified ?? false,
           username: pData.username || '',
           createdAt: pData.created_at,
         };
@@ -375,12 +378,19 @@ export default function ProfileClient() {
     if (!currentUser || !isMe) return;
     setSaveLoading(true);
     try {
-      await supabase.from('profiles').update({
-        full_name: editName.trim() || null,
+      const updateData: any = {
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
         disciplines: editDisciplines,
-      }).eq('id', currentUser.id);
+      };
+
+      if (dbHasFullName) {
+        updateData.full_name = editName.trim() || null;
+      } else {
+        updateData.name = editName.trim() || null;
+      }
+
+      await supabase.from('profiles').update(updateData).eq('id', currentUser.id);
       setIsEditing(false);
     } catch (err) {
       console.error('Save profile error:', err);

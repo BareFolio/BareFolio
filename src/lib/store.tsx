@@ -105,8 +105,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .insert({
             id: user.id,
             username: uniqueUsername,
-            full_name: user.user_metadata?.full_name || baseUsername,
-            profile_type: 'creator'
+            name: user.user_metadata?.full_name || baseUsername,
+            email: user.email || '',
+            role: 'creator'
           })
           .select('*')
           .maybeSingle();
