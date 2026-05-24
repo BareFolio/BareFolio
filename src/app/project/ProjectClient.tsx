@@ -4,13 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { Heart, MessageSquare, Bookmark, ChevronLeft, ArrowRight, Share2, Check, UserPlus } from 'lucide-react';
+import { Heart, MessageSquare, Bookmark, ChevronLeft, ArrowRight, Share2, Check, UserPlus, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 interface Creator {
   name: string;
   role: string;
   avatar: string;
   image: string;
+}
+
+interface ContentModule {
+  id: string;
+  type: 'text' | 'image' | 'video' | 'carousel' | 'technical-sheet' | 'split-layout';
+  data: any;
 }
 
 interface ProjectDetail {
@@ -43,6 +49,7 @@ interface ProjectDetail {
     duration: string;
     budget: string;
   };
+  modules?: ContentModule[];
 }
 
 const STOW_PROJECT: ProjectDetail = {
@@ -87,7 +94,50 @@ const STOW_PROJECT: ProjectDetail = {
     discipline: 'Identity - Branding - Packaging',
     duration: '8 weeks',
     budget: '24.000 €'
-  }
+  },
+  modules: [
+    {
+      id: 'stow-split-1',
+      type: 'split-layout',
+      data: {
+        image: '/images/stow/stow-nestor-lasso.png',
+        text: 'Forming STOW, the initial premium filtered coffee collection from Raw Lab showcases custom paper packaging finishes, debossed metallic container structures, and high-contrast typographic grids that restore the traditional character of single origin coffees.',
+        subcaption: 'Swiss Packaging Philosophy'
+      }
+    },
+    {
+      id: 'stow-tech-1',
+      type: 'technical-sheet',
+      data: {
+        title: 'STOW',
+        grower: 'JOSE ROBERTO MONTERROSO',
+        estate: 'FINCA EL MORITO',
+        location: 'XALAPA MATAQUESCUINTLA, JALAPA',
+        altitude: '1400 - 2000 METERS',
+        country: 'GUATEMALA',
+        about: 'The El Morito coffee estate is located in the Mataquescuintla region of Jalapa, about two hours east of Guatemala City. The estate, owned by Jose Roberto Monterroso, spans an impressive 572 hectares of mountainous terrain, a quarter of which is dedicated to high-quality coffee cultivation. The remainder is covered in pristine forest vegetation, creating ideal microclimatic conditions for producing top-quality coffee.'
+      }
+    },
+    {
+      id: 'stow-carousel-1',
+      type: 'carousel',
+      data: {
+        items: [
+          'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1000&q=80',
+          'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1000&q=80',
+          'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=1000&q=80'
+        ]
+      }
+    },
+    {
+      id: 'stow-video-1',
+      type: 'video',
+      data: {
+        src: 'https://assets.mixkit.co/videos/preview/mixkit-pouring-hot-water-into-a-chemex-40502-large.mp4',
+        caption: 'Meticulous heat-controlled filter pouring process'
+      }
+    }
+  ]
 };
 
 const RECOMMENDED_PROJECTS = [
@@ -123,6 +173,56 @@ export default function ProjectClient() {
   const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
+  // Modular Layout Interactive States
+  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
+  const [videoStates, setVideoStates] = useState<Record<string, { playing: boolean; muted: boolean }>>({});
+
+  const nextSlide = (moduleId: string, totalItems: number) => {
+    setCarouselIndices(prev => ({
+      ...prev,
+      [moduleId]: ((prev[moduleId] || 0) + 1) % totalItems
+    }));
+  };
+
+  const prevSlide = (moduleId: string, totalItems: number) => {
+    setCarouselIndices(prev => ({
+      ...prev,
+      [moduleId]: ((prev[moduleId] || 0) - 1 + totalItems) % totalItems
+    }));
+  };
+
+  const togglePlay = (moduleId: string, videoEl: HTMLVideoElement | null) => {
+    if (!videoEl) return;
+    const isPlaying = videoStates[moduleId]?.playing ?? true;
+    if (isPlaying) {
+      videoEl.pause();
+    } else {
+      videoEl.play();
+    }
+    setVideoStates(prev => ({
+      ...prev,
+      [moduleId]: {
+        ...prev[moduleId],
+        playing: !isPlaying,
+        muted: prev[moduleId]?.muted ?? true
+      }
+    }));
+  };
+
+  const toggleMute = (moduleId: string, videoEl: HTMLVideoElement | null) => {
+    if (!videoEl) return;
+    const isMuted = videoStates[moduleId]?.muted ?? true;
+    videoEl.muted = !isMuted;
+    setVideoStates(prev => ({
+      ...prev,
+      [moduleId]: {
+        ...prev[moduleId],
+        playing: videoStates[moduleId]?.playing ?? true,
+        muted: !isMuted
+      }
+    }));
+  };
+
   useEffect(() => {
     if (!id) return;
 
@@ -143,6 +243,63 @@ export default function ProjectClient() {
         if (error) throw error;
 
         if (proj) {
+          // Construct Dynamic Modular content per user's database portfolio item
+          const computedModules: ContentModule[] = [];
+
+          // 1. Split Layout Module (Secondary image + visual language description)
+          const secImg = proj.images?.[0] || proj.cover_url || 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80';
+          computedModules.push({
+            id: `split-${proj.id}`,
+            type: 'split-layout',
+            data: {
+              image: secImg,
+              text: proj.visual_language || 'This composition focuses on strict layout grids, meticulous structural elements, and a tailored color palette that delivers an elegant branding experience.',
+              subcaption: 'Design Language & Geometry'
+            }
+          });
+
+          // 2. Technical Parameter Plaster Card Module
+          computedModules.push({
+            id: `tech-${proj.id}`,
+            type: 'technical-sheet',
+            data: {
+              title: proj.title?.slice(0, 10).toUpperCase() || 'SPECIMEN',
+              grower: proj.palette?.slice(0, 3).join(', ') || 'TAILORED COLORS',
+              estate: proj.atmosphere?.toUpperCase() || 'CREATIVE STUDIO',
+              location: proj.profile?.location?.toUpperCase() || 'BARCELONA, SPAIN',
+              altitude: proj.year ? `${proj.year} EDITION` : '2025 CREATION',
+              country: 'GLOBAL PLATFORM',
+              about: proj.description || 'Dedicated to premium design excellence, our workflow centers around pure architectural logic, typographic structure, and emotional visual design.'
+            }
+          });
+
+          // 3. Carousel Module (If user added multiple images)
+          const slideImages = proj.images && proj.images.length > 1 ? proj.images : [
+            proj.cover_url,
+            'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1000&q=80'
+          ].filter(Boolean);
+
+          computedModules.push({
+            id: `carousel-${proj.id}`,
+            type: 'carousel',
+            data: {
+              items: slideImages
+            }
+          });
+
+          // 4. Video Module (Optional interactive motion mockup)
+          if (proj.discipline?.toLowerCase().includes('video') || proj.discipline?.toLowerCase().includes('motion') || proj.discipline?.toLowerCase().includes('3d')) {
+            computedModules.push({
+              id: `video-${proj.id}`,
+              type: 'video',
+              data: {
+                src: 'https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-spheres-and-grids-41718-large.mp4',
+                caption: 'Live motion physics & rendering sequence'
+              }
+            });
+          }
+
           setProject({
             id: proj.id,
             title: proj.title,
@@ -155,8 +312,8 @@ export default function ProjectClient() {
             likes: '14.2k',
             comments: '32',
             coverImage: proj.cover_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-            secondaryImage: proj.images?.[0] || proj.cover_url || 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80',
-            secondaryText: proj.visual_language || 'This composition focuses on strict layout grids, meticulous structural elements, and a tailored color palette that delivers an elegant branding experience.',
+            secondaryImage: secImg,
+            secondaryText: proj.visual_language || 'This composition focuses on strict layout grids, meticulous structural elements, and a tailored color palette.',
             technicalSheet: {
               grower: proj.palette?.slice(0, 2).join(', ') || 'CUSTOM PALETTE',
               estate: proj.atmosphere?.toUpperCase() || 'MINIMALIST STUDIO',
@@ -179,7 +336,8 @@ export default function ProjectClient() {
               discipline: proj.discipline || 'Packaging - Visual Branding',
               duration: '6 weeks',
               budget: '18.000 €'
-            }
+            },
+            modules: computedModules
           });
         } else {
           setProject(STOW_PROJECT);
@@ -297,85 +455,236 @@ export default function ProjectClient() {
 
         </section>
 
-        {/* ROW 2: Vertical Image & Secondary Text */}
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center pt-8">
-          
-          {/* White Coffee bag (Left) */}
-          <div className="md:col-span-6 flex justify-center">
-            <div className="rounded-[24px] overflow-hidden shadow-sm aspect-square max-w-sm w-full bg-white p-6 border border-neutral-200/50 flex items-center justify-center">
-              <img
-                src={project.secondaryImage}
-                alt="Coffee packaging detail"
-                className="max-h-full max-w-full object-contain"
-                draggable={false}
-              />
-            </div>
-          </div>
+        {/* DYNAMIC CONTENT MODULES (User-customizable elements) */}
+        {project.modules?.map((module) => {
+          switch (module.type) {
+            case 'split-layout':
+              return (
+                <section key={module.id} className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center pt-8">
+                  {/* Left block (Image) */}
+                  <div className="md:col-span-6 flex justify-center">
+                    <div className="rounded-[24px] overflow-hidden shadow-sm aspect-square max-w-sm w-full bg-white p-6 border border-neutral-200/50 flex items-center justify-center">
+                      <img
+                        src={module.data.image}
+                        alt="Detail representation"
+                        className="max-h-full max-w-full object-contain"
+                        draggable={false}
+                      />
+                    </div>
+                  </div>
+                  {/* Right block (Text) */}
+                  <div className="md:col-span-6 space-y-6">
+                    <p className="font-display text-xl md:text-2xl leading-relaxed text-neutral-700 font-light tracking-tight md:max-w-xl">
+                      "{module.data.text}"
+                    </p>
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-text-primary">
+                      <span>{module.data.subcaption || 'Swiss Design Philosophy'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </section>
+              );
 
-          {/* Narrative text (Right) */}
-          <div className="md:col-span-6 space-y-6">
-            <p className="font-display text-xl md:text-2xl leading-relaxed text-neutral-700 font-light tracking-tight md:max-w-xl">
-              "{project.secondaryText}"
-            </p>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-text-primary">
-              <span>Swiss Packaging Philosophy</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </div>
-          </div>
+            case 'technical-sheet':
+              return (
+                <section key={module.id} className="pt-8">
+                  <div className="w-full bg-[#E5E5E5] rounded-[32px] p-8 md:p-14 relative overflow-hidden min-h-[460px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
+                    {/* Background watermark */}
+                    <div className="font-display font-black text-[150px] md:text-[280px] text-black/[0.035] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase">
+                      {module.data.title}
+                    </div>
 
-        </section>
+                    {/* Technical grid columns (Foreground) */}
+                    <div className="relative z-10 font-mono text-[11px] md:text-xs uppercase tracking-wider text-neutral-700 space-y-12">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
+                        <div className="md:col-span-4 text-neutral-400">[G] GROWER</div>
+                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.grower}</div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
+                        <div className="md:col-span-4 text-neutral-400">[E] ESTATE</div>
+                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.estate}</div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
+                        <div className="md:col-span-4 text-neutral-400">[M] MICRO-LOCATION</div>
+                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.location}</div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
+                        <div className="md:col-span-4 text-neutral-400">[A] ALTITUDE</div>
+                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.altitude}</div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
+                        <div className="md:col-span-4 text-neutral-400">[C] COUNTRY</div>
+                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.country}</div>
+                      </div>
+                    </div>
 
-        {/* ROW 3: Textured technical grid (Guatemala sheet) */}
-        <section className="pt-8">
-          <div className="w-full bg-[#E5E5E5] rounded-[32px] p-8 md:p-14 relative overflow-hidden min-h-[460px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
-            
-            {/* Massive background watermark */}
-            <div className="font-display font-black text-[150px] md:text-[280px] text-black/[0.035] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase">
-              {project.title}
-            </div>
+                    {/* Monospaced narrative description */}
+                    <div className="relative z-10 mt-12 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
+                      <div className="md:col-span-4 font-mono text-[11px] md:text-xs uppercase tracking-wider text-neutral-400">
+                        [ABOUT THE ESTATE]
+                      </div>
+                      <div className="md:col-span-8 font-mono text-xs md:text-sm text-neutral-600 leading-relaxed max-w-xl lowercase">
+                        {module.data.about}
+                      </div>
+                    </div>
 
-            {/* Technical grid columns (Foreground) */}
-            <div className="relative z-10 font-mono text-[11px] md:text-xs uppercase tracking-wider text-neutral-700 space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                <div className="md:col-span-4 text-neutral-400">[G] GROWER</div>
-                <div className="md:col-span-8 font-semibold text-neutral-900">{project.technicalSheet.grower}</div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                <div className="md:col-span-4 text-neutral-400">[E] ESTATE</div>
-                <div className="md:col-span-8 font-semibold text-neutral-900">{project.technicalSheet.estate}</div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                <div className="md:col-span-4 text-neutral-400">[M] MICRO-LOCATION</div>
-                <div className="md:col-span-8 font-semibold text-neutral-900">{project.technicalSheet.location}</div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                <div className="md:col-span-4 text-neutral-400">[A] ALTITUDE</div>
-                <div className="md:col-span-8 font-semibold text-neutral-900">{project.technicalSheet.altitude}</div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                <div className="md:col-span-4 text-neutral-400">[C] COUNTRY</div>
-                <div className="md:col-span-8 font-semibold text-neutral-900">{project.technicalSheet.country}</div>
-              </div>
-            </div>
+                    {/* Symmetrical dots */}
+                    <div className="relative z-10 flex justify-center gap-1.5 mt-8 select-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-800" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                    </div>
+                  </div>
+                </section>
+              );
 
-            {/* Monospaced narrative description */}
-            <div className="relative z-10 mt-12 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-              <div className="md:col-span-4 font-mono text-[11px] md:text-xs uppercase tracking-wider text-neutral-400">
-                [ABOUT THE ESTATE]
-              </div>
-              <div className="md:col-span-8 font-mono text-xs md:text-sm text-neutral-600 leading-relaxed max-w-xl lowercase">
-                {project.aboutEstate}
-              </div>
-            </div>
+            case 'carousel':
+              const activeIndex = carouselIndices[module.id] || 0;
+              const items = module.data.items || [];
+              return (
+                <section key={module.id} className="pt-8">
+                  <div className="relative w-full aspect-[21/9] md:aspect-[16/9] min-h-[300px] max-h-[500px] overflow-hidden rounded-[32px] bg-neutral-100 border border-neutral-200/50 shadow-sm group">
+                    {items.map((item: string, index: number) => (
+                      <div
+                        key={item}
+                        className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                      >
+                        <img
+                          src={item}
+                          alt={`Slide ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          draggable={false}
+                        />
+                      </div>
+                    ))}
 
-            {/* Base indicator dots */}
-            <div className="relative z-10 flex justify-center gap-1.5 mt-8 select-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-neutral-800" />
-              <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-            </div>
+                    {/* Navigation Arrows */}
+                    {items.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => prevSlide(module.id, items.length)}
+                          className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white backdrop-blur-sm flex items-center justify-center text-neutral-800 shadow-md transition-all duration-200 opacity-0 group-hover:opacity-100 z-20 cursor-pointer active:scale-95"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => nextSlide(module.id, items.length)}
+                          className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white backdrop-blur-sm flex items-center justify-center text-neutral-800 shadow-md transition-all duration-200 opacity-0 group-hover:opacity-100 z-20 cursor-pointer active:scale-95"
+                        >
+                          <ArrowRight className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
 
-          </div>
-        </section>
+                    {/* Bullet Indicators */}
+                    {items.length > 1 && (
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                        {items.map((_: any, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCarouselIndices(prev => ({ ...prev, [module.id]: idx }))}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === activeIndex ? 'bg-white w-6' : 'bg-white/40 hover:bg-white/70'}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              );
+
+            case 'video':
+              const isPlaying = videoStates[module.id]?.playing ?? true;
+              const isMuted = videoStates[module.id]?.muted ?? true;
+              return (
+                <section key={module.id} className="pt-8">
+                  <div className="relative w-full aspect-[16/9] bg-[#101010] rounded-[32px] overflow-hidden border border-neutral-200/20 shadow-lg group">
+                    <video
+                      id={`video-${module.id}`}
+                      src={module.data.src}
+                      className="w-full h-full object-cover"
+                      loop
+                      muted={isMuted}
+                      autoPlay={isPlaying}
+                      playsInline
+                      onClick={() => {
+                        const vid = document.getElementById(`video-${module.id}`) as HTMLVideoElement;
+                        togglePlay(module.id, vid);
+                      }}
+                    />
+                    {/* Ambient vignette controls */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
+                      {/* Header Mute/Unmute */}
+                      <div className="flex justify-end pointer-events-auto">
+                        <button
+                          onClick={() => {
+                            const vid = document.getElementById(`video-${module.id}`) as HTMLVideoElement;
+                            toggleMute(module.id, vid);
+                          }}
+                          className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/85 transition cursor-pointer"
+                        >
+                          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                        </button>
+                      </div>
+
+                      {/* Bottom Playback Overlay */}
+                      <div className="flex items-center justify-between pointer-events-auto">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              const vid = document.getElementById(`video-${module.id}`) as HTMLVideoElement;
+                              togglePlay(module.id, vid);
+                            }}
+                            className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center hover:scale-105 active:scale-95 transition cursor-pointer shadow-md"
+                          >
+                            {isPlaying ? <Pause className="w-4.5 h-4.5 fill-current" /> : <Play className="w-4.5 h-4.5 fill-current ml-0.5" />}
+                          </button>
+                          <p className="text-white text-xs font-mono uppercase tracking-wider bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
+                            {module.data.caption || 'Live Showcase'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              );
+
+            case 'image':
+              return (
+                <section key={module.id} className="pt-8">
+                  <div className="rounded-[28px] overflow-hidden shadow-sm bg-neutral-100 border border-neutral-200/50 max-w-5xl mx-auto">
+                    <img
+                      src={module.data.src}
+                      alt={module.data.caption || 'Project visual'}
+                      className="w-full h-auto object-cover"
+                      draggable={false}
+                    />
+                  </div>
+                  {module.data.caption && (
+                    <p className="text-center font-mono text-[10px] uppercase text-neutral-400 mt-3 tracking-widest">
+                      {module.data.caption}
+                    </p>
+                  )}
+                </section>
+              );
+
+            case 'text':
+              return (
+                <section key={module.id} className="py-6 max-w-3xl mx-auto text-center px-4">
+                  {module.data.style === 'blockquote' ? (
+                    <p className="font-display text-xl md:text-3xl leading-relaxed text-neutral-700 font-light tracking-tight">
+                      “{module.data.text}”
+                    </p>
+                  ) : (
+                    <p className="font-mono text-xs text-neutral-400 uppercase tracking-widest leading-relaxed">
+                      {module.data.text}
+                    </p>
+                  )}
+                </section>
+              );
+
+            default:
+              return null;
+          }
+        })}
 
         {/* ROW 4: Creatives & Details */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-20 items-start pt-8">
