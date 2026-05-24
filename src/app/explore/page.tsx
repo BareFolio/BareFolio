@@ -683,7 +683,7 @@ export default function ExplorePage() {
   );
 
   const searchInput = (wide: boolean) => (
-    <div className={`relative flex-shrink-0 ${wide ? 'w-96' : 'w-full'}`}>
+    <div className={`relative flex-shrink-0 ${wide ? 'w-full lg:w-96' : 'w-full'}`}>
       <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400 pointer-events-none">
         <Search className="w-4 h-4" />
       </span>
@@ -709,7 +709,7 @@ export default function ExplorePage() {
     `border rounded-full px-3 py-1 text-[11px] cursor-pointer transition-all ${active ? 'border-[#101010] bg-[#101010] text-white' : 'border-neutral-300 text-text-primary hover:border-[#101010]'}`;
 
   const filterPanel = (
-    <div className="w-96 flex-shrink-0 space-y-5">
+    <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 space-y-5">
       <hr className="border-borderGlass" />
       <div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-3">Discipline</p>
@@ -758,7 +758,7 @@ export default function ExplorePage() {
   const selectedBriefObj = filteredBriefs.find(b => b.id === selectedBriefId) ?? null;
 
   const briefCards = (
-    <div className="flex-1 min-w-0 grid grid-cols-2 gap-3 content-start">
+    <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3 content-start w-full">
       {filteredBriefs.map((brief) => (
         <div
           key={brief.id}
@@ -814,7 +814,7 @@ export default function ExplorePage() {
   );
 
   const briefDetail = selectedBriefObj ? (
-    <div className="w-[340px] flex-shrink-0">
+    <div className="w-full lg:w-[340px] flex-shrink-0">
       <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
         <div className="px-5 py-3 border-b border-neutral-100 text-center">
           <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
@@ -896,7 +896,7 @@ export default function ExplorePage() {
             allProjects.length === 0 ? (
               <p className="text-center py-20 text-neutral-400 text-sm">No projects yet.</p>
             ) : (
-              <div className="columns-3 gap-1.5">
+              <div className="columns-2 sm:columns-3 gap-1.5">
                 {allProjects.map((project) => (
                   <div 
                     key={project.id} 
@@ -922,7 +922,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'projects' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredProjects.map((project, idx) => (
                 <div 
                   key={idx} 
@@ -953,7 +953,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'creators' && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(dbCreators.length > 0 ? dbCreators : FALLBACK_CREATORS).map((creator) => (
                 <div key={creator.uid} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100 cursor-pointer hover:bg-neutral-100 transition-colors">
                   <div className="w-12 h-12 rounded-full bg-neutral-200 flex items-center justify-center flex-shrink-0">
@@ -974,7 +974,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'studios' && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(dbStudios.length > 0 ? dbStudios : FALLBACK_STUDIOS).map((studio) => (
                 <div key={studio.uid} className="flex items-start gap-3 p-4 rounded-xl bg-neutral-50 border border-neutral-100">
                   <div className="w-12 h-12 rounded-xl bg-[#101010] flex items-center justify-center flex-shrink-0 text-white text-xs font-bold uppercase">{studio.name.slice(0, 2)}</div>
@@ -997,7 +997,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'communities' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredCommunities.map((comm) => (
                 <div key={comm.id} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
                   <div className="space-y-2">
@@ -1026,7 +1026,7 @@ export default function ExplorePage() {
   return (
     <div className="space-y-6">
       {activeTab !== 'swipe' && (
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
           {searchInput(true)}
           {tabsRow}
         </div>
@@ -1035,15 +1035,15 @@ export default function ExplorePage() {
       {isSimpleLayout ? (
         contentArea
       ) : activeTab === 'briefs' ? (
-        <div className="flex gap-6 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
           {filterPanel}
           {briefCards}
           {briefDetail}
         </div>
       ) : (
-        <div className="flex gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start w-full">
           {filterPanel}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full">
             {contentArea}
           </div>
         </div>

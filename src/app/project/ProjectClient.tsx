@@ -336,7 +336,7 @@ export default function ProjectClient() {
     <div className="min-h-screen bg-[#F5F5F5] text-[#101010] font-sans pb-32">
       
       {/* Top Breadcrumb Navigation */}
-      <div className="max-w-[1300px] mx-auto px-6 md:px-12 pt-8 flex items-center justify-between select-none">
+      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 md:px-12 pt-8 flex items-center justify-between select-none">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#101010] hover:opacity-60 transition cursor-pointer"
@@ -350,7 +350,7 @@ export default function ProjectClient() {
       </div>
 
       {/* Main Single Scroll Container with Module Spacing */}
-      <div className="max-w-[1300px] mx-auto px-6 md:px-12 py-12 space-y-24">
+      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 md:px-12 py-8 md:py-12 space-y-16 md:space-y-24">
         
         {/* MODULE 1: HEADER NARRATIVE & TOP 2 IMAGES STACK */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
@@ -360,7 +360,7 @@ export default function ProjectClient() {
             
             {/* Header Meta */}
             <div className="space-y-4">
-              <h1 className="font-display font-extrabold text-[54px] md:text-[68px] lg:text-[76px] uppercase tracking-tighter leading-[0.85] text-[#101010] break-words">
+              <h1 className="font-display font-extrabold text-[40px] sm:text-[54px] md:text-[68px] lg:text-[76px] uppercase tracking-tighter leading-[0.85] text-[#101010] break-words">
                 {project.title}
               </h1>
               <div className="flex items-center gap-2">
@@ -480,10 +480,10 @@ export default function ProjectClient() {
         </div>
 
         {/* MODULE 3: TECHNICAL CARD PLASTER (WATERMARKED, FULL WIDTH) */}
-        <div className="w-full bg-[#E5E5E5] rounded-[32px] p-8 md:p-14 relative overflow-hidden min-h-[420px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
+        <div className="w-full bg-[#E5E5E5] rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 md:p-14 relative overflow-hidden min-h-[380px] sm:min-h-[420px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
           
           {/* Semi-transparent Giant Watermark */}
-          <div className="font-display font-black text-[120px] md:text-[220px] text-black/[0.04] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase leading-none">
+          <div className="font-display font-black text-[80px] sm:text-[120px] md:text-[220px] text-black/[0.04] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase leading-none">
             {project.title.slice(0, 8)}
           </div>
 
@@ -512,7 +512,7 @@ export default function ProjectClient() {
           </div>
 
           {/* lowercase About paragraph */}
-          <div className="relative z-10 mt-10 grid grid-cols-12 gap-4 max-w-4xl">
+          <div className="relative z-10 mt-8 sm:mt-10 grid grid-cols-12 gap-4 max-w-4xl">
             <div className="col-span-12 font-mono text-[10px] text-neutral-400 uppercase tracking-widest font-bold">
               [ABOUT THE ESTATE]
             </div>
@@ -530,7 +530,7 @@ export default function ProjectClient() {
         </div>
 
         {/* MODULE 4: THE CREATIVES & PROJECT BRIEF */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
           
           {/* Left Column: Gray-scaled Portrait Cards */}
           <div className="lg:col-span-6 space-y-6">
@@ -638,25 +638,25 @@ export default function ProjectClient() {
 
       {/* FLOATING ACTION BOTTOM BAR */}
       <div className="fixed bottom-6 inset-x-0 flex justify-center z-50 px-4 pointer-events-none select-none">
-        <div className="bg-white/80 backdrop-blur-md px-6 py-3.5 rounded-full border border-neutral-200/60 shadow-xl flex items-center justify-between gap-8 w-full max-w-xl pointer-events-auto">
+        <div className="bg-white/80 backdrop-blur-md px-4 sm:px-6 py-3 sm:py-3.5 rounded-full border border-neutral-200/60 shadow-xl flex items-center justify-between gap-4 sm:gap-8 w-full max-w-xl pointer-events-auto">
           
           {/* Creator Profile */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-sm flex-shrink-0">
               {project.creatorAvatar}
             </div>
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-[#101010]">{project.creatorName}</span>
-                <span className="bg-neutral-100 text-[9px] text-neutral-500 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
+            <div className="text-left min-w-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 truncate">
+                <span className="text-xs font-bold text-[#101010] truncate">{project.creatorName}</span>
+                <span className="bg-neutral-100 text-[8px] text-neutral-500 px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider hidden xs:inline-block">
                   {project.creatorType}
                 </span>
               </div>
-              <p className="text-[9px] text-neutral-400 font-mono uppercase tracking-wider">Design Studio</p>
+              <p className="text-[8px] text-neutral-400 font-mono uppercase tracking-wider hidden sm:block">Design Studio</p>
             </div>
             <button
               onClick={() => setIsFollowing(!isFollowing)}
-              className={`ml-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 flex items-center gap-1 ${
+              className={`ml-1 sm:ml-2 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95 flex items-center gap-1 flex-shrink-0 ${
                 isFollowing 
                   ? 'bg-neutral-100 border border-neutral-200 text-neutral-600'
                   : 'bg-[#101010] hover:bg-neutral-800 text-white'
