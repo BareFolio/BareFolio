@@ -406,34 +406,32 @@ export default function TasteBuilder({
 
   if (inline) {
     return (
-      <div className="flex w-full select-none" style={{ height: 'calc(100vh - 160px)', minHeight: 520 }}>
+      <div className="relative w-full h-[calc(100vh-160px)] min-h-[550px] flex items-center justify-center select-none overflow-visible">
 
-        {/* ── Col izquierda (33%): Back arriba + Dismiss centrado — alineados a la derecha ── */}
-        <div className="w-1/3 relative py-8 pr-8 flex flex-col items-end">
-          {/* Back — arriba */}
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1 text-sm font-semibold text-text-primary hover:opacity-70 transition cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </button>
-          {/* Dismiss — centro absoluto */}
-          <button
-            onClick={() => triggerAction(-1)}
-            className="absolute right-8 top-1/2 -translate-y-1/2 w-14 h-14 bg-[#101010] rounded-full flex items-center justify-center shadow-lg hover:bg-neutral-700 transition cursor-pointer"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-        </div>
+        {/* Anchored < Close Button (top-left) */}
+        <button
+          onClick={onClose}
+          className="absolute top-8 left-8 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-text-primary hover:opacity-75 transition cursor-pointer z-20"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Close
+        </button>
 
-        {/* ── Col central (33%): card ocupa todo el espacio ── */}
-        <div className="w-1/3 relative rounded-[28px] overflow-hidden bg-neutral-100 shadow-2xl">
+        {/* Anchored Dismiss (X) Button (left) */}
+        <button
+          onClick={() => triggerAction(-1)}
+          className="absolute left-24 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#101010] rounded-full flex items-center justify-center shadow-lg hover:bg-neutral-800 transition duration-200 cursor-pointer z-20 active:scale-95"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
 
-          {/* Next card (behind, scaled) */}
+        {/* Center Stack Container */}
+        <div className="relative w-[360px] h-[520px] overflow-visible flex items-center justify-center z-10">
+
+          {/* Background Card */}
           {nextCard && (
             <div
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-0 pointer-events-none rounded-[28px] overflow-hidden bg-neutral-100 shadow-md border border-neutral-200"
               style={{
                 transform: `scale(${nextScale})`,
                 transition: 'transform 0.15s ease',
@@ -443,7 +441,7 @@ export default function TasteBuilder({
             </div>
           )}
 
-          {/* Current card */}
+          {/* Active Drag Card */}
           <div
             onMouseDown={e => startDrag(e.clientX)}
             onMouseMove={e => moveDrag(e.clientX)}
@@ -452,7 +450,7 @@ export default function TasteBuilder({
             onTouchStart={e => startDrag(e.touches[0].clientX)}
             onTouchMove={e => moveDrag(e.touches[0].clientX)}
             onTouchEnd={endDrag}
-            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+            className="absolute inset-0 rounded-[28px] overflow-hidden bg-neutral-100 shadow-2xl cursor-grab active:cursor-grabbing border border-neutral-200/50"
             style={{
               transform: `translateX(${dragX}px) rotate(${rotation}deg)`,
               transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
@@ -461,62 +459,76 @@ export default function TasteBuilder({
           >
             <img src={card.image} alt="" className="w-full h-full object-cover" draggable={false} />
 
-            {isKeep    && <div className="absolute top-6 right-5 bg-[#5B5BD6] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border-2 border-white shadow">Keep</div>}
-            {isDismiss && <div className="absolute top-6 left-5 bg-[#101010] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border-2 border-white shadow">Dismiss</div>}
+            {/* Badge overlays */}
+            {isKeep && (
+              <div className="absolute top-6 right-5 bg-accent/90 backdrop-blur-md text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest border border-white/20 shadow-md">
+                Keep
+              </div>
+            )}
+            {isDismiss && (
+              <div className="absolute top-6 left-5 bg-[#101010]/95 backdrop-blur-md text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest border border-white/10 shadow-md">
+                Dismiss
+              </div>
+            )}
 
-            {/* Bottom gradient + author + tags */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pt-20 pb-6 px-6">
+            {/* Bottom Meta Layer */}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#101010]/90 via-[#101010]/40 to-transparent pt-24 pb-6 px-6">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-neutral-400 flex items-center justify-center text-[10px] font-bold text-white uppercase flex-shrink-0">{card.avatar}</div>
+                <div className="w-8 h-8 rounded-full bg-neutral-400 flex items-center justify-center text-[10px] font-bold text-white uppercase flex-shrink-0">
+                  {card.avatar}
+                </div>
                 <span className="text-white text-sm font-semibold">{card.author}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {card.tags.map(tag => (
-                  <span key={tag} className="bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">{tag}</span>
+                  <span
+                    key={tag}
+                    className="bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                  >
+                    {tag}
+                  </span>
                 ))}
               </div>
             </div>
-
-            {/* Bookmark — esquina inferior derecha de la card */}
-            <button
-              onClick={e => { e.stopPropagation(); setSaved(s => !s); }}
-              className={`absolute bottom-6 right-6 w-11 h-11 rounded-full flex items-center justify-center z-20 backdrop-blur-sm border-2 transition cursor-pointer shadow-lg ${
-                saved ? 'bg-[#5B5BD6] border-[#5B5BD6]' : 'bg-black/40 border-white/40 hover:bg-black/60'
-              }`}
-            >
-              <Bookmark className={`w-4 h-4 ${saved ? 'fill-white text-white' : 'text-white'}`} />
-            </button>
           </div>
+
         </div>
 
-        {/* ── Col derecha (33%): Match centrado + progreso + Skip abajo — alineados a la izquierda ── */}
-        <div className="w-1/3 relative py-8 pl-8 flex flex-col items-start justify-end">
-          {/* Match — centro absoluto */}
-          <button
-            onClick={() => triggerAction(1)}
-            className="absolute left-8 top-1/2 -translate-y-1/2 w-14 h-14 bg-[#5B5BD6] rounded-full flex items-center justify-center shadow-lg hover:bg-[#4a4abf] transition cursor-pointer"
-          >
-            <Check className="w-6 h-6 text-white" strokeWidth={2.5} />
-          </button>
+        {/* Anchored Bookmark Button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setSaved(s => !s); }}
+          className={`absolute right-24 top-[calc(50%-70px)] w-12 h-12 rounded-full border flex items-center justify-center shadow-md hover:border-neutral-400 transition-colors z-20 cursor-pointer ${
+            saved ? 'bg-accent border-accent text-white' : 'bg-white border-neutral-200 text-text-primary'
+          }`}
+        >
+          <Bookmark className={`w-5 h-5 ${saved ? 'fill-white text-white' : ''}`} />
+        </button>
 
-          {/* Progreso + Skip — abajo */}
-          <div className="w-full space-y-2">
-            <button
-              onClick={() => triggerAction(-1)}
-              className="text-sm font-semibold text-text-primary hover:opacity-60 transition cursor-pointer"
-            >
-              Skip
-            </button>
-            <div className="w-full h-[2px] bg-neutral-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#101010] rounded-full transition-all duration-500"
-                style={{ width: `${(matchCount / 10) * 100}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-neutral-400">Building your taste</p>
-              <p className="text-[11px] text-neutral-400">{matchCount}/10</p>
-            </div>
+        {/* Anchored Heart/Like Check Button */}
+        <button
+          onClick={() => triggerAction(1)}
+          className="absolute right-24 top-[calc(50%+10px)] w-12 h-12 bg-accent rounded-full flex items-center justify-center shadow-lg hover:bg-accent-hover transition-colors z-20 cursor-pointer active:scale-95"
+        >
+          <Check className="w-5 h-5 text-white" strokeWidth={2.5} />
+        </button>
+
+        {/* Anchored Bottom-Right Progress Area */}
+        <div className="absolute bottom-8 right-8 w-44 space-y-2.5">
+          <button
+            onClick={() => triggerAction(-1)}
+            className="text-xs font-bold uppercase tracking-wider text-text-primary hover:opacity-75 transition cursor-pointer"
+          >
+            Skip
+          </button>
+          <div className="w-full h-[2px] bg-neutral-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#101010] rounded-full transition-all duration-500"
+              style={{ width: `${(matchCount / 10) * 100}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-neutral-400">
+            <span>Building your taste</span>
+            <span>{matchCount}/10</span>
           </div>
         </div>
 
