@@ -367,7 +367,7 @@ export default function ProjectClient() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#101010] font-sans pb-32">
       
       {/* Back navigation */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 pt-8">
+      <div className="max-w-[1600px] mx-auto px-6 md:px-12 pt-8">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#101010] hover:opacity-60 transition cursor-pointer"
@@ -377,416 +377,310 @@ export default function ProjectClient() {
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-12 space-y-24">
+      <div className="max-w-[1600px] mx-auto px-6 md:px-12 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
         
-        {/* ROW 1: Massive Title Info & Cover Image */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
+        {/* LEFT COLUMN: Sticky Case Info Sidebar */}
+        <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-8 lg:max-h-[calc(100vh-80px)] lg:overflow-y-auto pr-6 pb-12 select-none scrollbar-none">
           
-          {/* Text block (Left) */}
-          <div className="lg:col-span-5 space-y-8 lg:sticky lg:top-24">
-            <div className="space-y-4">
-              <p className="text-sm font-bold uppercase tracking-widest text-neutral-400">
+          {/* Header Metadata */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
                 By {project.creatorName}
               </p>
-              <h1 className="font-display font-extrabold text-[72px] md:text-[96px] lg:text-[110px] uppercase tracking-tighter leading-[0.85] text-[#101010]">
-                {project.title}
-              </h1>
-              <p className="font-mono text-xs text-neutral-400 uppercase tracking-widest">
-                {project.discipline}
-              </p>
+              {project.creatorType && (
+                <span className="bg-neutral-100 text-[9px] text-neutral-500 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
+                  {project.creatorType}
+                </span>
+              )}
+            </div>
+            <h1 className="font-display font-extrabold text-[54px] md:text-[68px] lg:text-[76px] uppercase tracking-tighter leading-[0.85] text-[#101010] break-words">
+              {project.title}
+            </h1>
+            <p className="font-mono text-[10px] text-neutral-400 uppercase tracking-widest leading-relaxed">
+              {project.discipline}
+            </p>
+          </div>
+
+          <div className="h-px bg-neutral-200 w-24" />
+
+          {/* Atmospherics and Narrative */}
+          <div className="space-y-4">
+            <h2 className="font-display text-base md:text-lg font-bold tracking-tight text-[#101010]">
+              {project.subtitle}
+            </h2>
+            <p className="text-neutral-500 text-xs md:text-sm leading-relaxed font-light">
+              {project.description}
+            </p>
+          </div>
+
+          {/* Micro-interactions */}
+          <div className="flex items-center gap-6 select-none pt-2">
+            <button 
+              onClick={() => setIsLiked(!isLiked)} 
+              className="flex items-center gap-2 group cursor-pointer"
+            >
+              <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 ${
+                isLiked ? 'bg-red-50 border-red-200 text-red-500 scale-105' : 'border-neutral-200 group-hover:border-neutral-400 text-neutral-600'
+              }`}>
+                <Heart className={`w-3.5 h-3.5 transition-transform duration-300 group-active:scale-90 ${isLiked ? 'fill-current' : ''}`} />
+              </div>
+              <span className="text-[10px] font-bold text-neutral-600 font-mono tracking-wider">{project.likes}</span>
+            </button>
+
+            <button className="flex items-center gap-2 group cursor-pointer">
+              <div className="w-9 h-9 rounded-full border border-neutral-200 group-hover:border-neutral-400 flex items-center justify-center text-neutral-600 transition-all duration-300">
+                <MessageSquare className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-[10px] font-bold text-neutral-600 font-mono tracking-wider">{project.comments}</span>
+            </button>
+
+            <button 
+              onClick={() => setIsSaved(!isSaved)}
+              className="flex items-center gap-2 group cursor-pointer"
+            >
+              <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 ${
+                isSaved ? 'bg-accent/10 border-accent/20 text-accent scale-105' : 'border-neutral-200 group-hover:border-neutral-400 text-neutral-600'
+              }`}>
+                <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+              </div>
+            </button>
+          </div>
+
+          {/* Technical Plaster Card (technical sheet) */}
+          <div className="w-full bg-[#E5E5E5] rounded-[24px] p-6 relative overflow-hidden min-h-[360px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
+            <div className="font-display font-black text-[80px] md:text-[140px] text-black/[0.035] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase">
+              {project.title.slice(0, 8)}
             </div>
 
-            <div className="h-px bg-neutral-200 w-24" />
-
-            <div className="space-y-4">
-              <h2 className="font-display text-lg md:text-xl font-bold tracking-tight text-[#101010]">
-                {project.subtitle}
-              </h2>
-              <p className="text-neutral-500 text-sm md:text-base leading-relaxed font-light">
-                {project.description}
-              </p>
+            <div className="relative z-10 font-mono text-[9px] md:text-[10px] uppercase tracking-wider text-neutral-700 space-y-6">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5 text-neutral-400">[G] GROWER</div>
+                <div className="col-span-7 font-semibold text-neutral-900">{project.technicalSheet.grower}</div>
+              </div>
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5 text-neutral-400">[E] ESTATE</div>
+                <div className="col-span-7 font-semibold text-neutral-900">{project.technicalSheet.estate}</div>
+              </div>
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5 text-neutral-400">[M] LOCATION</div>
+                <div className="col-span-7 font-semibold text-neutral-900">{project.technicalSheet.location}</div>
+              </div>
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5 text-neutral-400">[A] ALTITUDE</div>
+                <div className="col-span-7 font-semibold text-neutral-900">{project.technicalSheet.altitude}</div>
+              </div>
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5 text-neutral-400">[C] COUNTRY</div>
+                <div className="col-span-7 font-semibold text-neutral-900">{project.technicalSheet.country}</div>
+              </div>
             </div>
 
-            {/* Micro Interaction area */}
-            <div className="flex items-center gap-6 pt-2 select-none">
-              <button 
-                onClick={() => setIsLiked(!isLiked)} 
-                className="flex items-center gap-2 group cursor-pointer"
-              >
-                <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 ${
-                  isLiked ? 'bg-red-50 border-red-200 text-red-500 scale-105' : 'border-neutral-200 group-hover:border-neutral-400 text-neutral-600'
-                }`}>
-                  <Heart className={`w-4 h-4 transition-transform duration-300 group-active:scale-90 ${isLiked ? 'fill-current' : ''}`} />
-                </div>
-                <span className="text-xs font-bold text-neutral-600 font-mono tracking-wider">{project.likes}</span>
-              </button>
-
-              <button className="flex items-center gap-2 group cursor-pointer">
-                <div className="w-10 h-10 rounded-full border border-neutral-200 group-hover:border-neutral-400 flex items-center justify-center text-neutral-600 transition-all duration-300">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-bold text-neutral-600 font-mono tracking-wider">{project.comments}</span>
-              </button>
-
-              <button 
-                onClick={() => setIsSaved(!isSaved)}
-                className="flex items-center gap-2 group cursor-pointer"
-              >
-                <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 ${
-                  isSaved ? 'bg-accent/10 border-accent/20 text-accent scale-105' : 'border-neutral-200 group-hover:border-neutral-400 text-neutral-600'
-                }`}>
-                  <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                </div>
-              </button>
+            <div className="relative z-10 mt-6 grid grid-cols-12 gap-2">
+              <div className="col-span-12 font-mono text-[9px] text-neutral-400 uppercase tracking-wider">
+                [ABOUT THE ESTATE]
+              </div>
+              <div className="col-span-12 font-mono text-[10px] text-neutral-600 leading-relaxed lowercase">
+                {project.aboutEstate}
+              </div>
             </div>
           </div>
 
-          {/* Cover image block (Right) */}
-          <div className="lg:col-span-7">
-            <div className="rounded-[28px] md:rounded-[40px] overflow-hidden shadow-sm aspect-[4/3] bg-neutral-100 border border-neutral-200/40">
-              <img
-                src={project.coverImage}
-                alt={project.title}
-                className="w-full h-full object-cover transition-transform duration-[2000ms] hover:scale-105"
-                draggable={false}
-              />
-            </div>
-          </div>
-
-        </section>
-
-        {/* DYNAMIC CONTENT MODULES (User-customizable elements) */}
-        {project.modules?.map((module) => {
-          switch (module.type) {
-            case 'split-layout':
-              return (
-                <section key={module.id} className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center pt-8">
-                  {/* Left block (Image) */}
-                  <div className="md:col-span-6 flex justify-center">
-                    <div className="rounded-[24px] overflow-hidden shadow-sm aspect-square max-w-sm w-full bg-white p-6 border border-neutral-200/50 flex items-center justify-center">
-                      <img
-                        src={module.data.image}
-                        alt="Detail representation"
-                        className="max-h-full max-w-full object-contain"
-                        draggable={false}
-                      />
-                    </div>
-                  </div>
-                  {/* Right block (Text) */}
-                  <div className="md:col-span-6 space-y-6">
-                    <p className="font-display text-xl md:text-2xl leading-relaxed text-neutral-700 font-light tracking-tight md:max-w-xl">
-                      "{module.data.text}"
-                    </p>
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-text-primary">
-                      <span>{module.data.subcaption || 'Swiss Design Philosophy'}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </section>
-              );
-
-            case 'technical-sheet':
-              return (
-                <section key={module.id} className="pt-8">
-                  <div className="w-full bg-[#E5E5E5] rounded-[32px] p-8 md:p-14 relative overflow-hidden min-h-[460px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
-                    {/* Background watermark */}
-                    <div className="font-display font-black text-[150px] md:text-[280px] text-black/[0.035] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase">
-                      {module.data.title}
-                    </div>
-
-                    {/* Technical grid columns (Foreground) */}
-                    <div className="relative z-10 font-mono text-[11px] md:text-xs uppercase tracking-wider text-neutral-700 space-y-12">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                        <div className="md:col-span-4 text-neutral-400">[G] GROWER</div>
-                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.grower}</div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                        <div className="md:col-span-4 text-neutral-400">[E] ESTATE</div>
-                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.estate}</div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                        <div className="md:col-span-4 text-neutral-400">[M] MICRO-LOCATION</div>
-                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.location}</div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                        <div className="md:col-span-4 text-neutral-400">[A] ALTITUDE</div>
-                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.altitude}</div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                        <div className="md:col-span-4 text-neutral-400">[C] COUNTRY</div>
-                        <div className="md:col-span-8 font-semibold text-neutral-900">{module.data.country}</div>
-                      </div>
-                    </div>
-
-                    {/* Monospaced narrative description */}
-                    <div className="relative z-10 mt-12 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-2">
-                      <div className="md:col-span-4 font-mono text-[11px] md:text-xs uppercase tracking-wider text-neutral-400">
-                        [ABOUT THE ESTATE]
-                      </div>
-                      <div className="md:col-span-8 font-mono text-xs md:text-sm text-neutral-600 leading-relaxed max-w-xl lowercase">
-                        {module.data.about}
-                      </div>
-                    </div>
-
-                    {/* Symmetrical dots */}
-                    <div className="relative z-10 flex justify-center gap-1.5 mt-8 select-none">
-                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-800" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-                    </div>
-                  </div>
-                </section>
-              );
-
-            case 'carousel':
-              const activeIndex = carouselIndices[module.id] || 0;
-              const items = module.data.items || [];
-              return (
-                <section key={module.id} className="pt-8">
-                  <div className="relative w-full aspect-[21/9] md:aspect-[16/9] min-h-[300px] max-h-[500px] overflow-hidden rounded-[32px] bg-neutral-100 border border-neutral-200/50 shadow-sm group">
-                    {items.map((item: string, index: number) => (
-                      <div
-                        key={item}
-                        className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
-                      >
-                        <img
-                          src={item}
-                          alt={`Slide ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                      </div>
-                    ))}
-
-                    {/* Navigation Arrows */}
-                    {items.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => prevSlide(module.id, items.length)}
-                          className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white backdrop-blur-sm flex items-center justify-center text-neutral-800 shadow-md transition-all duration-200 opacity-0 group-hover:opacity-100 z-20 cursor-pointer active:scale-95"
-                        >
-                          <ChevronLeft className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => nextSlide(module.id, items.length)}
-                          className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white backdrop-blur-sm flex items-center justify-center text-neutral-800 shadow-md transition-all duration-200 opacity-0 group-hover:opacity-100 z-20 cursor-pointer active:scale-95"
-                        >
-                          <ArrowRight className="w-5 h-5" />
-                        </button>
-                      </>
-                    )}
-
-                    {/* Bullet Indicators */}
-                    {items.length > 1 && (
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-                        {items.map((_: any, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => setCarouselIndices(prev => ({ ...prev, [module.id]: idx }))}
-                            className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === activeIndex ? 'bg-white w-6' : 'bg-white/40 hover:bg-white/70'}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              );
-
-            case 'video':
-              const isPlaying = videoStates[module.id]?.playing ?? true;
-              const isMuted = videoStates[module.id]?.muted ?? true;
-              return (
-                <section key={module.id} className="pt-8">
-                  <div className="relative w-full aspect-[16/9] bg-[#101010] rounded-[32px] overflow-hidden border border-neutral-200/20 shadow-lg group">
-                    <video
-                      id={`video-${module.id}`}
-                      src={module.data.src}
-                      className="w-full h-full object-cover"
-                      loop
-                      muted={isMuted}
-                      autoPlay={isPlaying}
-                      playsInline
-                      onClick={() => {
-                        const vid = document.getElementById(`video-${module.id}`) as HTMLVideoElement;
-                        togglePlay(module.id, vid);
-                      }}
-                    />
-                    {/* Ambient vignette controls */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 pointer-events-none">
-                      {/* Header Mute/Unmute */}
-                      <div className="flex justify-end pointer-events-auto">
-                        <button
-                          onClick={() => {
-                            const vid = document.getElementById(`video-${module.id}`) as HTMLVideoElement;
-                            toggleMute(module.id, vid);
-                          }}
-                          className="w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/85 transition cursor-pointer"
-                        >
-                          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                        </button>
-                      </div>
-
-                      {/* Bottom Playback Overlay */}
-                      <div className="flex items-center justify-between pointer-events-auto">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => {
-                              const vid = document.getElementById(`video-${module.id}`) as HTMLVideoElement;
-                              togglePlay(module.id, vid);
-                            }}
-                            className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center hover:scale-105 active:scale-95 transition cursor-pointer shadow-md"
-                          >
-                            {isPlaying ? <Pause className="w-4.5 h-4.5 fill-current" /> : <Play className="w-4.5 h-4.5 fill-current ml-0.5" />}
-                          </button>
-                          <p className="text-white text-xs font-mono uppercase tracking-wider bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
-                            {module.data.caption || 'Live Showcase'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              );
-
-            case 'image':
-              return (
-                <section key={module.id} className="pt-8">
-                  <div className="rounded-[28px] overflow-hidden shadow-sm bg-neutral-100 border border-neutral-200/50 max-w-5xl mx-auto">
-                    <img
-                      src={module.data.src}
-                      alt={module.data.caption || 'Project visual'}
-                      className="w-full h-auto object-cover"
-                      draggable={false}
-                    />
-                  </div>
-                  {module.data.caption && (
-                    <p className="text-center font-mono text-[10px] uppercase text-neutral-400 mt-3 tracking-widest">
-                      {module.data.caption}
-                    </p>
-                  )}
-                </section>
-              );
-
-            case 'text':
-              return (
-                <section key={module.id} className="py-6 max-w-3xl mx-auto text-center px-4">
-                  {module.data.style === 'blockquote' ? (
-                    <p className="font-display text-xl md:text-3xl leading-relaxed text-neutral-700 font-light tracking-tight">
-                      “{module.data.text}”
-                    </p>
-                  ) : (
-                    <p className="font-mono text-xs text-neutral-400 uppercase tracking-widest leading-relaxed">
-                      {module.data.text}
-                    </p>
-                  )}
-                </section>
-              );
-
-            default:
-              return null;
-          }
-        })}
-
-        {/* ROW 4: Creatives & Details */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-20 items-start pt-8">
-          
-          {/* The Creatives (Left) */}
-          <div className="lg:col-span-6 space-y-6">
-            <h3 className="font-display font-black text-xs uppercase tracking-widest text-neutral-400">
-              THE CREATIVES
+          {/* Project Details Table */}
+          <div className="space-y-4">
+            <h3 className="font-display font-black text-[10px] uppercase tracking-widest text-neutral-400">
+              PROJECT BRIEF
             </h3>
-            
-            <div className="flex flex-wrap gap-6">
-              {project.creatives.map((creator) => (
-                <div key={creator.name} className="flex gap-4 items-center">
-                  <div className="rounded-2xl overflow-hidden w-24 h-32 bg-neutral-200 border border-neutral-200/50 shadow-sm flex-shrink-0">
-                    <img
-                      src={creator.image}
-                      alt={creator.name}
-                      className="w-full h-full object-cover grayscale contrast-[1.1]"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-[#101010]">{creator.name}</p>
-                    <p className="text-xs text-neutral-400 font-mono tracking-wide uppercase">{creator.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Project Details table (Right) */}
-          <div className="lg:col-span-6 space-y-6">
-            <h3 className="font-display font-black text-xs uppercase tracking-widest text-neutral-400">
-              PROJECT DETAILS
-            </h3>
-
             <div className="border-t border-neutral-200 divide-y divide-neutral-200 font-sans text-xs">
-              <div className="flex justify-between py-3.5">
+              <div className="flex justify-between py-3">
                 <span className="text-neutral-400">Client</span>
                 <span className="font-semibold text-[#101010]">{project.meta.client}</span>
               </div>
-              <div className="flex justify-between py-3.5">
+              <div className="flex justify-between py-3">
                 <span className="text-neutral-400">Year</span>
                 <span className="font-semibold text-[#101010]">{project.meta.year}</span>
               </div>
-              <div className="flex justify-between py-3.5">
+              <div className="flex justify-between py-3">
                 <span className="text-neutral-400">Discipline</span>
-                <span className="font-semibold text-[#101010] text-right max-w-[280px]">{project.meta.discipline}</span>
+                <span className="font-semibold text-[#101010] text-right max-w-[200px]">{project.meta.discipline}</span>
               </div>
-              <div className="flex justify-between py-3.5">
+              <div className="flex justify-between py-3">
                 <span className="text-neutral-400">Duration</span>
                 <span className="font-semibold text-[#101010]">{project.meta.duration}</span>
               </div>
-              <div className="flex justify-between py-3.5">
+              <div className="flex justify-between py-3">
                 <span className="text-neutral-400">Budget</span>
                 <span className="font-semibold text-[#101010]">{project.meta.budget}</span>
               </div>
             </div>
           </div>
 
-        </section>
-
-        {/* ROW 6: Recommendations tray (More Projects) */}
-        <section className="space-y-8 pt-8">
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
-            <h3 className="font-display font-black text-xs uppercase tracking-widest text-neutral-400">
-              MORE PROJECTS
+          {/* The Team / Creatives */}
+          <div className="space-y-4">
+            <h3 className="font-display font-black text-[10px] uppercase tracking-widest text-neutral-400">
+              CREATIVE PARTNERS
             </h3>
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-600 hover:opacity-60 cursor-pointer transition">
-              Explore feed
-            </span>
+            <div className="flex flex-col gap-4">
+              {project.creatives.map((creator) => (
+                <div key={creator.name} className="flex gap-3 items-center">
+                  <div className="rounded-xl overflow-hidden w-12 h-16 bg-neutral-200 border border-neutral-200/50 shadow-sm flex-shrink-0">
+                    <img
+                      src={creator.image}
+                      alt={creator.name}
+                      className="w-full h-full object-cover grayscale contrast-[1.1]"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#101010]">{creator.name}</p>
+                    <p className="text-[10px] text-neutral-400 font-mono tracking-wide uppercase">{creator.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {RECOMMENDED_PROJECTS.map((rec) => (
-              <Link 
-                href={`/project?id=${rec.id}`}
-                key={rec.id}
-                className="group block space-y-3 cursor-pointer"
+        </div>
+
+        {/* RIGHT COLUMN: Continuous Vertical Stack of 5 Full-Width Images */}
+        <div className="lg:col-span-7 space-y-6 md:space-y-8">
+          {(() => {
+            // Dynamically gather 5 unique, stunning fotorrealistic images for the project
+            let imageList: string[] = [];
+
+            if (project.id === 'stow' || project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7d01') {
+              imageList = [
+                '/images/stow/stow-boxes.png',
+                '/images/stow/stow-nestor-lasso.png',
+                '/images/stow/stow-beans.png',
+                '/images/stow/stow-tin.png',
+                '/images/stow/stow-bar.png'
+              ];
+            } else if (project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7a01') { // Photography
+              imageList = [
+                '/images/quietude-cover.png',
+                'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&w=1200&q=80'
+              ];
+            } else if (project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7b01') { // Interiors
+              imageList = [
+                '/images/nordic-haven.png',
+                'https://images.unsplash.com/photo-1616166330003-8e550d40b0f8?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1617806118233-18e1db207f62?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=1200&q=80'
+              ];
+            } else if (project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7c01') { // CGI
+              imageList = [
+                '/images/vessel-studies.png',
+                'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1618005198143-e5283b519a7f?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1200&q=80'
+              ];
+            } else if (project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7d02') { // Graphic
+              imageList = [
+                '/images/chronicle-specimen.png',
+                'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1200&q=80'
+              ];
+            } else if (project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7e01') { // UI/UX
+              imageList = [
+                '/images/aura-interface.png',
+                'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80'
+              ];
+            } else {
+              // Fallback dynamically compiled image sequence
+              imageList = [
+                project.coverImage,
+                project.secondaryImage,
+                ...(project.modules?.find(m => m.type === 'carousel')?.data.items || []),
+              ].filter((img, idx, self) => img && self.indexOf(img) === idx);
+
+              // Pad to exactly 5 high-end images
+              const premiumFallbacks = [
+                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=1200&q=80'
+              ];
+              
+              let fallbackIdx = 0;
+              while (imageList.length < 5) {
+                imageList.push(premiumFallbacks[fallbackIdx % premiumFallbacks.length]);
+                fallbackIdx++;
+              }
+            }
+
+            return imageList.slice(0, 5).map((img, index) => (
+              <div 
+                key={`${img}-${index}`}
+                className="rounded-[28px] overflow-hidden shadow-sm aspect-[4/3] w-full bg-neutral-100 border border-neutral-200/40 hover:shadow-md transition-shadow duration-300"
               >
-                <div className="aspect-[4/3] rounded-[20px] overflow-hidden bg-neutral-100 border border-neutral-200/50 shadow-sm relative">
-                  <img
-                    src={rec.image}
-                    alt={rec.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="flex justify-between items-start px-1">
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#101010] transition-colors group-hover:text-accent">
-                      {rec.title}
-                    </h4>
-                    <p className="text-[10px] text-neutral-400 font-mono uppercase mt-0.5">
-                      {rec.category}
-                    </p>
+                <img
+                  src={img}
+                  alt={`${project.title} portfolio showcase ${index + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-[2000ms] hover:scale-103"
+                  draggable={false}
+                  loading="lazy"
+                />
+              </div>
+            ));
+          })()}
+
+          {/* Related / More Projects Panel */}
+          <div className="pt-12 border-t border-neutral-200 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-black text-xs uppercase tracking-widest text-neutral-400">
+                MORE PROJECTS
+              </h3>
+              <span 
+                onClick={() => router.push('/')}
+                className="text-xs font-bold uppercase tracking-wider text-neutral-600 hover:opacity-60 cursor-pointer transition"
+              >
+                Explore feed
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {RECOMMENDED_PROJECTS.map((rec) => (
+                <Link 
+                  href={`/project?id=${rec.id}`}
+                  key={rec.id}
+                  className="group block space-y-3 cursor-pointer"
+                >
+                  <div className="aspect-[4/3] rounded-[20px] overflow-hidden bg-neutral-100 border border-neutral-200/50 shadow-sm relative">
+                    <img
+                      src={rec.image}
+                      alt={rec.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
-                  <ChevronLeft className="w-3.5 h-3.5 -rotate-180 text-neutral-300 transition-transform duration-300 group-hover:translate-x-1" />
-                </div>
-              </Link>
-            ))}
+                  <div className="flex justify-between items-start px-1">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#101010] transition-colors group-hover:text-accent">
+                        {rec.title}
+                      </h4>
+                      <p className="text-[10px] text-neutral-400 font-mono uppercase mt-0.5">
+                        {rec.category}
+                      </p>
+                    </div>
+                    <ChevronLeft className="w-3.5 h-3.5 -rotate-180 text-neutral-300 transition-transform duration-300 group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </section>
+
+        </div>
 
       </div>
 
