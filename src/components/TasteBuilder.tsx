@@ -256,7 +256,7 @@ function ResultsScreen({
           <div
             key={card.id || i}
             onClick={() => {
-              router.push(`/project/${card.id}`);
+              router.push(`/project?id=${card.id}`);
               if (onClose) onClose();
             }}
             className="break-inside-avoid mb-3 relative rounded-2xl overflow-hidden bg-neutral-100 group shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"

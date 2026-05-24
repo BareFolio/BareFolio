@@ -252,7 +252,7 @@ export default function HomePage() {
         return (
           <div
             key={item.id}
-            onClick={() => router.push(`/project/${item.projectId || item.id}`)}
+            onClick={() => router.push(`/project?id=${item.projectId || item.id}`)}
             className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden group relative cursor-pointer bg-neutral-100"
           >
             <div className={`relative w-full ${cardAspect(item.id)}`}>

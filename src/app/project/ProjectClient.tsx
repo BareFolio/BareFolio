@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Heart, MessageSquare, Bookmark, ChevronLeft, ArrowRight, Share2, Check, UserPlus } from 'lucide-react';
@@ -112,9 +112,9 @@ const RECOMMENDED_PROJECTS = [
 ];
 
 export default function ProjectClient() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params?.id as string;
+  const id = searchParams ? (searchParams.get('id') || '') : '';
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -451,7 +451,7 @@ export default function ProjectClient() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {RECOMMENDED_PROJECTS.map((rec) => (
               <Link 
-                href={`/project/${rec.id}`}
+                href={`/project?id=${rec.id}`}
                 key={rec.id}
                 className="group block space-y-3 cursor-pointer"
               >
