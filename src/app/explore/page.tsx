@@ -342,7 +342,7 @@ export default function ExplorePage() {
       if (projData) {
         setDbProjects(projData.map((p: any) => ({
           id: p.id,
-          creatorId: p.user_id,
+          creatorId: p.creator_id,
           creatorName: (p.profile as any)?.full_name || (p.profile as any)?.username || 'Creator',
           coverUrl: p.cover_url ?? undefined,
           title: p.title,

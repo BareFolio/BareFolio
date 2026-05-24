@@ -111,7 +111,7 @@ export default function HomePage() {
           type: 'project' as const,
           mediaUrl: p.cover_url,
           isVideo: detectVideo(p.cover_url),
-          creatorId: p.user_id,
+          creatorId: p.creator_id,
           createdAt: p.created_at,
         });
       }
@@ -126,7 +126,7 @@ export default function HomePage() {
               type: 'project' as const,
               mediaUrl: imgUrl,
               isVideo: detectVideo(imgUrl),
-              creatorId: p.user_id,
+              creatorId: p.creator_id,
               createdAt: p.created_at,
             });
           }
@@ -141,7 +141,7 @@ export default function HomePage() {
         type: 'post' as const,
         mediaUrl: p.media_urls[0],
         isVideo: detectVideo(p.media_urls[0]),
-        creatorId: p.user_id,
+        creatorId: p.creator_id,
         createdAt: p.created_at,
       }));
 
@@ -155,13 +155,13 @@ export default function HomePage() {
       const [{ data: projects }, { data: posts }] = await Promise.all([
         supabase
           .from('projects')
-          .select('id, cover_url, images, user_id, created_at')
+          .select('id, cover_url, images, creator_id, created_at')
           .eq('verification_status', 'approved')
           .order('created_at', { ascending: false })
           .limit(60),
         supabase
           .from('posts')
-          .select('id, media_urls, user_id, created_at')
+          .select('id, media_urls, creator_id, created_at')
           .order('created_at', { ascending: false })
           .limit(60),
       ]);
@@ -195,15 +195,15 @@ export default function HomePage() {
       const [{ data: projects }, { data: posts }] = await Promise.all([
         supabase
           .from('projects')
-          .select('id, cover_url, images, user_id, created_at')
+          .select('id, cover_url, images, creator_id, created_at')
           .eq('verification_status', 'approved')
-          .in('user_id', followingIds)
+          .in('creator_id', followingIds)
           .order('created_at', { ascending: false })
           .limit(60),
         supabase
           .from('posts')
-          .select('id, media_urls, user_id, created_at')
-          .in('user_id', followingIds)
+          .select('id, media_urls, creator_id, created_at')
+          .in('creator_id', followingIds)
           .order('created_at', { ascending: false })
           .limit(60),
       ]);

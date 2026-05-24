@@ -238,7 +238,7 @@ export default function ProfileClient() {
         const { data: projsData } = await supabase
           .from('projects')
           .select('*')
-          .eq('user_id', targetId)
+          .eq('creator_id', targetId)
           .eq('verification_status', 'approved')
           .order('created_at', { ascending: false });
 
@@ -247,7 +247,7 @@ export default function ProfileClient() {
             projsData.map((p: any) => ({
               id: p.id,
               title: p.title,
-              creatorId: p.user_id,
+              creatorId: p.creator_id,
               description: p.description,
               coverUrl: p.cover_url,
               discipline: p.discipline,
@@ -261,19 +261,19 @@ export default function ProfileClient() {
         // Posts
         const { data: postsData } = await supabase
           .from('posts')
-          .select(`id, user_id, content, created_at, media_urls, profiles:user_id (full_name, avatar_url, username)`)
-          .eq('user_id', targetId)
+          .select(`id, creator_id, content, created_at, media_urls, profiles:creator_id (full_name, name, avatar_url, username)`)
+          .eq('creator_id', targetId)
           .order('created_at', { ascending: false });
 
         if (postsData) {
           setProfilePosts(
             postsData.map((p: any) => ({
               id: p.id,
-              creator_id: p.user_id,
+              creator_id: p.creator_id,
               content: p.content,
               created_at: p.created_at,
               mediaUrls: p.media_urls || [],
-              authorName: p.profiles?.full_name || fp.name,
+              authorName: p.profiles?.full_name || p.profiles?.name || fp.name,
               authorUsername: p.profiles?.username || fp.username,
               likes: Math.floor(Math.random() * 20) + 1,
               liked: false,
@@ -283,11 +283,11 @@ export default function ProfileClient() {
         }
 
         // Briefs (studio/brand only)
-        if (pData.profile_type === 'studio' || pData.profile_type === 'brand') {
+        if (pData.profile_type === 'studio' || pData.profile_type === 'brand' || pData.role === 'studio' || pData.role === 'brand') {
           const { data: briefsData } = await supabase
             .from('briefs')
             .select('*')
-            .eq('user_id', targetId)
+            .eq('studio_id', targetId)
             .order('created_at', { ascending: false });
 
           if (briefsData) {
@@ -317,7 +317,7 @@ export default function ProfileClient() {
       .subscribe();
     const ch2 = supabase
       .channel(`proj-${targetId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `user_id=eq.${targetId}` }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `creator_id=eq.${targetId}` }, fetchData)
       .subscribe();
 
     return () => {

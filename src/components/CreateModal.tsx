@@ -61,7 +61,7 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
     try {
       const mediaUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : [];
       const { error } = await supabase.from('posts').insert({
-        user_id: currentUser.id,
+        creator_id: currentUser.id,
         content: content.trim(),
         media_urls: mediaUrls,
         link: link.trim() || null,
