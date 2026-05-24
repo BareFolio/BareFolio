@@ -121,7 +121,6 @@ export default function ProfileClient() {
 
   // Follow
   const [isFollowing, setIsFollowing] = useState(false);
-  const [dbHasFullName, setDbHasFullName] = useState(false);
 
   // Posts interaction
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -139,77 +138,29 @@ export default function ProfileClient() {
 
     const fetchData = async () => {
       try {
-        // Check if targetId is a valid UUID (if not, it is a slug/username like 'alex-mcqueen')
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
-        
-        let query = supabase.from('profiles').select('*');
-        if (isUUID) {
-          query = query.eq('id', targetId);
-        } else {
-          // Format 'alex-mcqueen' to 'alex_mcqueen' to match the database username seed
-          const username = targetId.toLowerCase().replace(/-/g, '_');
-          query = query.eq('username', username);
-        }
-
-        const { data: pData, error: profileErr } = await query.maybeSingle();
+        const { data: pData, error: profileErr } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', targetId)
+          .single();
 
         if (profileErr || !pData) {
-          // Auto-create missing profile row if it is their own profile (e.g. registered before schema trigger existed)
-          if (isMe && currentUser) {
-            const baseUsername = currentUser.email ? currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') : 'user';
-            const uniqueUsername = `${baseUsername}_${currentUser.id.slice(0, 6)}`;
-            
-            const { data: newProfile } = await supabase
-              .from('profiles')
-              .insert({
-                id: currentUser.id,
-                username: uniqueUsername,
-                name: currentUser.user_metadata?.full_name || baseUsername,
-                email: currentUser.email || '',
-                role: 'creator'
-              })
-              .select('*')
-              .maybeSingle();
-
-            if (newProfile) {
-              setDbHasFullName('full_name' in newProfile);
-              const fp: ProfileData = {
-                uid: newProfile.id,
-                name: newProfile.full_name || newProfile.name || newProfile.username || '',
-                email: newProfile.email || '',
-                role: (newProfile.profile_type || newProfile.role) as ProfileData['role'],
-                bio: newProfile.bio || '',
-                location: newProfile.location || '',
-                avatarUrl: newProfile.avatar_url || '',
-                website: newProfile.website || '',
-                disciplines: newProfile.disciplines || [],
-                isVerified: newProfile.verified ?? newProfile.is_verified ?? false,
-                username: newProfile.username || '',
-                createdAt: newProfile.created_at,
-              };
-              setProfile(fp);
-              setLoading(false);
-              return;
-            }
-          }
           setProfile(null);
           setLoading(false);
           return;
         }
 
-        setDbHasFullName('full_name' in pData);
-
         const fp: ProfileData = {
           uid: pData.id,
-          name: pData.full_name || pData.name || pData.username || '',
-          email: pData.email || '',
-          role: (pData.profile_type || pData.role) as ProfileData['role'],
+          name: pData.full_name || pData.username || '',
+          email: '',
+          role: pData.profile_type as ProfileData['role'],
           bio: pData.bio || '',
           location: pData.location || '',
           avatarUrl: pData.avatar_url || '',
           website: pData.website || '',
           disciplines: pData.disciplines || [],
-          isVerified: pData.verified ?? pData.is_verified ?? false,
+          isVerified: pData.verified || false,
           username: pData.username || '',
           createdAt: pData.created_at,
         };
@@ -378,19 +329,12 @@ export default function ProfileClient() {
     if (!currentUser || !isMe) return;
     setSaveLoading(true);
     try {
-      const updateData: any = {
+      await supabase.from('profiles').update({
+        full_name: editName.trim() || null,
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
         disciplines: editDisciplines,
-      };
-
-      if (dbHasFullName) {
-        updateData.full_name = editName.trim() || null;
-      } else {
-        updateData.name = editName.trim() || null;
-      }
-
-      await supabase.from('profiles').update(updateData).eq('id', currentUser.id);
+      }).eq('id', currentUser.id);
       setIsEditing(false);
     } catch (err) {
       console.error('Save profile error:', err);
