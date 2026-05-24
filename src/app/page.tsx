@@ -264,6 +264,15 @@ export default function HomePage() {
                 alt=""
                 className="w-full h-full object-cover"
                 loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent && !parent.querySelector('.img-fallback')) {
+                    const fb = document.createElement('div');
+                    fb.className = 'img-fallback absolute inset-0 bg-neutral-200';
+                    parent.prepend(fb);
+                  }
+                }}
               />
             )}
 

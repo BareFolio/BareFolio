@@ -50,10 +50,13 @@ export default function GridItem({ project }: { project: ProjectData }) {
             src={project.coverUrl}
             alt={project.title}
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
+            }}
           />
-        ) : (
-          <div className={`absolute inset-0 bg-gradient-to-tr ${gradient}`} />
-        )}
+        ) : null}
+        <div className={`absolute inset-0 bg-gradient-to-tr ${gradient} ${project.coverUrl ? 'hidden' : ''}`} />
 
         {/* Dark overlay — fades in on hover */}
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

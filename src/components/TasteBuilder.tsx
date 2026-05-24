@@ -311,8 +311,8 @@ function ResultsScreen({
 // ── Premium Fallback cards (No Picsum Stock) ──────────────────────────────────
 
 const PREMIUM_FALLBACK_CARDS = [
-  { id: 'stow',     image: '/images/stow/stow-boxes.png',        author: 'Raw Lab',      avatar: 'RL', tags: ['Visual Identity', 'Packaging'] },
-  { id: 'stow',     image: '/images/stow/stow-nestor-lasso.png', author: 'Raw Lab',      avatar: 'RL', tags: ['Visual Identity', 'Branding']  },
+  { id: 'stow1',    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80',  author: 'Raw Lab',       avatar: 'RL', tags: ['Visual Identity', 'Packaging'] },
+  { id: 'stow2',    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80', author: 'Raw Lab',      avatar: 'RL', tags: ['Visual Identity', 'Branding']  },
   { id: 'emponi',   image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',  author: 'Yanis CGI',    avatar: 'YC', tags: ['CGI Art', 'Motion Design'] },
   { id: 'tierra',   image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80',  author: 'Luisa Barriga', avatar: 'LB', tags: ['Interiors', 'Architecture']  },
   { id: 'venu',     image: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=600&q=80',  author: 'Chronos Lab',  avatar: 'CL', tags: ['UI/UX Design', 'Interaction']  }

@@ -892,9 +892,17 @@ export default function ExplorePage() {
                   <div key={project.id} className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100">
                     <div className={`relative w-full ${getAspect(project.title)}`}>
                       {project.coverUrl
-                        ? <img src={project.coverUrl} alt="" className="w-full h-full object-cover" />
-                        : <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)}`} />
-                      }
+                        ? <img
+                            src={project.coverUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
+                            }}
+                          />
+                        : null}
+                      <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)} ${project.coverUrl ? 'hidden' : ''}`} />
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
                         <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">{project.creatorName}</Link>
                       </div>

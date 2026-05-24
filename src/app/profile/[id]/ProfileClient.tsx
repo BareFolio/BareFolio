@@ -467,14 +467,14 @@ export default function ProfileClient() {
       : [{ key: 'saved' as const, label: 'Inspiration', icon: Bookmark }]),
   ];
 
-  // Mock inspiration folders — seeds are used for the 3 preview images inside the folder
+  // Mock inspiration folders — images are Unsplash URLs used as folder previews
   const mockFolders = [
-    { name: 'Packaging',        count: 10, seeds: ['pkg1',   'pkg2',   'pkg3']   },
-    { name: 'UI/UX Inspiration',count: 32, seeds: ['uiux1',  'uiux2',  'uiux3']  },
-    { name: 'Branding',         count: 32, seeds: ['brand1', 'brand2', 'brand3'] },
-    { name: 'Web Design',       count: 0,  seeds: []                             },
-    { name: 'Editorial',        count: 0,  seeds: []                             },
-    { name: 'Project',          count: 0,  seeds: []                             },
+    { name: 'Packaging',         count: 10, images: ['https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300&q=70', 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=300&q=70', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=300&q=70'] },
+    { name: 'UI/UX Inspiration', count: 32, images: ['https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&q=70', 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=300&q=70', 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=300&q=70'] },
+    { name: 'Branding',          count: 32, images: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=70', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=70', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&q=70'] },
+    { name: 'Web Design',        count: 0,  images: [] },
+    { name: 'Editorial',         count: 0,  images: [] },
+    { name: 'Project',           count: 0,  images: [] },
   ];
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -760,9 +760,9 @@ export default function ProfileClient() {
                       <path d="M138.05 0H19.8331C14.6079 0 10.3721 4.43747 10.3721 9.91137V110.218C10.3721 115.692 14.6079 120.13 19.8331 120.13H138.05C143.275 120.13 147.511 115.692 147.511 110.218V9.91137C147.511 4.43747 143.275 0 138.05 0Z" fill="#2D2D2D"/>
 
                       {/* Layer 2 — 3 fanned image cards */}
-                      <image href={`https://picsum.photos/seed/${folder.seeds[0]}/300/444`} x="10.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic0-${i})`}/>
-                      <image href={`https://picsum.photos/seed/${folder.seeds[1]}/300/444`} x="41.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic1-${i})`}/>
-                      <image href={`https://picsum.photos/seed/${folder.seeds[2]}/300/444`} x="72.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic2-${i})`}/>
+                      <image href={folder.images[0]} x="10.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic0-${i})`}/>
+                      <image href={folder.images[1]} x="41.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic1-${i})`}/>
+                      <image href={folder.images[2]} x="72.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic2-${i})`}/>
 
                       {/* Layer 3 — front folder body */}
                       <g filter={`url(#flt-${i})`}>
