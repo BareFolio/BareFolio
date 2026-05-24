@@ -575,8 +575,8 @@ export default function TasteBuilder({
           <Check className="w-5 h-5 text-white" strokeWidth={2.5} />
         </button>
 
-        {/* Anchored Bottom-Right Progress Area */}
-        <div className="absolute bottom-8 right-8 w-44 space-y-2.5">
+        {/* Anchored Bottom-Right Progress Area (50% wider) */}
+        <div className="absolute bottom-8 right-8 w-[264px] space-y-2.5">
           <button
             onClick={() => triggerAction(-1)}
             className="text-xs font-bold uppercase tracking-wider text-text-primary hover:opacity-75 transition cursor-pointer"
