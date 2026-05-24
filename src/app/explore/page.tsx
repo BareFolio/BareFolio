@@ -337,13 +337,13 @@ export default function ExplorePage() {
       // 1. Projects
       const { data: projData } = await supabase
         .from('projects')
-        .select('*, profiles(id, username, full_name)')
+        .select('*, profile:profiles(id, username, full_name)')
         .eq('verification_status', 'approved');
       if (projData) {
         setDbProjects(projData.map((p: any) => ({
           id: p.id,
           creatorId: p.user_id,
-          creatorName: p.profiles?.full_name || p.profiles?.username || 'Creator',
+          creatorName: (p.profile as any)?.full_name || (p.profile as any)?.username || 'Creator',
           coverUrl: p.cover_url ?? undefined,
           title: p.title,
           description: p.description,
@@ -357,48 +357,48 @@ export default function ExplorePage() {
       const { data: profData } = await supabase.from('profiles').select('*');
       if (profData) {
         const creatorList: CreatorItem[] = profData
-          .filter((p: any) => (p.profile_type || p.role) === 'creator')
+          .filter((p: any) => p.role === 'creator')
           .map((c: any) => ({
             uid: c.id,
-            name: c.full_name || c.username || c.name || 'Creative',
-            email: c.email || '',
-            role: c.profile_type || c.role || 'creator',
+            name: c.name,
+            email: c.email,
+            role: c.role,
             bio: c.bio,
             location: c.location,
-            isAvailable: c.is_available ?? true,
+            isAvailable: c.is_available,
             practice: c.practice,
             disciplines: c.disciplines || [],
-            isVerified: c.verified ?? c.is_verified ?? false
+            isVerified: c.is_verified
           }));
         setDbCreators(creatorList);
 
         const studioList: StudioItem[] = profData
-          .filter((p: any) => (p.profile_type || p.role) === 'studio' || (p.profile_type || p.role) === 'brand')
+          .filter((p: any) => p.role === 'studio' || p.role === 'brand')
           .map((s: any) => ({
             uid: s.id,
-            name: s.full_name || s.username || s.name || 'Studio',
-            email: s.email || '',
-            role: s.profile_type || s.role || 'studio',
+            name: s.name,
+            email: s.email,
+            role: s.role,
             bio: s.bio,
             location: s.location,
-            companyName: s.company_name || s.full_name || s.username || s.name,
+            companyName: s.company_name || s.name,
             companyLink: s.company_link,
             teamSize: s.team_size,
             industry: s.industry,
             disciplines: s.disciplines || s.disciplines_hiring || [],
-            isVerified: s.verified ?? s.is_verified ?? false
+            isVerified: s.is_verified
           }));
         setDbStudios(studioList);
       }
 
       // 3. Briefs
-      const { data: briefData } = await supabase.from('briefs').select('*, profiles(full_name, username)');
+      const { data: briefData } = await supabase.from('briefs').select('*, profiles:studio_id(name)');
       if (briefData) {
         setDbBriefs(briefData.map((b: any) => ({
           id: b.id,
-          studioId: b.user_id,
-          studioName: b.profiles?.full_name || b.profiles?.username || 'Studio Member',
-          studioHandle: b.user_id?.slice(0, 12) || '',
+          studioId: b.studio_id,
+          studioName: b.profiles?.name || 'Studio Member',
+          studioHandle: b.studio_id?.slice(0, 12) || '',
           studioLocation: b.location || '',
           title: b.title,
           description: b.description,
@@ -415,7 +415,6 @@ export default function ExplorePage() {
           createdAt: b.created_at
         })));
       }
-
 
       // 4. Communities
       const { data: commData } = await supabase.from('communities').select('*');
@@ -684,7 +683,7 @@ export default function ExplorePage() {
   );
 
   const searchInput = (wide: boolean) => (
-    <div className={`relative flex-shrink-0 ${wide ? 'w-full lg:w-96' : 'w-full'}`}>
+    <div className={`relative w-full ${wide ? 'md:w-96' : 'md:w-80'} flex-shrink-1`}>
       <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400 pointer-events-none">
         <Search className="w-4 h-4" />
       </span>
@@ -759,7 +758,7 @@ export default function ExplorePage() {
   const selectedBriefObj = filteredBriefs.find(b => b.id === selectedBriefId) ?? null;
 
   const briefCards = (
-    <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3 content-start w-full">
+    <div className="flex-1 min-w-0 grid grid-cols-2 gap-3 content-start">
       {filteredBriefs.map((brief) => (
         <div
           key={brief.id}
@@ -815,7 +814,7 @@ export default function ExplorePage() {
   );
 
   const briefDetail = selectedBriefObj ? (
-    <div className="w-full lg:w-[340px] flex-shrink-0">
+    <div className="w-[340px] flex-shrink-0">
       <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
         <div className="px-5 py-3 border-b border-neutral-100 text-center">
           <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
@@ -897,23 +896,13 @@ export default function ExplorePage() {
             allProjects.length === 0 ? (
               <p className="text-center py-20 text-neutral-400 text-sm">No projects yet.</p>
             ) : (
-              <div className="columns-2 sm:columns-3 gap-1.5">
+              <div className="columns-3 gap-1.5">
                 {allProjects.map((project) => (
-                  <div 
-                    key={project.id} 
-                    onClick={() => router.push(`/project?id=${project.id}`)}
-                    className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100"
-                  >
+                  <div key={project.id} className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100">
                     <div className={`relative w-full ${getAspect(project.title)}`}>
                       {project.coverUrl ? <img src={project.coverUrl} alt="" className="w-full h-full object-cover" /> : <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)}`} />}
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                        <Link 
-                          href={`/profile/${project.creatorId}`} 
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-[10px] text-white/90 font-semibold truncate hover:underline"
-                        >
-                          {project.creatorName}
-                        </Link>
+                        <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">{project.creatorName}</Link>
                       </div>
                     </div>
                   </div>
@@ -923,13 +912,9 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'projects' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {filteredProjects.map((project, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => router.push(`/project?id=${project.id}`)}
-                  className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col"
-                >
+                <div key={idx} className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col">
                   <div className="w-full h-48 bg-gradient-to-tr from-accent/5 to-[#FF2D55]/10 relative">
                     <div className="absolute top-4 left-4 w-3.5 h-3.5 rounded-full border border-neutral-300 shadow-sm" style={{ backgroundColor: project.paletteHex?.[2] || '#1A1A1A' }} />
                     <span className="text-[9px] bg-white/20 text-neutral-700 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider absolute top-4 right-4 backdrop-blur-sm">{project.technique}</span>
@@ -939,13 +924,7 @@ export default function ExplorePage() {
                     </div>
                   </div>
                   <div className="p-4 flex justify-between items-center bg-white/40 border-t border-borderGlass/30">
-                    <Link 
-                      href={`/profile/${project.creatorId}`} 
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs font-bold text-neutral-600 hover:text-accent truncate flex-1"
-                    >
-                      {project.creatorName}
-                    </Link>
+                    <Link href={`/profile/${project.creatorId}`} className="text-xs font-bold text-neutral-600 hover:text-accent truncate flex-1">{project.creatorName}</Link>
                     <ChevronRight className="w-4 h-4 text-neutral-400" />
                   </div>
                 </div>
@@ -954,7 +933,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'creators' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {(dbCreators.length > 0 ? dbCreators : FALLBACK_CREATORS).map((creator) => (
                 <div key={creator.uid} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100 cursor-pointer hover:bg-neutral-100 transition-colors">
                   <div className="w-12 h-12 rounded-full bg-neutral-200 flex items-center justify-center flex-shrink-0">
@@ -975,7 +954,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'studios' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {(dbStudios.length > 0 ? dbStudios : FALLBACK_STUDIOS).map((studio) => (
                 <div key={studio.uid} className="flex items-start gap-3 p-4 rounded-xl bg-neutral-50 border border-neutral-100">
                   <div className="w-12 h-12 rounded-xl bg-[#101010] flex items-center justify-center flex-shrink-0 text-white text-xs font-bold uppercase">{studio.name.slice(0, 2)}</div>
@@ -998,7 +977,7 @@ export default function ExplorePage() {
           )}
 
           {activeTab === 'communities' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {filteredCommunities.map((comm) => (
                 <div key={comm.id} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
                   <div className="space-y-2">
@@ -1025,24 +1004,32 @@ export default function ExplorePage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {activeTab !== 'swipe' && (
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
           {searchInput(true)}
           {tabsRow}
         </div>
       )}
 
       {isSimpleLayout ? (
-        contentArea
-      ) : activeTab === 'briefs' ? (
-        <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
-          {briefCards}
-          {briefDetail}
-        </div>
-      ) : (
         <div className="w-full">
           {contentArea}
+        </div>
+      ) : activeTab === 'briefs' ? (
+        <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
+          {filterPanel}
+          <div className="flex-1 min-w-0 w-full flex flex-col md:flex-row gap-6">
+            {briefCards}
+            {briefDetail}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
+          {filterPanel}
+          <div className="flex-1 min-w-0 w-full">
+            {contentArea}
+          </div>
         </div>
       )}
     </div>

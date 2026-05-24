@@ -20,19 +20,19 @@ export interface UserProfile {
   created_at: string
 }
 
-function mapProfile(data: Profile): UserProfile {
+function mapProfile(data: any): UserProfile {
   return {
     uid: data.id,
     username: data.username,
-    full_name: data.full_name,
-    email: '', // not in profiles table, from auth.users
-    profile_type: data.profile_type,
-    bio: data.bio,
-    location: data.location,
-    avatar_url: data.avatar_url,
-    website: data.website,
+    full_name: data.full_name || data.name || null,
+    email: data.email || '',
+    profile_type: (data.profile_type || data.role || 'creator') as ProfileType,
+    bio: data.bio || null,
+    location: data.location || null,
+    avatar_url: data.avatar_url || null,
+    website: data.website || null,
     disciplines: data.disciplines ?? [],
-    verified: data.verified,
+    verified: data.verified ?? data.is_verified ?? false,
     created_at: data.created_at,
   }
 }
@@ -69,7 +69,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = async () => {
     if (!currentUser) return
     const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single()
-    if (data) setProfile(mapProfile(data as Profile))
+    if (data) setProfile(mapProfile(data))
   }
 
   useEffect(() => {
@@ -89,16 +89,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      // Query profiles with maybeSingle to prevent crash if missing
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (error) {
-        console.error('Error fetching profile:', error.message)
+      if (!data) {
+        // Create a default profile row if one doesn't exist
+        const baseUsername = user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') : 'user';
+        const uniqueUsername = `${baseUsername}_${user.id.slice(0, 6)}`;
+        
+        // Dynamically insert supporting both schemas
+        let insertResult = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            username: uniqueUsername,
+            full_name: user.user_metadata?.full_name || baseUsername,
+            profile_type: 'creator'
+          })
+          .select('*')
+          .maybeSingle();
+
+        if (!insertResult.data) {
+          insertResult = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              username: uniqueUsername,
+              name: user.user_metadata?.full_name || baseUsername,
+              email: user.email || '',
+              role: 'creator'
+            })
+            .select('*')
+            .maybeSingle();
+        }
+
+        if (insertResult.data) {
+          setProfile(mapProfile(insertResult.data));
+        } else {
+          console.error('Error creating default profile row');
+        }
       } else if (data) {
-        setProfile(mapProfile(data as Profile))
+        setProfile(mapProfile(data))
       }
 
       setLoading(false)
