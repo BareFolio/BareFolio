@@ -90,7 +90,7 @@ BEGIN
       'Project / Fine Art / Landscape Photography',
       'Nordic Silence & Mist',
       'A visual study of absolute silence. Exploring the raw, quiet landscapes of the Nordic regions under heavy overcast skies and cold mist.',
-      'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85',
+      '/images/quietude-cover.png',
       ARRAY[
         'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80',
         'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1000&q=80',
@@ -176,7 +176,7 @@ BEGIN
       'Project / Residential Lounge / Warm Minimalism',
       'Organic Warmth & Light',
       'A private residential lounge designed around the concepts of thermal comfort, natural daylight optimization, and warm light-oak furnishings.',
-      'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85',
+      '/images/nordic-haven.png',
       ARRAY[
         'https://images.unsplash.com/photo-1616166330003-8e550d40b0f8?auto=format&fit=crop&w=1000&q=80',
         'https://images.unsplash.com/photo-1615529182904-14819c35db37?auto=format&fit=crop&w=1000&q=80',
@@ -262,7 +262,7 @@ BEGIN
       'Project / CGI Simulation / Ceramic Art',
       'Digital Physicality & Glazes',
       'Abstract CGI explorations of physical clay vessel responses, digital zero-gravity, and procedural matte and glossy volcanic glazes.',
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=85',
+      '/images/vessel-studies.png',
       ARRAY[
         'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1000&q=80',
         'https://images.unsplash.com/photo-1618005198143-e5283b519a7f?auto=format&fit=crop&w=1000&q=80',
@@ -369,7 +369,7 @@ BEGIN
       'Project / Editorial / Typography',
       'Strict Grids & Book Structures',
       'Specimen design for Chronicle, a custom sharp serif typeface. The book layout explores line tension, margin structures, and book spines.',
-      'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=1200&q=85',
+      '/images/chronicle-specimen.png',
       ARRAY[
         'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1000&q=80',
         'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1000&q=80',
@@ -434,7 +434,7 @@ BEGIN
       'Project / Mobile Interface / Wealth Management',
       'Glassmorphic Financial Arcs',
       'Redefining digital wealth management with Aura. Introducing neumorphic dashboard cards, fluid financial arcs, and ultra-high contrast dark modes.',
-      'https://images.unsplash.com/photo-1616469829581-73993eb86b02?auto=format&fit=crop&w=1200&q=85',
+      '/images/aura-interface.png',
       ARRAY[
         'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=1000&q=80',
         'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=80',
