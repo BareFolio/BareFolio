@@ -476,10 +476,10 @@ export default function TasteBuilder({
           Close
         </button>
 
-        {/* Anchored Dismiss (X) Button (left) */}
+        {/* Anchored Dismiss (X) Button (left of card) */}
         <button
           onClick={() => triggerAction(-1)}
-          className="absolute left-24 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#101010] rounded-full flex items-center justify-center shadow-lg hover:bg-neutral-800 transition duration-200 cursor-pointer z-20 active:scale-95"
+          className="absolute left-[calc(50%-290px)] top-1/2 -translate-y-1/2 w-12 h-12 bg-[#101010] rounded-full flex items-center justify-center shadow-lg hover:bg-neutral-800 transition duration-200 cursor-pointer z-20 active:scale-95"
         >
           <X className="w-5 h-5 text-white" />
         </button>
@@ -535,7 +535,7 @@ export default function TasteBuilder({
             )}
 
             {/* Bottom Meta Layer */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#101010]/90 via-[#101010]/40 to-transparent pt-24 pb-6 px-6">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#101010]/90 via-[#101010]/40 to-transparent pt-24 pb-6 px-6 pr-20">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-full bg-neutral-400 flex items-center justify-center text-[10px] font-bold text-white uppercase flex-shrink-0">
                   {card.avatar}
@@ -553,24 +553,24 @@ export default function TasteBuilder({
                 ))}
               </div>
             </div>
+
+            {/* Bookmark button integrated into the footer of the card */}
+            <button
+              onClick={e => { e.stopPropagation(); setSaved(s => !s); }}
+              className={`absolute bottom-6 right-6 w-11 h-11 rounded-full flex items-center justify-center z-20 backdrop-blur-md border transition cursor-pointer shadow-lg ${
+                saved ? 'bg-accent border-accent text-white' : 'bg-white/15 border-white/20 hover:bg-white/25 text-white'
+              }`}
+            >
+              <Bookmark className={`w-4 h-4 ${saved ? 'fill-white text-white' : 'text-white'}`} />
+            </button>
           </div>
 
         </div>
 
-        {/* Anchored Bookmark Button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); setSaved(s => !s); }}
-          className={`absolute right-24 top-[calc(50%-70px)] w-12 h-12 rounded-full border flex items-center justify-center shadow-md hover:border-neutral-400 transition-colors z-20 cursor-pointer ${
-            saved ? 'bg-accent border-accent text-white' : 'bg-white border-neutral-200 text-text-primary'
-          }`}
-        >
-          <Bookmark className={`w-5 h-5 ${saved ? 'fill-white text-white' : ''}`} />
-        </button>
-
-        {/* Anchored Heart/Like Check Button */}
+        {/* Anchored Heart/Like Check Button (right of card, center-aligned) */}
         <button
           onClick={() => triggerAction(1)}
-          className="absolute right-24 top-[calc(50%+10px)] w-12 h-12 bg-accent rounded-full flex items-center justify-center shadow-lg hover:bg-accent-hover transition-colors z-20 cursor-pointer active:scale-95"
+          className="absolute right-[calc(50%-290px)] top-1/2 -translate-y-1/2 w-12 h-12 bg-accent rounded-full flex items-center justify-center shadow-lg hover:bg-accent-hover transition-colors z-20 cursor-pointer active:scale-95"
         >
           <Check className="w-5 h-5 text-white" strokeWidth={2.5} />
         </button>
