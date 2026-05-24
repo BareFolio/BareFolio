@@ -126,7 +126,7 @@ export default function ProjectClient() {
   useEffect(() => {
     if (!id) return;
 
-    if (id.toLowerCase() === 'stow') {
+    if (id.toLowerCase() === 'stow' || id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7d01') {
       setProject(STOW_PROJECT);
       setLoading(false);
       return;
