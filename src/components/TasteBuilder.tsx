@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Bookmark, Check, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -181,22 +181,86 @@ function ResultsScreen({
   matchedCards: CardType[];
   inline: boolean;
 }) {
-  const [tags, setTags]               = useState(ANALYSIS_CATEGORIES.map(c => c.label));
   const [matched, setMatched]         = useState(initialMatched);
+  const [removedTags, setRemovedTags] = useState<string[]>([]);
   const [editOpen, setEditOpen]       = useState(false);
+  const [computedTags, setComputedTags] = useState<{ label: string; pct: number }[]>([]);
+  const [animate, setAnimate]         = useState(false);
+
+  useEffect(() => {
+    const freq: { [key: string]: number } = {};
+    let totalTags = 0;
+    matched.forEach(card => {
+      if (card.tags) {
+        card.tags.forEach(tag => {
+          freq[tag] = (freq[tag] || 0) + 1;
+          totalTags++;
+        });
+      }
+    });
+
+    const computed = Object.entries(freq).map(([label, count]) => {
+      const pct = totalTags > 0 ? Math.round((count / totalTags) * 100) : 0;
+      return { label, pct };
+    });
+
+    computed.sort((a, b) => b.pct - a.pct);
+    setComputedTags(computed);
+  }, [matched]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setAnimate(true), 100);
+    return () => clearTimeout(t);
+  }, []);
+
+  const tags = useMemo(() => {
+    return computedTags.map(c => c.label).filter(t => !removedTags.includes(t));
+  }, [computedTags, removedTags]);
+
+  const topTags = useMemo(() => {
+    return computedTags.slice(0, 4);
+  }, [computedTags]);
 
   const handleSave = () => setEditOpen(false);
   const handleRestart = () => { setEditOpen(false); onRestart(); };
 
   const inner = (
     <div className="w-full">
+      {/* Taste Vector Profile Dashboard Box */}
+      <div className="rounded-3xl p-6 bg-white/40 max-w-xl mx-auto mb-8 shadow-sm backdrop-blur-md border border-white/20 glass">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-5 text-center">
+          Taste Vector Profile
+        </h3>
+        <div className="space-y-4">
+          {topTags.map((tag) => (
+            <div key={tag.label} className="flex items-center gap-4">
+              <span className="uppercase w-28 text-right font-bold text-[11px] text-text-primary tracking-wider truncate">
+                {tag.label}
+              </span>
+              <div className="flex-1 h-[3px] bg-neutral-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: animate ? `${tag.pct}%` : '0%' }}
+                />
+              </div>
+              <span className="text-xs font-bold text-text-secondary w-10 text-left">
+                {tag.pct}%
+              </span>
+            </div>
+          ))}
+          {topTags.length === 0 && (
+            <p className="text-xs text-neutral-400 text-center py-4">No tags calculated yet. Keep swiping to build your profile.</p>
+          )}
+        </div>
+      </div>
+
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-4 py-4">
+      <div className="flex items-center justify-between gap-4 py-4 border-t border-neutral-100 mt-4">
         <div className="flex flex-wrap gap-2">
           {tags.map(tag => (
             <button
               key={tag}
-              onClick={() => setTags(p => p.filter(x => x !== tag))}
+              onClick={() => setRemovedTags(prev => [...prev, tag])}
               className="flex items-center gap-1.5 bg-[#101010] text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-neutral-700 transition cursor-pointer"
             >
               {tag} <X className="w-3 h-3" />
@@ -212,15 +276,36 @@ function ResultsScreen({
       </div>
 
       {/* Masonry grid */}
-      <div className="columns-3 gap-2 pb-8">
-        {RESULT_IMAGES.map((img, i) => (
-          <div key={i} className="break-inside-avoid mb-2 rounded-xl overflow-hidden bg-neutral-100">
+      <div className="columns-2 sm:columns-3 gap-3 mt-8 pb-8">
+        {matched.map((card, i) => (
+          <div
+            key={card.id || i}
+            className="break-inside-avoid mb-3 relative rounded-2xl overflow-hidden bg-neutral-100 group shadow-sm hover:shadow-md transition-all duration-300"
+          >
             <img
-              src={`https://picsum.photos/seed/${img.seed}/600/800`}
+              src={card.image}
               alt=""
-              className="w-full object-cover"
-              style={{ aspectRatio: img.aspect }}
+              className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-neutral-400 flex items-center justify-center text-[9px] font-bold text-white uppercase">
+                  {card.avatar}
+                </div>
+                <span className="text-white text-xs font-semibold">{card.author}</span>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {card.tags.map(t => (
+                  <span
+                    key={t}
+                    className="bg-white/20 backdrop-blur-sm text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -230,7 +315,7 @@ function ResultsScreen({
         <EditMatchPanel
           tags={tags}
           matchedCards={matched}
-          onRemoveTag={t => setTags(p => p.filter(x => x !== t))}
+          onRemoveTag={t => setRemovedTags(prev => [...prev, t])}
           onRemovePhoto={i => setMatched(p => p.filter((_, idx) => idx !== i))}
           onSave={handleSave}
           onRestart={handleRestart}
