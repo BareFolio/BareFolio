@@ -46,7 +46,7 @@ function AnalysisScreen({ onComplete, inline }: { onComplete: () => void; inline
     </div>
   );
 
-  if (inline) return <div className="w-full" style={{ height: 'calc(100vh - 160px)', minHeight: 520 }}>{inner}</div>;
+  if (inline) return <div className="relative w-full h-[calc(100vh-80px)] min-h-[720px] flex items-center justify-center select-none overflow-visible">{inner}</div>;
   return <div className="fixed inset-0 z-[300] bg-[#FAFAFA] flex items-center justify-center">{inner}</div>;
 }
 
@@ -226,36 +226,8 @@ function ResultsScreen({
 
   const inner = (
     <div className="w-full">
-      {/* Taste Vector Profile Dashboard Box */}
-      <div className="rounded-3xl p-6 bg-white/40 max-w-xl mx-auto mb-8 shadow-sm backdrop-blur-md border border-white/20 glass">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-5 text-center">
-          Taste Vector Profile
-        </h3>
-        <div className="space-y-4">
-          {topTags.map((tag) => (
-            <div key={tag.label} className="flex items-center gap-4">
-              <span className="uppercase w-28 text-right font-bold text-[11px] text-text-primary tracking-wider truncate">
-                {tag.label}
-              </span>
-              <div className="flex-1 h-[3px] bg-neutral-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-accent rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: animate ? `${tag.pct}%` : '0%' }}
-                />
-              </div>
-              <span className="text-xs font-bold text-text-secondary w-10 text-left">
-                {tag.pct}%
-              </span>
-            </div>
-          ))}
-          {topTags.length === 0 && (
-            <p className="text-xs text-neutral-400 text-center py-4">No tags calculated yet. Keep swiping to build your profile.</p>
-          )}
-        </div>
-      </div>
-
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-4 py-4 border-t border-neutral-100 mt-4">
+      <div className="flex items-center justify-between gap-4 py-4">
         <div className="flex flex-wrap gap-2">
           {tags.map(tag => (
             <button
