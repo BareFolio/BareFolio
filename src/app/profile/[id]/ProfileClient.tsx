@@ -5,44 +5,44 @@ import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useParams } from 'next/navigation';
 import GridItem, { ProjectData } from '@/components/GridItem';
-import { 
-  User, 
-  MapPin, 
-  Mail, 
-  Briefcase, 
-  Grid, 
-  Layers, 
-  Sparkles, 
-  MessageSquare, 
-  Check, 
-  LogOut, 
-  Edit3, 
-  Heart, 
-  Share2, 
-  CheckCircle,
-  FileText,
-  UserCheck,
+import {
+  Settings,
+  Link2,
+  Grid,
+  Layers,
+  Bookmark,
+  MessageSquare,
+  Heart,
+  Share2,
+  MoreHorizontal,
+  Send,
+  Briefcase,
+  Edit3,
+  LogOut,
   ChevronRight,
   Plus,
   Folder,
-  Send,
-  MoreHorizontal
+  UserCheck,
+  CheckCircle,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 interface ProfileData {
-  uid: string
-  name: string        // mapped from full_name || username
-  email: string       // not in DB, keep as empty string
-  role: 'seeker' | 'creator' | 'studio' | 'brand'  // mapped from profile_type
-  bio?: string
-  location?: string
-  avatarUrl?: string  // mapped from avatar_url
-  website?: string    // mapped from website
-  disciplines?: string[]
-  isVerified?: boolean  // mapped from verified
-  username?: string
-  createdAt?: string
+  uid: string;
+  name: string;
+  email: string;
+  role: 'seeker' | 'creator' | 'studio' | 'brand';
+  bio?: string;
+  location?: string;
+  avatarUrl?: string;
+  website?: string;
+  disciplines?: string[];
+  isVerified?: boolean;
+  username?: string;
+  createdAt?: string;
 }
 
 interface BriefData {
@@ -58,62 +58,85 @@ interface PostData {
   creator_id: string;
   content: string;
   created_at: string;
+  mediaUrls?: string[];
   authorName?: string;
   authorUsername?: string;
-  authorRole?: string;
-  authorAvatar?: string;
   likes?: number;
   liked?: boolean;
-  replies?: Array<{ sender: string; text: string }>;
-  showReplies?: boolean;
+  saved?: boolean;
 }
 
+// ── Banner geometric shapes (SVG) ─────────────────────────────────────────────
+
+function BannerShapes() {
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full"
+      viewBox="0 0 1200 240"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    >
+      {/* House / pentagon */}
+      <polygon points="130,205 130,95 245,35 360,95 360,205" fill="white" />
+      {/* Circle */}
+      <circle cx="490" cy="122" r="95" fill="white" />
+      {/* Rectangle */}
+      <rect x="615" y="42" width="165" height="168" rx="6" fill="white" />
+      {/* Irregular pentagon */}
+      <polygon points="825,205 800,88 930,35 1020,100 1010,205" fill="white" />
+    </svg>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function ProfileClient() {
   const { profile: loggedInProfile, currentUser } = useApp();
   const router = useRouter();
   const params = useParams();
   const rawId = (params?.id as string) || 'me';
-  const isMe = rawId === 'me' || rawId === loggedInProfile?.uid || (currentUser && rawId === currentUser.id);
+  const isMe =
+    rawId === 'me' ||
+    rawId === loggedInProfile?.uid ||
+    (currentUser && rawId === currentUser.id);
 
-  const targetId = isMe ? loggedInProfile?.uid || currentUser?.id : rawId;
+  const targetId = isMe
+    ? loggedInProfile?.uid || currentUser?.id
+    : rawId;
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [profilePosts, setProfilePosts] = useState<PostData[]>([]);
   const [briefs, setBriefs] = useState<BriefData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'projects' | 'posts' | 'briefs' | 'saved' | 'members' | 'info'>('projects');
-  
-  // Edit Profile States
+  const [activeTab, setActiveTab] = useState<'projects' | 'posts' | 'saved' | 'briefs'>('projects');
+
+  // Edit profile
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editLocation, setEditLocation] = useState('');
+  const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
 
-  // Disciplines Edit State
-  const [editDisciplines, setEditDisciplines] = useState<string[]>([]);
+  // Follow
+  const [isFollowing, setIsFollowing] = useState(false);
 
-  // Follow state
-  const [isFollowing, setIsFollowing] = useState(false)
-
-  // Local post responses input state
+  // Posts interaction
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Fetch all profile details
+  // ── Data fetching ────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!targetId) {
-      if (!isMe) {
-        setLoading(false);
-      }
+      if (!isMe) setLoading(false);
       return;
     }
 
     setLoading(true);
 
-    const fetchRealProfileData = async () => {
+    const fetchData = async () => {
       try {
         const { data: pData, error: profileErr } = await supabase
           .from('profiles')
@@ -121,245 +144,158 @@ export default function ProfileClient() {
           .eq('id', targetId)
           .single();
 
-        if (profileErr) {
-          console.warn("Could not fetch profile in Supabase profiles:", profileErr.message);
+        if (profileErr || !pData) {
           setProfile(null);
           setLoading(false);
           return;
         }
 
-        if (pData) {
-          const formattedProfile: ProfileData = {
-            uid: pData.id,
-            name: pData.full_name || pData.username || '',
-            email: '',
-            role: pData.profile_type as 'seeker' | 'creator' | 'studio' | 'brand',
-            bio: pData.bio || '',
-            location: pData.location || '',
-            avatarUrl: pData.avatar_url || '',
-            website: pData.website || '',
-            disciplines: pData.disciplines || [],
-            isVerified: pData.verified || false,
-            username: pData.username || '',
-            createdAt: pData.created_at,
-          };
+        const fp: ProfileData = {
+          uid: pData.id,
+          name: pData.full_name || pData.username || '',
+          email: '',
+          role: pData.profile_type as ProfileData['role'],
+          bio: pData.bio || '',
+          location: pData.location || '',
+          avatarUrl: pData.avatar_url || '',
+          website: pData.website || '',
+          disciplines: pData.disciplines || [],
+          isVerified: pData.verified || false,
+          username: pData.username || '',
+          createdAt: pData.created_at,
+        };
+        setProfile(fp);
+        setEditName(fp.name);
+        setEditBio(fp.bio || '');
+        setEditLocation(fp.location || '');
+        setEditDisciplines(fp.disciplines || []);
 
-          setProfile(formattedProfile);
-          setEditName(formattedProfile.name || '');
-          setEditBio(formattedProfile.bio || '');
-          setEditLocation(formattedProfile.location || '');
-          setEditDisciplines(formattedProfile.disciplines || []);
+        // Projects
+        const { data: projsData } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('user_id', targetId)
+          .eq('verification_status', 'approved')
+          .order('created_at', { ascending: false });
 
-          // Fetch projects
-          const { data: projsData, error: projsErr } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', targetId)
-            .eq('verification_status', 'approved')
-            .order('created_at', { ascending: false });
-
-          if (projsErr) {
-            console.warn("Could not fetch projects in Supabase projects:", projsErr.message);
-          } else if (projsData) {
-            const formattedProjects = projsData.map((p: any) => ({
+        if (projsData) {
+          setProjects(
+            projsData.map((p: any) => ({
               id: p.id,
               title: p.title,
               creatorId: p.user_id,
               description: p.description,
               coverUrl: p.cover_url,
               discipline: p.discipline,
+              year: p.year,
+              createdAt: p.created_at,
               tags: p.tags || [],
-            }));
-            setProjects(formattedProjects);
-          }
+            }))
+          );
+        }
 
-          // Fetch posts
-          const { data: postsData, error: postsErr } = await supabase
-            .from('posts')
-            .select(`
-              id,
-              user_id,
-              content,
-              created_at,
-              profiles:user_id (
-                full_name,
-                avatar_url,
-                profile_type,
-                username
-              )
-            `)
+        // Posts
+        const { data: postsData } = await supabase
+          .from('posts')
+          .select(`id, user_id, content, created_at, media_urls, profiles:user_id (full_name, avatar_url, username)`)
+          .eq('user_id', targetId)
+          .order('created_at', { ascending: false });
+
+        if (postsData) {
+          setProfilePosts(
+            postsData.map((p: any) => ({
+              id: p.id,
+              creator_id: p.user_id,
+              content: p.content,
+              created_at: p.created_at,
+              mediaUrls: p.media_urls || [],
+              authorName: p.profiles?.full_name || fp.name,
+              authorUsername: p.profiles?.username || fp.username,
+              likes: Math.floor(Math.random() * 20) + 1,
+              liked: false,
+              saved: false,
+            }))
+          );
+        }
+
+        // Briefs (studio/brand only)
+        if (pData.profile_type === 'studio' || pData.profile_type === 'brand') {
+          const { data: briefsData } = await supabase
+            .from('briefs')
+            .select('*')
             .eq('user_id', targetId)
             .order('created_at', { ascending: false });
 
-          if (postsErr) {
-            console.warn("Could not fetch profile posts from Supabase:", postsErr.message);
-          } else if (postsData) {
-            const formattedPosts = postsData.map((p: any) => {
-              const profileData = p.profiles || {};
-              return {
-                id: p.id,
-                creator_id: p.user_id,
-                content: p.content,
-                created_at: p.created_at,
-                authorName: profileData.full_name || formattedProfile.name,
-                authorUsername: profileData.username || formattedProfile.username || 'creative',
-                authorRole: profileData.profile_type || formattedProfile.role,
-                authorAvatar: profileData.avatar_url || formattedProfile.avatarUrl || '',
-                likes: Math.floor(Math.random() * 15) + 1,
-                liked: false,
-                replies: [],
-                showReplies: false
-              };
-            });
-            setProfilePosts(formattedPosts);
-          }
-
-          // Fetch briefs if user is a studio or brand
-          if (pData.profile_type === 'studio' || pData.profile_type === 'brand') {
-            const { data: briefsData, error: briefsErr } = await supabase
-              .from('briefs')
-              .select('*')
-              .eq('user_id', targetId)
-              .order('created_at', { ascending: false });
-
-            if (briefsErr) {
-              console.warn("Could not fetch briefs in Supabase briefs:", briefsErr.message);
-            } else if (briefsData) {
-              const formattedBriefs = briefsData.map((b: any) => ({
+          if (briefsData) {
+            setBriefs(
+              briefsData.map((b: any) => ({
                 id: b.id,
                 title: b.title,
                 description: b.description,
                 budget: b.budget,
                 createdAt: b.created_at,
-              }));
-              setBriefs(formattedBriefs);
-            }
+              }))
+            );
           }
         }
       } catch (err) {
-        console.error("Unexpected error in fetchRealProfileData:", err);
+        console.error('ProfileClient fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    // Load real Supabase data
-    fetchRealProfileData();
+    fetchData();
 
-    // Setup real-time listener for profiles, projects, and briefs
-    let profileChannel: any = null;
-    let projectsChannel: any = null;
-    let briefsChannel: any = null;
-
-    try {
-      profileChannel = supabase
-        .channel(`profile-${targetId}-changes`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${targetId}` },
-          () => {
-            fetchRealProfileData();
-          }
-        )
-        .subscribe();
-
-      projectsChannel = supabase
-        .channel(`profile-${targetId}-projects`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'projects', filter: `user_id=eq.${targetId}` },
-          () => {
-            fetchRealProfileData();
-          }
-        )
-        .subscribe();
-
-      briefsChannel = supabase
-        .channel(`profile-${targetId}-briefs`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'briefs', filter: `user_id=eq.${targetId}` },
-          () => {
-            fetchRealProfileData();
-          }
-        )
-        .subscribe();
-    } catch (realtimeErr) {
-      console.error("Failed to connect realtime channels on profile page:", realtimeErr);
-    }
+    const ch1 = supabase
+      .channel(`prof-${targetId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${targetId}` }, fetchData)
+      .subscribe();
+    const ch2 = supabase
+      .channel(`proj-${targetId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `user_id=eq.${targetId}` }, fetchData)
+      .subscribe();
 
     return () => {
-      if (profileChannel) supabase.removeChannel(profileChannel);
-      if (projectsChannel) supabase.removeChannel(projectsChannel);
-      if (briefsChannel) supabase.removeChannel(briefsChannel);
+      supabase.removeChannel(ch1);
+      supabase.removeChannel(ch2);
     };
   }, [targetId, isMe]);
 
   // Check follow status
   useEffect(() => {
-    if (!currentUser || !targetId || targetId === currentUser.id) return
+    if (!currentUser || !targetId || targetId === currentUser.id) return;
     supabase
       .from('follows')
       .select('follower_id')
       .eq('follower_id', currentUser.id)
       .eq('following_id', targetId)
       .single()
-      .then(({ data }) => setIsFollowing(!!data))
-  }, [currentUser, targetId])
+      .then(({ data }) => setIsFollowing(!!data));
+  }, [currentUser, targetId]);
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
 
   async function toggleFollow() {
-    if (!currentUser || !targetId) return
+    if (!currentUser || !targetId) return;
     if (isFollowing) {
-      await supabase.from('follows').delete()
-        .eq('follower_id', currentUser.id)
-        .eq('following_id', targetId)
-      setIsFollowing(false)
+      await supabase.from('follows').delete().eq('follower_id', currentUser.id).eq('following_id', targetId);
+      setIsFollowing(false);
     } else {
-      await supabase.from('follows').insert({ follower_id: currentUser.id, following_id: targetId })
-      setIsFollowing(true)
+      await supabase.from('follows').insert({ follower_id: currentUser.id, following_id: targetId });
+      setIsFollowing(true);
     }
   }
 
-  // Handle profile edit save
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || !isMe || !profile) return;
-    setSaveLoading(true);
-
-    const updatePayload: Record<string, unknown> = {
-      full_name: editName.trim() || null,
-      bio: editBio.trim() || null,
-      location: editLocation.trim() || null,
-      disciplines: editDisciplines,
-    };
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updatePayload)
-        .eq('id', currentUser.id);
-
-      if (error) throw error;
-      setIsEditing(false);
-    } catch (err) {
-      console.error("Failed to update profile:", err);
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
   async function startConversation() {
-    if (!currentUser || isMe) return
-
-    // Check if conversation already exists between these two users
+    if (!currentUser || isMe) return;
     const { data: existing } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
-      .eq('user_id', currentUser.id)
+      .eq('user_id', currentUser.id);
 
-    const myConvIds = (existing ?? []).map(p => p.conversation_id)
+    const myConvIds = (existing ?? []).map((p: any) => p.conversation_id);
 
-    let existingConvId: string | null = null
     if (myConvIds.length > 0) {
       const { data: shared } = await supabase
         .from('conversation_participants')
@@ -367,789 +303,507 @@ export default function ProfileClient() {
         .eq('user_id', targetId)
         .in('conversation_id', myConvIds)
         .limit(1)
-        .single()
-      existingConvId = shared?.conversation_id ?? null
-    }
-
-    if (existingConvId) {
-      router.push(`/inbox?conversation=${existingConvId}`)
-      return
+        .single();
+      if (shared?.conversation_id) {
+        router.push(`/inbox?conversation=${shared.conversation_id}`);
+        return;
+      }
     }
 
     const { data: conv } = await supabase
       .from('conversations')
       .insert({ last_message_at: new Date().toISOString() })
       .select('id')
-      .single()
+      .single();
 
-    if (!conv) return
-
+    if (!conv) return;
     await supabase.from('conversation_participants').insert([
       { conversation_id: conv.id, user_id: currentUser.id },
       { conversation_id: conv.id, user_id: targetId },
-    ])
-
-    router.push(`/inbox?conversation=${conv.id}`)
+    ]);
+    router.push(`/inbox?conversation=${conv.id}`);
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
-  // Reactions handlers for posts in profile
-  const handleToggleLike = (postId: string) => {
-    setProfilePosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const newLiked = !p.liked;
-          return {
-            ...p,
-            liked: newLiked,
-            likes: (p.likes || 0) + (newLiked ? 1 : -1)
-          };
-        }
-        return p;
-      })
-    );
-  };
-
-  const handleToggleReplies = (postId: string) => {
-    setProfilePosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          return { ...p, showReplies: !p.showReplies };
-        }
-        return p;
-      })
-    );
-  };
-
-  const handleAddReply = (postId: string, e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const replyText = replyInputs[postId];
-    if (!replyText?.trim() || !loggedInProfile) return;
+    if (!currentUser || !isMe) return;
+    setSaveLoading(true);
+    try {
+      await supabase.from('profiles').update({
+        full_name: editName.trim() || null,
+        bio: editBio.trim() || null,
+        location: editLocation.trim() || null,
+        disciplines: editDisciplines,
+      }).eq('id', currentUser.id);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Save profile error:', err);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
-    setProfilePosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const currentReplies = p.replies || [];
-          return {
-            ...p,
-            replies: [...currentReplies, { sender: loggedInProfile.full_name ?? loggedInProfile.username, text: replyText }],
-            showReplies: true
-          };
-        }
-        return p;
-      })
+  const handleToggleLike = (postId: string) => {
+    setProfilePosts(prev =>
+      prev.map(p =>
+        p.id === postId
+          ? { ...p, liked: !p.liked, likes: (p.likes || 0) + (!p.liked ? 1 : -1) }
+          : p
+      )
     );
-
-    setReplyInputs((prev) => ({ ...prev, [postId]: '' }));
   };
 
   const handleShare = (postId: string) => {
     if (typeof window !== 'undefined') {
-      const url = `${window.location.origin}/posts?id=${postId}`;
-      navigator.clipboard.writeText(url);
+      navigator.clipboard.writeText(`${window.location.origin}/posts?id=${postId}`);
       setCopiedId(postId);
       setTimeout(() => setCopiedId(null), 2000);
     }
   };
 
+  // ── Loading / not found ──────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-800 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="max-w-md mx-auto text-center py-20 glass rounded-3xl p-8 border border-borderGlass space-y-4">
-        <div className="w-16 h-16 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto text-neutral-400 text-2xl font-bold">✕</div>
-        <div>
-          <h2 className="text-xl font-display font-black">Profile Not Found</h2>
-          <p className="text-xs text-neutral-500 mt-1">The specified creator does not exist in our directory.</p>
-        </div>
-        <button onClick={() => router.push('/')} className="bg-accent text-white text-xs font-semibold py-2.5 px-6 rounded-xl hover:bg-accent-hover transition">
-          Return to Feed
+      <div className="max-w-md mx-auto text-center py-20 bg-white rounded-3xl p-8 border border-neutral-100 space-y-4">
+        <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto text-neutral-400 text-2xl font-bold">✕</div>
+        <h2 className="text-xl font-bold">Profile Not Found</h2>
+        <button onClick={() => router.push('/')} className="bg-[#101010] text-white text-sm font-semibold py-2.5 px-6 rounded-full hover:bg-neutral-700 transition">
+          Back to Home
         </button>
       </div>
     );
   }
 
-  const isCreative = profile.role === 'creator';
   const isScout = profile.role === 'studio' || profile.role === 'brand';
+  const disciplines = profile.disciplines?.length
+    ? profile.disciplines.join(' | ')
+    : profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
 
-  const getBannerGradient = (name: string) => {
-    const bannerGradients = [
-      'from-[#121214] via-[#2A2A2E] to-[#121214]',
-      'from-[#0F172A] via-[#1E293B] to-[#0F172A]',
-      'from-[#1E1B4B] via-[#312E81] to-[#1E1B4B]',
-      'from-[#881337] via-[#5C0620] to-[#881337]',
-      'from-[#022C22] via-[#064E3B] to-[#022C22]',
-    ];
-    let sum = 0;
-    for (let i = 0; i < name.length; i++) {
-      sum += name.charCodeAt(i);
-    }
-    return bannerGradients[sum % bannerGradients.length];
-  };
-
-  const bannerGrad = getBannerGradient(profile.name);
-
-  // Mock Inspiration folders for creators
-  const mockInspirationFolders = [
-    { name: 'Brutalist Posters', count: 12, tags: ['Brutalist', 'Typography'], colors: ['#FF3B30', '#000000', '#F5F5F5'] },
-    { name: 'Organic Materials & Clay', count: 8, tags: ['Packaging', 'Sustainable'], colors: ['#E9E0D2', '#D3C2B0', '#7E6B5A'] },
-    { name: 'High Fashion Visuals', count: 15, tags: ['Fashion', 'Minimalism'], colors: ['#121214', '#FFFFFF', '#C5A880'] },
-    { name: 'Dark Mode UI/UX', count: 9, tags: ['UX/UI', 'Cyberpunk'], colors: ['#0A84FF', '#121214', '#303032'] }
+  const tabs = [
+    { key: 'projects' as const, label: 'Projects', icon: Grid },
+    { key: 'posts' as const, label: 'Posts', icon: Layers },
+    ...(isScout
+      ? [{ key: 'briefs' as const, label: 'Briefs', icon: Briefcase }]
+      : [{ key: 'saved' as const, label: 'Inspiration', icon: Bookmark }]),
   ];
 
-  // Mock members connected to studio or brand
-  const mockStudioMembers = [
-    { name: 'Alexander McQueen', role: 'Lead Graphic Designer', avatarUrl: '', uid: 'alex-mcqueen', isAvailable: true },
-    { name: 'Luisa Barriga', role: 'Partner / Senior Photographer', avatarUrl: '', uid: 'luisa-barriga', isAvailable: true },
-    { name: 'Hugo Bossio', role: 'UI/UX Consultant', avatarUrl: '', uid: 'hugo-ux', isAvailable: true }
+  // Mock inspiration folders — seeds are used for the 3 preview images inside the folder
+  const mockFolders = [
+    { name: 'Packaging',        count: 10, seeds: ['pkg1',   'pkg2',   'pkg3']   },
+    { name: 'UI/UX Inspiration',count: 32, seeds: ['uiux1',  'uiux2',  'uiux3']  },
+    { name: 'Branding',         count: 32, seeds: ['brand1', 'brand2', 'brand3'] },
+    { name: 'Web Design',       count: 0,  seeds: []                             },
+    { name: 'Editorial',        count: 0,  seeds: []                             },
+    { name: 'Project',          count: 0,  seeds: []                             },
   ];
+
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      
-      {/* Banner & Header Card */}
-      <div className="glass rounded-3xl overflow-hidden border border-borderGlass shadow-xl relative">
-        <div className={`w-full h-44 bg-gradient-to-r ${bannerGrad} relative overflow-hidden flex items-end p-6`}>
-          <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
-          {profile.isVerified && (
-            <span className="absolute top-4 right-4 bg-accent/20 backdrop-blur-md text-accent border border-accent/30 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-              <Sparkles className="w-3 h-3" />
-              <span>Verified Member</span>
-            </span>
-          )}
+    <div>
+
+      {/* ── Banner — 420 px, avatar absolutely inside, rounded 20 px ── */}
+      <div className="relative -mx-4 md:-mx-8 -mt-6 h-[420px] rounded-[20px] overflow-visible">
+        {/* Background + shapes clipped to rounded rect */}
+        <div className="absolute inset-0 bg-[#101010] rounded-[20px] overflow-hidden">
+          <BannerShapes />
         </div>
 
-        <div className="px-6 pb-6 pt-0 relative flex flex-col md:flex-row items-center md:items-end gap-6 -mt-12 z-10 text-center md:text-left">
-          {/* Avatar Profile Bubble */}
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent to-[#FF2D55] p-0.5 shadow-xl relative flex-shrink-0">
-            <div className="w-full h-full rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center font-display font-black text-2xl text-neutral-800 dark:text-white border-2 border-white dark:border-[#121214] uppercase">
-              {profile.name.substring(0, 2)}
-            </div>
-          </div>
+        {/* Settings */}
+        {isMe && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer z-10"
+            title="Edit profile"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
 
-          <div className="flex-1 space-y-1">
-            <div className="flex flex-col md:flex-row md:items-center gap-2 justify-center md:justify-start">
-              <h2 className="text-2xl font-display font-black tracking-tight text-neutral-900 dark:text-white">
-                {profile.name}
-              </h2>
-              <span className="text-[9px] bg-accent/10 text-accent font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider self-center border border-accent/15">
-                {profile.role}
-              </span>
+        {/* Avatar — bottom edge aligned with disciplines bottom */}
+        <div className="absolute bottom-0 left-4 md:left-8 translate-y-[72px] z-10">
+          {profile.avatarUrl ? (
+            <img
+              src={profile.avatarUrl}
+              alt={profile.name}
+              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-neutral-200 border-4 border-white shadow-lg flex items-center justify-center text-2xl font-bold text-neutral-600 uppercase">
+              {profile.name.slice(0, 2)}
             </div>
-            
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-neutral-500 dark:text-neutral-400">
-              {profile.location && (
-                <span className="flex items-center gap-1 font-medium">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{profile.location}</span>
-                </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── ROW A — justo bajo la línea del banner ── */}
+      <div className="mt-4 flex items-stretch gap-6">
+
+        {/* LEFT: Nombre + disciplinas con indent, bio + @username al margen */}
+        <div className="flex-1 flex flex-col justify-between">
+          <div className="pl-32">
+            <h1 className="text-2xl font-bold text-text-primary leading-tight">{profile.name}</h1>
+            <p className="text-sm text-neutral-400 mt-1">{disciplines}</p>
+          </div>
+          {/* bio + @username — pushed to the bottom of the left column */}
+          <div>
+            {profile.bio && (
+              <p className="text-sm text-neutral-600 leading-relaxed max-w-sm">{profile.bio}</p>
+            )}
+            <div className="flex items-center gap-4 mt-1">
+              {profile.website && (
+                <a
+                  href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-sm text-[#5B5BD6] hover:underline"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  {profile.website.replace(/^https?:\/\//, '')}
+                </a>
               )}
-              <span className="flex items-center gap-1 font-medium">
-                <Mail className="w-3.5 h-3.5" />
-                <span>{profile.email}</span>
-              </span>
               {profile.username && (
-                <span className="text-neutral-400 font-mono text-[11px]">
-                  @{profile.username}
-                </span>
+                <span className="text-sm text-neutral-400">@{profile.username}</span>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Action CTAs */}
-          <div className="flex gap-2.5 flex-wrap justify-center mt-4 md:mt-0">
+        {/* RIGHT: Stats + botones + tabs */}
+        <div className="flex-shrink-0" style={{ minWidth: '340px' }}>
+
+          {/* Stats */}
+          <div className="flex items-stretch">
+            <div className="pr-6 text-center">
+              <p className="text-sm font-bold text-text-primary">{projects.length}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Projects</p>
+            </div>
+            <div className="w-px bg-neutral-200" />
+            <div className="px-6 text-center">
+              <p className="text-sm font-bold text-text-primary">{profile.location || '—'}</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Location</p>
+            </div>
+            <div className="w-px bg-neutral-200" />
+            <div className="pl-6 text-center">
+              <p className="text-sm font-bold text-text-primary">—</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Followers</p>
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-3 mt-4">
             {isMe ? (
               <>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-4.5 py-2.5 rounded-xl cursor-pointer transition border border-borderGlass flex items-center gap-1.5 active:scale-95 shadow-sm"
+                  className="flex-1 bg-[#101010] text-white text-sm font-semibold py-2.5 rounded-full hover:bg-neutral-700 transition cursor-pointer"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Profile</span>
+                  Edit Profile
                 </button>
                 <button
-                  onClick={handleLogout}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-semibold px-4.5 py-2.5 rounded-xl cursor-pointer transition border border-red-500/10 flex items-center gap-1.5 active:scale-95"
+                  onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+                  className="px-4 py-2.5 rounded-full border border-neutral-200 text-neutral-500 hover:border-neutral-400 transition cursor-pointer"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
+                  <LogOut className="w-4 h-4" />
                 </button>
               </>
             ) : (
               <>
                 <button
                   onClick={toggleFollow}
-                  className={`text-xs font-semibold px-5 py-2.5 rounded-xl cursor-pointer transition active:scale-95 flex items-center gap-1.5 border shadow-sm ${isFollowing ? 'bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 border-borderGlass' : 'bg-accent text-white hover:bg-accent-hover border-transparent shadow-accent/10 shadow-md'}`}
+                  className="flex-1 bg-[#101010] text-white text-sm font-semibold py-2.5 rounded-full hover:bg-neutral-700 transition cursor-pointer"
                 >
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>
                 <button
                   onClick={startConversation}
-                  className="bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-4.5 py-2.5 rounded-xl cursor-pointer transition border border-borderGlass active:scale-95 flex items-center gap-1.5 shadow-sm"
+                  className="flex-1 border border-neutral-200 text-sm font-semibold text-text-primary py-2.5 rounded-full hover:bg-neutral-50 transition cursor-pointer"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Contact</span>
-                </button>
-                <button
-                  className="bg-neutral-100 dark:bg-neutral-800/80 hover:bg-neutral-200 dark:hover:bg-neutral-700/80 text-neutral-800 dark:text-neutral-200 text-xs font-semibold px-4 py-2.5 rounded-xl cursor-pointer transition border border-borderGlass active:scale-95 flex items-center justify-center w-10 shadow-sm"
-                  title="Share Profile"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
+                  Message
                 </button>
               </>
             )}
           </div>
+
+          {/* Tabs */}
+          <div className="flex items-center gap-6 mt-5">
+            {tabs.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex items-center gap-2 text-sm font-semibold transition-colors cursor-pointer pb-1 border-b-2 ${
+                  activeTab === key
+                    ? 'border-text-primary text-text-primary'
+                    : 'border-transparent text-neutral-400 hover:text-neutral-600'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-
-        {/* Bio Section */}
-        {profile.bio && (
-          <div className="px-6 pb-6 border-t border-borderGlass/50 pt-4 bg-neutral-50/30 dark:bg-neutral-900/10">
-            <p className="text-xs text-neutral-600 dark:text-neutral-300 font-sans leading-relaxed max-w-3xl">
-              "{profile.bio}"
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Profile Navigation Tabs */}
-      <div className="flex bg-neutral-100 dark:bg-neutral-800/80 p-1.5 rounded-2xl gap-1 border border-borderGlass max-w-lg overflow-x-auto">
-        <button 
-          onClick={() => setActiveTab('projects')}
-          className={`flex-1 min-w-[90px] py-2.5 px-3 text-xs font-bold rounded-xl transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'projects' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-        >
-          <Grid className="w-3.5 h-3.5" />
-          <span>Projects</span>
-        </button>
+      {/* Separador */}
+      <div className="border-b border-neutral-100 mt-6" />
 
-        <button 
-          onClick={() => setActiveTab('posts')}
-          className={`flex-1 min-w-[90px] py-2.5 px-3 text-xs font-bold rounded-xl transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'posts' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>Posts</span>
-        </button>
+      {/* ── Tab content ── */}
+      <div className="mt-6 min-h-[300px]">
 
-        {isCreative && (
-          <button 
-            onClick={() => setActiveTab('saved')}
-            className={`flex-1 min-w-[90px] py-2.5 px-3 text-xs font-bold rounded-xl transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'saved' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Inspiration</span>
-          </button>
-        )}
-
-        {isScout && (
-          <>
-            <button 
-              onClick={() => setActiveTab('briefs')}
-              className={`flex-1 min-w-[90px] py-2.5 px-3 text-xs font-bold rounded-xl transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'briefs' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              <span>Briefs</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('members')}
-              className={`flex-1 min-w-[90px] py-2.5 px-3 text-xs font-bold rounded-xl transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'members' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Members</span>
-            </button>
-          </>
-        )}
-
-        <button 
-          onClick={() => setActiveTab('info')}
-          className={`flex-1 min-w-[90px] py-2.5 px-3 text-xs font-bold rounded-xl transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'info' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>Info</span>
-        </button>
-      </div>
-
-      {/* Tabs Main Content Panel */}
-      <div className="min-h-[250px]">
-        
-        {/* Projects Tab */}
+        {/* Projects */}
         {activeTab === 'projects' && (
-          <div>
-            {projects.length === 0 ? (
-              <div className="glass rounded-3xl p-8 text-center py-16 text-neutral-500 border border-borderGlass flex flex-col items-center gap-2">
-                <Grid className="w-8 h-8 text-neutral-300" />
-                <span>No projects published on this portfolio yet.</span>
-              </div>
-            ) : (
-              <div className="columns-2 sm:columns-3 gap-4 space-y-4">
-                {projects.map((project) => (
-                  <GridItem key={project.id} project={project} />
-                ))}
-              </div>
-            )}
-          </div>
+          projects.length === 0 ? (
+            <div className="text-center py-20 text-neutral-400">
+              <Grid className="w-8 h-8 mx-auto mb-2 text-neutral-200" />
+              <p className="text-sm">No projects yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {projects.map(project => (
+                <GridItem key={project.id} project={project} />
+              ))}
+            </div>
+          )
         )}
 
-        {/* Posts Tab */}
+        {/* Posts — masonry 3 columns */}
         {activeTab === 'posts' && (
-          <div className="max-w-2xl mx-auto space-y-4">
-            {profilePosts.length === 0 ? (
-              <div className="glass rounded-3xl p-8 text-center py-16 text-neutral-500 border border-borderGlass flex flex-col items-center gap-2">
-                <MessageSquare className="w-8 h-8 text-neutral-300" />
-                <span>No posts or short updates shared by this user yet.</span>
-              </div>
-            ) : (
-              profilePosts.map((post) => {
-                const hasVisualTheme = post.content.toLowerCase().includes('typography') || post.content.toLowerCase().includes('shadows') || post.content.toLowerCase().includes('sustainable');
-                return (
-                  <div key={post.id} className="glass rounded-3xl border border-borderGlass shadow-sm overflow-hidden">
-                    <div className="p-5 flex justify-between items-start">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent to-[#FF2D55] p-0.5 shadow flex-shrink-0 flex items-center justify-center text-white font-display font-black text-sm uppercase">
-                          {profile.name.substring(0, 2)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-display font-bold text-sm text-neutral-800 dark:text-neutral-100">
-                              {profile.name}
-                            </span>
-                            <span className="text-[10px] text-neutral-400 font-sans">
-                              @{profile.username || 'creative'}
-                            </span>
-                            <span className="text-[9px] bg-neutral-100 dark:bg-neutral-800 text-neutral-500 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border border-borderGlass/50">
-                              {profile.role}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-neutral-400 font-medium mt-0.5">
-                            {new Date(post.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                      <button className="text-neutral-400 hover:text-neutral-600 dark:hover:text-white p-1">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
+          profilePosts.length === 0 ? (
+            <div className="text-center py-20 text-neutral-400">
+              <Layers className="w-8 h-8 mx-auto mb-2 text-neutral-200" />
+              <p className="text-sm">No posts yet.</p>
+            </div>
+          ) : (
+            <div className="columns-3 gap-3">
+              {profilePosts.map(post => (
+                <div
+                  key={post.id}
+                  className="break-inside-avoid mb-3 bg-white rounded-2xl border border-neutral-100 overflow-hidden"
+                >
+                  {/* Image (if any) */}
+                  {post.mediaUrls && post.mediaUrls.length > 0 && (
+                    <img
+                      src={post.mediaUrls[0]}
+                      alt=""
+                      className="w-full object-cover"
+                    />
+                  )}
 
-                    <div className="px-5 pb-4 space-y-4">
-                      <p className="text-xs text-neutral-700 dark:text-neutral-200 leading-relaxed font-sans whitespace-pre-wrap">
-                        {post.content}
-                      </p>
-                      
-                      {hasVisualTheme && (
-                        <div className="w-full h-36 bg-gradient-to-tr from-neutral-900 via-neutral-800 to-[#121214] rounded-2xl border border-borderGlass flex flex-col justify-end p-4 relative overflow-hidden group">
-                          <div className="absolute inset-0 bg-neutral-500/5 mix-blend-overlay" />
-                          <div className="text-[9px] font-bold text-white/50 tracking-widest uppercase">
-                            Concept Canvas
-                          </div>
-                          <div className="font-display font-black text-white text-lg tracking-tight leading-none mt-1 select-none">
-                            BareFolio Studio Preview
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="border-t border-borderGlass/40 px-4 py-2 flex items-center justify-between bg-white/20 dark:bg-black/10">
-                      <div className="flex gap-4">
-                        <button 
-                          onClick={() => handleToggleLike(post.id)}
-                          className={`flex items-center gap-1 text-xs cursor-pointer p-1 rounded-lg transition-colors ${post.liked ? 'text-red-500 font-extrabold' : 'text-neutral-400 hover:text-red-400'}`}
-                        >
-                          <Heart className={`w-4 h-4 ${post.liked ? 'fill-red-500 text-red-500' : ''}`} />
-                          <span>{post.likes || 0}</span>
-                        </button>
-                        
-                        <button 
-                          onClick={() => handleToggleReplies(post.id)}
-                          className="flex items-center gap-1 text-xs text-neutral-400 hover:text-accent cursor-pointer p-1 rounded-lg"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          <span>{post.replies?.length || 0}</span>
-                        </button>
-                      </div>
-
-                      <button 
-                        onClick={() => handleShare(post.id)}
-                        className="flex items-center gap-1 text-xs text-neutral-400 hover:text-accent cursor-pointer p-1.5 rounded-lg"
+                  {/* Action bar */}
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <div className="flex items-center gap-3.5">
+                      <button
+                        onClick={() => handleToggleLike(post.id)}
+                        className="cursor-pointer"
                       >
-                        <Share2 className="w-4 h-4" />
-                        <span>{copiedId === post.id ? 'Copied!' : 'Share'}</span>
+                        <Heart className={`w-4 h-4 ${post.liked ? 'fill-text-primary text-text-primary' : 'text-text-primary'}`} />
+                      </button>
+                      <button className="cursor-pointer">
+                        <MessageSquare className="w-4 h-4 text-text-primary" />
+                      </button>
+                      <button onClick={() => handleShare(post.id)} className="cursor-pointer">
+                        <Share2 className="w-4 h-4 text-text-primary" />
                       </button>
                     </div>
-
-                    {post.showReplies && (
-                      <div className="border-t border-borderGlass/40 bg-neutral-50/50 dark:bg-neutral-900/30 p-5 space-y-4">
-                        {post.replies && post.replies.length > 0 && (
-                          <div className="space-y-3">
-                            {post.replies.map((reply, idx) => (
-                              <div key={idx} className="flex gap-3 text-xs leading-relaxed items-start">
-                                <div className="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center font-display font-extrabold text-[10px] uppercase flex-shrink-0 mt-0.5">
-                                  {reply.sender.substring(0, 2)}
-                                </div>
-                                <div className="bg-neutral-100 dark:bg-neutral-800/80 p-3 rounded-2xl rounded-tl-none border border-borderGlass/40 flex-1">
-                                  <span className="font-bold text-neutral-800 dark:text-neutral-200 block mb-0.5">
-                                    {reply.sender}
-                                  </span>
-                                  <p className="text-neutral-600 dark:text-neutral-400 font-sans">
-                                    {reply.text}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {loggedInProfile ? (
-                          <form onSubmit={(e) => handleAddReply(post.id, e)} className="flex gap-2 items-center">
-                            <input
-                              type="text"
-                              value={replyInputs[post.id] || ''}
-                              onChange={(e) => setReplyInputs((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                              placeholder="Type a response to this update..."
-                              className="flex-1 bg-white dark:bg-neutral-800 border border-borderGlass px-4 py-2.5 rounded-xl focus:outline-none focus:border-accent text-xs"
-                            />
-                            <button
-                              type="submit"
-                              disabled={!(replyInputs[post.id] || '').trim()}
-                              className="w-9 h-9 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-xl flex items-center justify-center shadow transition duration-200 cursor-pointer active:scale-95 flex-shrink-0"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                            </button>
-                          </form>
-                        ) : (
-                          <p className="text-[10px] text-neutral-400 text-center italic">Sign in to join the conversation.</p>
-                        )}
-                      </div>
-                    )}
+                    <button
+                      onClick={() => setProfilePosts(prev =>
+                        prev.map(p => p.id === post.id ? { ...p, saved: !p.saved } : p)
+                      )}
+                      className="cursor-pointer"
+                    >
+                      <Bookmark className={`w-4 h-4 ${post.saved ? 'fill-text-primary text-text-primary' : 'text-text-primary'}`} />
+                    </button>
                   </div>
-                );
-              })
-            )}
-          </div>
-        )}
 
-        {/* Inspiration Tab (Creator Only) */}
-        {activeTab === 'saved' && isCreative && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {mockInspirationFolders.map((folder, i) => (
-              <div key={i} className="glass p-5 rounded-3xl border border-borderGlass hover:border-accent/40 hover:shadow-lg transition duration-300 flex flex-col justify-between h-44 relative group overflow-hidden">
-                <div className="absolute top-4 right-4 flex gap-1">
-                  {folder.colors.map((c, cIdx) => (
-                    <span key={cIdx} className="w-3 h-3 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: c }} />
-                  ))}
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="w-10 h-10 rounded-2xl bg-accent/10 border border-accent/25 flex items-center justify-center text-accent">
-                    <Folder className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-base font-display font-black text-neutral-900 dark:text-white pt-2">
-                    {folder.name}
-                  </h3>
-                  <p className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider">
-                    {folder.count} Bookmarked Items
+                  {/* Text */}
+                  <p className="px-3 pb-3 text-xs text-text-primary leading-relaxed">
+                    {post.content}
                   </p>
                 </div>
+              ))}
+            </div>
+          )
+        )}
 
-                <div className="flex gap-1.5 pt-2 flex-wrap">
-                  {folder.tags.map((t, idx) => (
-                    <span key={idx} className="text-[8px] bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 px-2 py-0.5 rounded-full border border-borderGlass/50 font-bold uppercase">
-                      {t}
-                    </span>
-                  ))}
-                </div>
+        {/* Inspiration — folder grid */}
+        {activeTab === 'saved' && (
+          <div className="grid grid-cols-6 gap-4">
+            {mockFolders.map((folder, i) => (
+              <div key={i} className="cursor-pointer group">
 
-                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] text-accent font-bold cursor-pointer">
-                  <span>Open Folder</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </div>
+                {/* Both SVGs share viewBox 0 0 154 131 — same natural size, no container needed */}
+                {folder.count > 0 ? (
+                  /* ── Folder WITH content ── */
+                  <svg viewBox="0 0 154 131" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+                    <defs>
+                      {/* Clip paths — in original 161×124 space, applied inside the scale() group */}
+                      <clipPath id={`ic0-${i}`}><rect x="10.2051" y="5.51935" width="75" height="111" rx="17.8535" /></clipPath>
+                      <clipPath id={`ic1-${i}`}><rect x="41.2051" y="5.51935" width="75" height="111" rx="17.8535" /></clipPath>
+                      <clipPath id={`ic2-${i}`}><rect x="72.2051" y="5.51935" width="75" height="111" rx="17.8535" /></clipPath>
+                      {/* Drop shadow filter */}
+                      <filter id={`flt-${i}`} colorInterpolationFilters="sRGB">
+                        <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                        <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                        <feOffset dx="1.0631" dy="-1.48779"/>
+                        <feGaussianBlur stdDeviation="2.52924"/>
+                        <feComposite in2="hardAlpha" operator="out"/>
+                        <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.16 0"/>
+                        <feBlend mode="normal" in2="BackgroundImageFix" result="shadow"/>
+                        <feBlend mode="normal" in="BackgroundImageFix" in2="shadow" result="BackgroundImageFix"/>
+                        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                      </filter>
+                      {/* Gradient */}
+                      <linearGradient id={`grad-${i}`} x1="78.9433" y1="24.4512" x2="78.9433" y2="120.13" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#D9D9D9" stopOpacity="0.1"/>
+                        <stop offset="1" stopColor="#2D2D2D"/>
+                      </linearGradient>
+                    </defs>
+
+                    {/* scale(154/161, 131/124) maps 161×124 coordinates into 154×131 space */}
+                    <g transform="scale(0.95652 1.05645)">
+                      {/* Layer 1 — back tab */}
+                      <path d="M138.05 0H19.8331C14.6079 0 10.3721 4.43747 10.3721 9.91137V110.218C10.3721 115.692 14.6079 120.13 19.8331 120.13H138.05C143.275 120.13 147.511 115.692 147.511 110.218V9.91137C147.511 4.43747 143.275 0 138.05 0Z" fill="#2D2D2D"/>
+
+                      {/* Layer 2 — 3 fanned image cards */}
+                      <image href={`https://picsum.photos/seed/${folder.seeds[0]}/300/444`} x="10.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic0-${i})`}/>
+                      <image href={`https://picsum.photos/seed/${folder.seeds[1]}/300/444`} x="41.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic1-${i})`}/>
+                      <image href={`https://picsum.photos/seed/${folder.seeds[2]}/300/444`} x="72.2051" y="5.51935" width="75" height="111" preserveAspectRatio="xMidYMid slice" clipPath={`url(#ic2-${i})`}/>
+
+                      {/* Layer 3 — front folder body */}
+                      <g filter={`url(#flt-${i})`}>
+                        <path d="M137.894 120.126H20.0492C15.1792 120.126 11.1083 116.244 10.6635 111.172L4.03706 35.6321C3.50935 29.6298 8.02878 24.4512 13.7959 24.4512H73.7923C77.1093 24.4512 80.2567 25.9724 82.4052 28.6169L93.1629 41.8433C95.3114 44.4839 98.4626 46.0091 101.776 46.0091H144.09C149.993 46.0091 154.558 51.4281 153.811 57.5487L147.238 111.522C146.638 116.445 142.635 120.13 137.89 120.13L137.894 120.126Z" fill={`url(#grad-${i})`} shapeRendering="crispEdges"/>
+                      </g>
+                    </g>
+                  </svg>
+                ) : (
+                  /* ── Empty folder ── */
+                  <svg viewBox="0 0 154 131" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+                    <defs>
+                      <linearGradient id={`ge-${i}`} x1="75.45" y1="6.55" x2="75.45" y2="126.77" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#D9D9D9" stopOpacity="0.1" />
+                        <stop offset="1" stopColor="#2D2D2D" />
+                      </linearGradient>
+                    </defs>
+                    {/* Back shape */}
+                    <path d="M16.1515 6.54628H134.751C141.461 6.54628 146.908 12.0341 146.908 18.7938V112.643C146.908 120.443 140.624 126.774 132.881 126.774H18.0218C10.2791 126.774 3.99512 120.443 3.99512 112.643V18.7938C3.99512 12.0341 9.44213 6.54628 16.1515 6.54628Z" fill="#2D2D2D" />
+                    {/* Front folder body */}
+                    <path d="M132.885 126.77H18.0222C10.2746 126.77 3.99512 120.444 3.99512 112.639V18.7933C3.99512 12.0292 9.43763 6.54628 16.1519 6.54628H60.6459C62.923 6.54628 65.1626 7.10211 67.1778 8.17137C71.4094 10.4135 75.6455 17.3661 79.877 19.6129C81.8923 20.6822 84.1366 21.238 86.4137 21.238L134.746 21.1956C141.465 21.1956 146.908 26.6738 146.908 33.4427V112.643C146.908 120.448 140.628 126.774 132.881 126.774Z" fill={`url(#ge-${i})`} />
+                  </svg>
+                )}
+
+                {/* Label — centrado */}
+                <p className="text-sm font-semibold text-text-primary mt-2 leading-tight text-center">{folder.name}</p>
+                <p className="text-xs text-neutral-400 mt-0.5 text-center">{folder.count} Saved items</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Briefs Tab (Studio/Brand Only) */}
-        {activeTab === 'briefs' && isScout && (
+        {/* Briefs */}
+        {activeTab === 'briefs' && (
           <div className="space-y-4">
             {briefs.length === 0 ? (
-              <div className="glass rounded-3xl p-8 text-center py-16 text-neutral-500 border border-borderGlass flex flex-col items-center gap-2">
-                <Briefcase className="w-8 h-8 text-neutral-300" />
-                <span>No active briefs or design opportunities published yet.</span>
+              <div className="text-center py-20 text-neutral-400">
+                <Briefcase className="w-8 h-8 mx-auto mb-2 text-neutral-200" />
+                <p className="text-sm">No briefs published yet.</p>
               </div>
             ) : (
-              briefs.map((brief) => (
-                <div key={brief.id} className="glass p-6 rounded-2xl border border-borderGlass shadow-sm hover:shadow-md transition duration-200 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-display font-black text-neutral-900 dark:text-white pt-1">
-                        {brief.title}
-                      </h3>
-                      <p className="text-[10px] text-neutral-400">
-                        Published {new Date(brief.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="text-xs bg-green-500/10 text-green-500 font-bold px-3 py-1 rounded-full border border-green-500/15">
-                      Budget: {brief.budget}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed font-sans">
-                    {brief.description}
-                  </p>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    {isMe ? (
-                      <button className="text-neutral-500 text-xs font-semibold hover:text-accent flex items-center gap-1 py-2 px-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition">
-                        <span>Review Submissions</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => router.push(`/inbox`)}
-                        className="bg-accent hover:bg-accent-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow active:scale-95 flex items-center gap-1"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>Apply to this Brief</span>
-                      </button>
+              briefs.map(brief => (
+                <div key={brief.id} className="bg-white border border-neutral-100 rounded-2xl p-6 shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-base font-bold text-text-primary">{brief.title}</h3>
+                    {brief.budget && (
+                      <span className="text-xs bg-neutral-100 text-neutral-600 font-semibold px-3 py-1 rounded-full">{brief.budget}</span>
                     )}
                   </div>
+                  <p className="text-sm text-neutral-500 leading-relaxed">{brief.description}</p>
+                  {!isMe && (
+                    <button
+                      onClick={() => router.push('/inbox')}
+                      className="mt-4 bg-[#101010] text-white text-xs font-semibold px-4 py-2 rounded-full hover:bg-neutral-700 transition cursor-pointer"
+                    >
+                      Apply
+                    </button>
+                  )}
                 </div>
               ))
             )}
           </div>
         )}
-
-        {/* Members Tab (Studio/Brand Only) */}
-        {activeTab === 'members' && isScout && (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {mockStudioMembers.map((member, i) => (
-              <div key={i} className="glass p-5 rounded-3xl border border-borderGlass flex flex-col justify-between relative group hover:shadow-md transition">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-accent/20 text-accent flex items-center justify-center font-display font-black text-sm uppercase">
-                    {member.name.substring(0,2)}
-                  </div>
-                  <div>
-                    <h4 className="font-display font-bold text-xs text-neutral-900 dark:text-white">
-                      {member.name}
-                    </h4>
-                    <p className="text-[10px] text-neutral-400 leading-tight">
-                      {member.role}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-4 border-t border-borderGlass/40 pt-3">
-                  <span className="text-[9px] text-green-500 font-extrabold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span>Active Team</span>
-                  </span>
-                  <Link 
-                    href={`/profile/${member.uid}`}
-                    className="text-[9px] text-accent font-black uppercase hover:underline flex items-center"
-                  >
-                    <span>View Profile</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-            
-            {isMe && (
-              <button className="glass p-5 rounded-3xl border border-dashed border-borderGlass hover:border-accent flex flex-col items-center justify-center text-center gap-2 h-full text-neutral-400 hover:text-accent transition duration-200">
-                <Plus className="w-6 h-6" />
-                <span className="text-xs font-bold">Invite New Creator</span>
-                <span className="text-[9px] font-medium leading-tight max-w-[120px]">Link professional partners to your studio profile</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Info Tab */}
-        {activeTab === 'info' && (
-          <div className="glass rounded-3xl p-8 border border-borderGlass space-y-6">
-            <h3 className="font-display font-black text-base border-b border-borderGlass pb-2 text-neutral-900 dark:text-white">
-              Professional Information
-            </h3>
-            
-            <div className="grid md:grid-cols-2 gap-6 text-xs">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Full Legal Name</h4>
-                  <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">{profile.name}</p>
-                </div>
-
-                {profile.username && (
-                  <div>
-                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Registered Username</h4>
-                    <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">@{profile.username}</p>
-                  </div>
-                )}
-
-                <div>
-                  <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Verified Role</h4>
-                  <span className="inline-block bg-neutral-100 dark:bg-neutral-800 border border-borderGlass px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wider mt-1 text-neutral-800 dark:text-neutral-200">
-                    {profile.role}
-                  </span>
-                </div>
-
-                {profile.location && (
-                  <div>
-                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Corporate Location</h4>
-                    <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">{profile.location}</p>
-                  </div>
-                )}
-
-                {/* Website / Digital Link */}
-                {profile.website && (
-                  <div>
-                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Official Digital Link</h4>
-                    <a
-                      href={profile.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-sm text-accent hover:underline break-all"
-                    >
-                      {profile.website}
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Secure Contact Email</h4>
-                  <p className="font-semibold text-sm text-accent">{profile.email}</p>
-                </div>
-
-                {isCreative && profile.disciplines && profile.disciplines.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Principal Core Disciplines</h4>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {profile.disciplines.map((d, i) => (
-                        <span key={i} className="text-[9px] bg-accent/10 border border-accent/15 text-accent font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider">
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {profile.role === 'studio' && profile.disciplines && profile.disciplines.length > 0 && (
-                  <div>
-                    <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Studio Core Offerings</h4>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {profile.disciplines.map((d, i) => (
-                        <span key={i} className="text-[9px] bg-accent/10 border border-accent/15 text-accent font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider">
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Onboarding Verification Status</h4>
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    {profile.isVerified ? (
-                      <>
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="font-bold text-green-600 dark:text-green-500">Official Authenticated Profile</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                        <span className="font-bold text-yellow-600 dark:text-yellow-500">Verification Pending Assessment</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-neutral-400 uppercase tracking-widest text-[9px] mb-1">Account History</h4>
-                  <p className="font-medium text-neutral-500">Registered and vetted secure member of BareFolio.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Edit Profile Modal Dialog */}
+      {/* ── Edit profile modal ── */}
       {isEditing && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 overflow-y-auto">
-          <div className="max-w-md w-full glass rounded-3xl p-8 shadow-2xl relative border border-borderGlass my-8">
-            <button 
-              onClick={() => setIsEditing(false)} 
-              className="absolute top-4 right-4 text-xl text-neutral-400 hover:text-neutral-600 transition cursor-pointer"
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl border border-neutral-100 relative">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-600 transition cursor-pointer text-xl"
             >
               ✕
             </button>
-            <h2 className="text-2xl font-display font-black mb-4">Edit Profile</h2>
-
-            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
+            <h2 className="text-xl font-bold text-text-primary mb-6">Edit Profile</h2>
+            <form onSubmit={handleSaveProfile} className="space-y-4">
               <div>
-                <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Public Name</label>
-                <input 
-                  type="text" 
-                  value={editName} 
-                  onChange={(e) => setEditName(e.target.value)} 
-                  required 
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans" 
+                <label className="text-xs font-semibold text-neutral-400 block mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  required
+                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400"
                 />
               </div>
-
               <div>
-                <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Corporate Location</label>
+                <label className="text-xs font-semibold text-neutral-400 block mb-1">Location</label>
                 <input
                   type="text"
                   value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
+                  onChange={e => setEditLocation(e.target.value)}
                   placeholder="e.g. Barcelona, Spain"
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
+                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400"
                 />
               </div>
-
               <div>
-                <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Biography / Short Description</label>
+                <label className="text-xs font-semibold text-neutral-400 block mb-1">Bio</label>
                 <textarea
                   value={editBio}
-                  onChange={(e) => setEditBio(e.target.value)}
+                  onChange={e => setEditBio(e.target.value)}
                   rows={3}
-                  placeholder="Describe your design vision, creative process, or brand offerings..."
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs resize-none border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
+                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400 resize-none"
                 />
               </div>
-
               <div>
-                <label className="text-neutral-400 block mb-1 font-bold uppercase tracking-wider text-[9px]">Disciplines (Comma Separated)</label>
+                <label className="text-xs font-semibold text-neutral-400 block mb-1">Disciplines (comma separated)</label>
                 <input
                   type="text"
                   value={editDisciplines.join(', ')}
-                  onChange={(e) => setEditDisciplines(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                  placeholder="e.g. graphic design, typography, art direction"
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 p-3 rounded-xl text-xs border border-borderGlass focus:outline-none focus:border-accent text-neutral-900 dark:text-white font-sans"
+                  onChange={e => setEditDisciplines(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                  placeholder="e.g. Graphic Design, UX/UI"
+                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400"
                 />
               </div>
-
-              <button 
-                type="submit" 
-                disabled={saveLoading} 
-                className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3 rounded-xl transition duration-200 active:scale-95 shadow-md flex items-center justify-center gap-1.5"
+              <button
+                type="submit"
+                disabled={saveLoading}
+                className="w-full bg-[#101010] text-white font-semibold py-3 rounded-full hover:bg-neutral-700 transition cursor-pointer disabled:opacity-40"
               >
-                {saveLoading ? 'Saving...' : 'Save Profile Changes'}
+                {saveLoading ? 'Saving…' : 'Save Changes'}
               </button>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

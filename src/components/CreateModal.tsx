@@ -1,270 +1,255 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
-import { X, Briefcase, FileText, Image as ImageIcon } from 'lucide-react';
+import { Search, ImagePlus } from 'lucide-react';
+
+const MAX_CHARS = 500;
 
 export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { currentUser, profile } = useApp();
-  const [contentType, setContentType] = useState<'project' | 'post' | 'brief'>('project');
+  const [content, setContent] = useState('');
+  const [link, setLink] = useState('');
+  const [visibility, setVisibility] = useState<'everyone' | 'followers'>('everyone');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [title, setTitle] = useState('');
-  const [desc, setDesc] = useState('');
-  const [technique, setTechnique] = useState('Graphic Design');
-  const [mood, setMood] = useState('Minimalist');
-  const [budget, setBudget] = useState('$2,500');
-  const [modality, setModality] = useState('Remote');
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen || !profile) return null;
+  // Animation state: rendered keeps element in DOM during exit transition
+  const [rendered, setRendered] = useState(false);
+  const [visible, setVisible] = useState(false);
 
-  const canCreateBrief = profile.profile_type === 'studio' || profile.profile_type === 'brand';
-  const canCreateProject = profile.profile_type !== 'brand';
+  useEffect(() => {
+    if (isOpen) {
+      setRendered(true);
+      // Double rAF ensures the element is painted before we add the visible classes
+      const id = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setVisible(true))
+      );
+      return () => cancelAnimationFrame(id);
+    } else {
+      setVisible(false);
+      const t = setTimeout(() => setRendered(false), 350);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen]);
+
+  if (!rendered || !profile) return null;
+
+  const displayName = profile.full_name || profile.username;
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const projectCount = 0; // placeholder until we fetch it
 
   async function uploadImages(files: File[]): Promise<string[]> {
     const uploads = files.map(async (file) => {
-      const ext = file.name.split('.').pop()
-      const path = `${currentUser!.id}/${crypto.randomUUID()}.${ext}`
+      const ext = file.name.split('.').pop();
+      const path = `${currentUser!.id}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage
         .from('project-images')
-        .upload(path, file, { cacheControl: '3600', upsert: false })
-      if (error) throw error
-      const { data } = supabase.storage.from('project-images').getPublicUrl(path)
-      return data.publicUrl
-    })
-    return Promise.all(uploads)
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from('project-images').getPublicUrl(path);
+      return data.publicUrl;
+    });
+    return Promise.all(uploads);
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!currentUser) return
-    setLoading(true)
+  const handlePublish = async () => {
+    if (!currentUser || !content.trim()) return;
+    setLoading(true);
     try {
-      if (contentType === 'project') {
-        const imageUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : []
-        const coverUrl = imageUrls[0] ?? null
-        const verStatus = profile?.verified ? 'approved' : 'pending'
-        const { error } = await supabase.from('projects').insert({
-          user_id: currentUser.id,
-          title: title.trim(),
-          description: desc.trim() || null,
-          cover_url: coverUrl,
-          images: imageUrls,
-          discipline: technique || null,
-          atmosphere: mood || null,
-          tags: [],
-          verification_status: verStatus,
-        })
-        if (error) throw error
-      } else if (contentType === 'post') {
-        const mediaUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : []
-        const { error } = await supabase.from('posts').insert({
-          user_id: currentUser.id,
-          content: desc.trim(),
-          media_urls: mediaUrls,
-        })
-        if (error) throw error
-      } else if (contentType === 'brief') {
-        const { error } = await supabase.from('briefs').insert({
-          user_id: currentUser.id,
-          title: title.trim(),
-          description: desc.trim() || null,
-          disciplines: [],
-          budget: budget || null,
-          tags: [],
-        })
-        if (error) throw error
-      }
-      setTitle('')
-      setDesc('')
-      setSelectedFiles([])
-      onClose()
+      const mediaUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : [];
+      const { error } = await supabase.from('posts').insert({
+        user_id: currentUser.id,
+        content: content.trim(),
+        media_urls: mediaUrls,
+        link: link.trim() || null,
+      });
+      if (error) throw error;
+      setContent('');
+      setLink('');
+      setSelectedFiles([]);
+      onClose();
     } catch (err: any) {
-      console.error('Error creating publication:', err)
-      onClose()
+      console.error('Error creating post:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
+  const handleClose = () => {
+    setContent('');
+    setLink('');
+    setSelectedFiles([]);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full glass rounded-3xl p-6 shadow-2xl relative border border-borderGlass">
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        
-        <h2 className="text-2xl font-display font-black text-neutral-900 dark:text-white mb-5">
-          New Publication
-        </h2>
+    <>
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ease-out ${visible ? 'opacity-100' : 'opacity-0'}`}
+        onClick={handleClose}
+      />
 
-        {/* Tab Selection */}
-        <div className="flex bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-xl gap-1 mb-6 overflow-x-auto">
-          {canCreateProject && (
-            <button 
-              type="button"
-              onClick={() => setContentType('project')} 
-              className={`flex-1 min-w-[70px] py-2 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${contentType === 'project' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-              <span>Project</span>
-            </button>
-          )}
-          
-          <button 
-            type="button"
-            onClick={() => setContentType('post')} 
-            className={`flex-1 min-w-[70px] py-2 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${contentType === 'post' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+      {/* Drawer */}
+      <div className={`fixed top-0 right-0 bottom-0 z-50 w-[420px] bg-white flex flex-col shadow-2xl transition-transform duration-[350ms] ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
+          <button
+            onClick={handleClose}
+            className="text-sm text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Post</span>
+            Cancel
           </button>
-          
-          {canCreateBrief && (
-            <button 
-              type="button"
-              onClick={() => setContentType('brief')} 
-              className={`flex-1 min-w-[70px] py-2 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${contentType === 'brief' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              <span>Brief</span>
-            </button>
-          )}
-
+          <span className="text-sm font-bold text-text-primary">New post</span>
+          <button className="text-sm text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer">
+            Draft
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {contentType !== 'post' && (
-            <div>
-              <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">
-                Title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                placeholder={
-                  contentType === 'project'
-                    ? "e.g. Atmospheric Brand Visual Identity"
-                    : "e.g. Conceptual Cosmetic Box Redesign"
-                }
-                className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl focus:outline-none focus:border-accent text-sm text-neutral-900 dark:text-white" 
-              />
-            </div>
-          )}
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
 
-          <div>
-            <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">
-              {contentType === 'post' ? 'What are you working on today?' : 'Description'}
-            </label>
-            <textarea 
-              value={desc} 
-              onChange={(e) => setDesc(e.target.value)} 
-              required 
-              rows={4} 
-              placeholder={
-                contentType === 'post'
-                  ? "Share a quick design update, work-in-progress link, or creative thought..."
-                  : contentType === 'project'
-                  ? "Describe the creative direction of this project, concept, process and toolstack..."
-                  : "Detail the project scope, expected results, talent requirements, and deadlines..."
-              }
-              className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl focus:outline-none focus:border-accent text-sm resize-none text-neutral-900 dark:text-white" 
-            />
+          {/* Author row */}
+          <div className="flex items-center gap-3 px-6 py-4">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={displayName}
+                className="w-11 h-11 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-bold text-neutral-600 uppercase flex-shrink-0">
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-text-primary leading-tight">{displayName}</p>
+              <p className="text-xs text-neutral-400 leading-tight mt-0.5">
+                {profile.disciplines?.[0] || 'Creative'}
+                {profile.location && (
+                  <span className="text-neutral-300 mx-1.5">·</span>
+                )}
+                {profile.location && <span>{profile.location}</span>}
+              </p>
+            </div>
           </div>
 
-          {(contentType === 'project' || contentType === 'post') && (
-            <div>
-              <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">
-                Images <span className="text-neutral-400 font-normal">(optional)</span>
-              </label>
+          {/* Text area */}
+          <div className="px-6 pb-2">
+            <textarea
+              value={content}
+              onChange={(e) => {
+                if (e.target.value.length <= MAX_CHARS) setContent(e.target.value);
+              }}
+              placeholder="What's on your mind about your creative process?"
+              rows={6}
+              className="w-full text-sm text-text-primary placeholder-neutral-300 resize-none focus:outline-none leading-relaxed"
+            />
+            <div className="text-xs text-neutral-300 text-right mt-1">
+              {content.length} / {MAX_CHARS}
+            </div>
+          </div>
+
+          <div className="mx-6 border-t border-neutral-100" />
+
+          {/* Media preview */}
+          {selectedFiles.length > 0 && (
+            <div className="px-6 py-3 flex gap-2 flex-wrap">
+              {selectedFiles.map((f, i) => (
+                <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden bg-neutral-100">
+                  <img
+                    src={URL.createObjectURL(f)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white text-[9px] flex items-center justify-center cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Link */}
+          <div className="px-6 py-4">
+            <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest mb-2">Add Link</p>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-300 pointer-events-none" />
               <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={e => setSelectedFiles(Array.from(e.target.files ?? []))}
-                className="w-full text-xs text-neutral-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-neutral-100 dark:file:bg-neutral-800 file:text-neutral-700 dark:file:text-neutral-300 cursor-pointer"
+                type="url"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="Add Link (Optional)"
+                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-9 pr-4 py-2.5 text-sm text-text-primary placeholder-neutral-300 focus:outline-none focus:border-neutral-300 transition-colors"
               />
-              {selectedFiles.length > 0 && (
-                <p className="text-[10px] text-neutral-400 mt-1">{selectedFiles.length} file(s) selected</p>
-              )}
             </div>
-          )}
+          </div>
 
-          {contentType === 'project' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">Core Discipline</label>
-                <select 
-                  value={technique}
-                  onChange={(e) => setTechnique(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl text-sm text-neutral-900 dark:text-white"
-                >
-                  <option value="Graphic Design">Graphic Design</option>
-                  <option value="Photography">Photography</option>
-                  <option value="Packaging">Packaging</option>
-                  <option value="Motion">Motion Design</option>
-                  <option value="UX/UI">UX/UI Design</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">Visual Atmosphere</label>
-                <select 
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl text-sm text-neutral-900 dark:text-white"
-                >
-                  <option value="Minimalist">Minimalist</option>
-                  <option value="Vibrant">Vibrant</option>
-                  <option value="Brutalist">Brutalist</option>
-                  <option value="Cyberpunk">Cyberpunk</option>
-                  <option value="Classic">Classic</option>
-                </select>
-              </div>
+          <div className="mx-6 border-t border-neutral-100" />
+
+          {/* Visible To */}
+          <div className="px-6 py-4">
+            <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest mb-3">Visible To</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setVisibility('everyone')}
+                className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-all cursor-pointer ${
+                  visibility === 'everyone'
+                    ? 'border-text-primary bg-text-primary text-white'
+                    : 'border-neutral-200 text-neutral-500 hover:border-neutral-400'
+                }`}
+              >
+                Everyone
+              </button>
+              <button
+                onClick={() => setVisibility('followers')}
+                className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-all cursor-pointer ${
+                  visibility === 'followers'
+                    ? 'border-text-primary bg-text-primary text-white'
+                    : 'border-neutral-200 text-neutral-500 hover:border-neutral-400'
+                }`}
+              >
+                Followers
+              </button>
             </div>
-          )}
+          </div>
 
-          {contentType === 'brief' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">Expected Budget</label>
-                <input 
-                  type="text" 
-                  value={budget} 
-                  onChange={(e) => setBudget(e.target.value)} 
-                  required 
-                  className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl focus:outline-none focus:border-accent text-sm text-neutral-900 dark:text-white" 
-                />
-              </div>
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-semibold">Modality</label>
-                <select 
-                  value={modality}
-                  onChange={(e) => setModality(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass p-3 rounded-xl text-sm text-neutral-900 dark:text-white"
-                >
-                  <option value="Remote">Remote</option>
-                  <option value="On-site">On-site</option>
-                  <option value="Hybrid">Hybrid</option>
-                </select>
-              </div>
-            </div>
-          )}
+          <div className="mx-6 border-t border-neutral-100" />
+        </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-accent hover:bg-accent-hover text-white font-medium py-3.5 rounded-xl transition duration-200 cursor-pointer disabled:opacity-50 mt-2 flex items-center justify-center gap-2"
+        {/* Bottom actions */}
+        <div className="px-6 py-4 border-t border-neutral-100 flex items-center gap-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={(e) => setSelectedFiles(prev => [...prev, ...Array.from(e.target.files ?? [])])}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 border border-neutral-200 text-sm font-semibold text-text-primary px-5 py-3 rounded-full hover:bg-neutral-50 transition-colors cursor-pointer flex-1 justify-center"
           >
-            {loading ? 'Publishing...' : 'Publish'}
+            <ImagePlus className="w-4 h-4" />
+            Add Media
           </button>
-        </form>
+          <button
+            onClick={handlePublish}
+            disabled={loading || !content.trim()}
+            className="flex-1 bg-[#101010] text-white text-sm font-semibold px-5 py-3 rounded-full hover:bg-neutral-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Publishing…' : 'Publish'}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -42,6 +42,16 @@ interface AppContextType {
   profile: UserProfile | null
   loading: boolean
   refreshProfile: () => Promise<void>
+  feedTab: 'all' | 'forYou'
+  setFeedTab: (tab: 'all' | 'forYou') => void
+  inboxTab: 'messages' | 'communities'
+  setInboxTab: (tab: 'messages' | 'communities') => void
+  createPickerOpen: boolean
+  setCreatePickerOpen: (open: boolean) => void
+  newPostOpen: boolean
+  setNewPostOpen: (open: boolean) => void
+  tasteBuilderOpen: boolean
+  setTasteBuilderOpen: (open: boolean) => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -50,6 +60,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [feedTab, setFeedTab] = useState<'all' | 'forYou'>('all')
+  const [inboxTab, setInboxTab] = useState<'messages' | 'communities'>('messages')
+  const [createPickerOpen, setCreatePickerOpen] = useState(false)
+  const [newPostOpen, setNewPostOpen] = useState(false)
+  const [tasteBuilderOpen, setTasteBuilderOpen] = useState(false)
 
   const refreshProfile = async () => {
     if (!currentUser) return
@@ -117,7 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AppContext.Provider value={{ currentUser, profile, loading, refreshProfile }}>
+    <AppContext.Provider value={{ currentUser, profile, loading, refreshProfile, feedTab, setFeedTab, inboxTab, setInboxTab, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen }}>
       {children}
     </AppContext.Provider>
   )

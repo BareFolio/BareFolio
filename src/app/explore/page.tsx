@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import SwipeCard from '@/components/SwipeCard';
+import TasteBuilder from '@/components/TasteBuilder';
 import { useRouter } from 'next/navigation';
-import { 
-  Grid, 
-  Sparkles, 
-  Users, 
-  Search, 
-  ChevronRight, 
-  Sliders, 
+import {
+  Grid,
+  Sparkles,
+  Users,
+  Search,
+  ChevronRight,
+  Sliders,
+  SlidersHorizontal,
   ArrowRight,
   Briefcase,
   Compass,
@@ -53,10 +55,19 @@ interface BriefItem {
   id: string;
   studioId: string;
   studioName?: string;
+  studioHandle?: string;
+  studioLocation?: string;
   title: string;
   description: string;
   budget: string;
   modality: string;
+  jobType: string;
+  discipline: string;
+  deadline: string;
+  duration: string;
+  language?: string;
+  startDate?: string;
+  isUrgent?: boolean;
   active: boolean;
   createdAt: string;
 }
@@ -194,25 +205,63 @@ const FALLBACK_STUDIOS: StudioItem[] = [
 const FALLBACK_BRIEFS: BriefItem[] = [
   {
     id: 'demo-b-1',
-    studioId: 'estudio-v',
-    studioName: 'Estudio V',
-    title: 'Visual Identity & Stationery - Boutique Eco Hotel',
-    description: 'We are seeking an identity designer to create typography style guidelines, physical stationery, and logo markers for a luxury ecological resort in the Alps.',
-    budget: '$3,500',
-    modality: 'Remote',
+    studioId: 'north-studio',
+    studioName: 'North Studio',
+    studioHandle: 'northstudio',
+    studioLocation: 'London',
+    title: 'Senior graphic designer. Permanent role',
+    description: 'North Studio is growing and looking for a senior graphic designer to join the team full-time. Strong typography and brand identity background essential.',
+    budget: '2.100 €',
+    modality: 'On Site',
+    jobType: 'Full-Time',
+    discipline: 'Graphic Design',
+    deadline: 'Apr 1',
+    duration: '6 weeks',
+    language: 'English',
+    startDate: 'Mar, 15',
+    isUrgent: false,
     active: true,
     createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
   },
   {
     id: 'demo-b-2',
-    studioId: 'motion-hq',
-    studioName: 'Kinetic Studio',
-    title: 'Brand Explainer & Liquid Motion Rebrand Announcement',
-    description: 'Looking for a senior motion artist to animate a 45-second liquid metal kinetic brand reveal. High emphasis on physical gravity simulations.',
-    budget: '$5,000',
-    modality: 'Remote',
+    studioId: 'artcore',
+    studioName: 'Artcore',
+    studioHandle: 'artcore',
+    studioLocation: 'Barcelona',
+    title: 'Visual Narrative Direction',
+    description: 'Development of cinematic visual pieces focused on storytelling, atmosphere, composition, and emotional pacing through film and motion.',
+    budget: '1.800 €',
+    modality: 'Hybrid',
+    jobType: 'Part-Time',
+    discipline: 'FilmMaker',
+    deadline: 'Mar 23',
+    duration: '4 weeks',
+    language: 'English · Spanish',
+    startDate: 'Mar, 1',
+    isUrgent: true,
     active: true,
     createdAt: new Date(Date.now() - 3600000 * 72).toISOString()
+  },
+  {
+    id: 'demo-b-3',
+    studioId: 'grandma-creative',
+    studioName: 'Grandma Creative',
+    studioHandle: 'grandmacreative',
+    studioLocation: 'Madrid',
+    title: '3D Product Development',
+    description: 'Creation of detailed 3D visuals and digital environments combining lighting, materials, motion, and contemporary visual aesthetics.',
+    budget: '2.600 €',
+    modality: 'Remote',
+    jobType: 'Freelance',
+    discipline: '3D Artist',
+    deadline: 'Jun 5',
+    duration: '2 weeks',
+    language: 'Spanish',
+    startDate: 'May, 20',
+    isUrgent: false,
+    active: true,
+    createdAt: new Date(Date.now() - 3600000 * 120).toISOString()
   }
 ];
 
@@ -267,6 +316,8 @@ export default function ExplorePage() {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedExperience, setSelectedExperience] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   
   // Real datasets states
   const [dbProjects, setDbProjects] = useState<ProjectItem[]>([]);
@@ -347,10 +398,19 @@ export default function ExplorePage() {
           id: b.id,
           studioId: b.studio_id,
           studioName: b.profiles?.name || 'Studio Member',
+          studioHandle: b.studio_id?.slice(0, 12) || '',
+          studioLocation: b.location || '',
           title: b.title,
           description: b.description,
-          budget: b.budget,
-          modality: b.modality,
+          budget: b.budget || '—',
+          modality: b.modality || 'Remote',
+          jobType: b.job_type || 'Freelance',
+          discipline: b.discipline || 'Design',
+          deadline: b.deadline || '—',
+          duration: b.duration || '—',
+          language: b.language,
+          startDate: b.start_date,
+          isUrgent: b.is_urgent ?? false,
           active: b.active ?? true,
           createdAt: b.created_at
         })));
@@ -531,15 +591,9 @@ export default function ExplorePage() {
 
   const filteredBriefs = allBriefs.filter((b) => {
     if (searchQuery && !b.title.toLowerCase().includes(searchQuery.toLowerCase()) && !b.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (selectedDiscipline && !b.title.toLowerCase().includes(selectedDiscipline.toLowerCase()) && !b.description.toLowerCase().includes(selectedDiscipline.toLowerCase())) {
-      // loose
-    }
-    if (selectedLocation) {
-      if (selectedLocation.toLowerCase() === 'remote' && b.modality.toLowerCase() !== 'remote') return false;
-      if (selectedLocation.toLowerCase() !== 'remote' && b.modality.toLowerCase() === 'remote') {
-        // open
-      }
-    }
+    if (selectedDiscipline && b.discipline.toLowerCase() !== selectedDiscipline.toLowerCase()) return false;
+    if (selectedType && b.jobType !== selectedType) return false;
+    if (selectedLocation && b.modality.toLowerCase() !== selectedLocation.toLowerCase() && !b.studioLocation?.toLowerCase().includes(selectedLocation.toLowerCase())) return false;
     return true;
   });
 
@@ -548,615 +602,429 @@ export default function ExplorePage() {
     return true;
   });
 
-  return (
-    <div className="space-y-6">
-      
-      {/* Title Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-borderGlass pb-4 gap-4">
-        <div>
-          <h2 className="text-3xl font-display font-black tracking-tight text-neutral-900 dark:text-white flex items-center gap-2">
-            <Compass className="w-7 h-7 text-accent" />
-            <span>Explore Hub</span>
-          </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Discover design inspiration, adjust your vectors, and search verified visual resources.
-          </p>
-        </div>
-        
-        {/* Sub Navigation */}
-        <div className="flex bg-neutral-100 dark:bg-neutral-800/80 p-1 rounded-xl gap-1 self-start md:self-center border border-borderGlass">
-          <button 
-            onClick={() => setSubTab('grid')} 
-            className={`px-4 py-2 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer flex items-center gap-1.5 ${subTab === 'grid' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+  // Category tab definitions
+  type CategoryTab = 'swipe' | 'explore' | 'projects' | 'creators' | 'studios' | 'briefs' | 'communities' | 'brands';
+  const CATEGORY_TABS: CategoryTab[] = ['Swipe', 'Explore', 'Projects', 'Creators', 'Studios', 'Briefs', 'Communities', 'Brands'].map(t => t.toLowerCase() as CategoryTab);
+  const CATEGORY_LABELS: Record<CategoryTab, string> = {
+    swipe: 'Swipe',
+    explore: 'Explore',
+    projects: 'Projects',
+    creators: 'Creators',
+    studios: 'Studios',
+    briefs: 'Briefs',
+    communities: 'Communities',
+    brands: 'Brands',
+  };
+
+  // Active tab maps to selectedCategory for legacy tabs; 'explore' maps to inspiration view
+  const activeTab: CategoryTab =
+    subTab === 'swipe'
+      ? 'swipe'
+      : selectedCategory === 'inspiration'
+      ? 'explore'
+      : (selectedCategory as CategoryTab);
+
+  const handleTabClick = (tab: CategoryTab) => {
+    if (tab === 'swipe') {
+      setSubTab('swipe');
+      return;
+    }
+    setSubTab('grid');
+    if (tab === 'explore') {
+      setSelectedCategory('inspiration');
+    } else {
+      setSelectedCategory(tab as typeof selectedCategory);
+    }
+    setSearchQuery('');
+  };
+
+  // Deterministic aspect ratio from title charCode sum
+  const ASPECT_RATIOS = ['aspect-[3/4]', 'aspect-[4/5]', 'aspect-[2/3]', 'aspect-square', 'aspect-[3/5]'];
+  const getAspect = (title: string) => {
+    let sum = 0;
+    for (let i = 0; i < title.length; i++) sum += title.charCodeAt(i);
+    return ASPECT_RATIOS[sum % 5];
+  };
+
+  const EXPLORE_GRADIENTS = [
+    'from-[#FF9A9E] to-[#FECFEF]',
+    'from-[#A1C4FD] to-[#C2E9FB]',
+    'from-[#F6D365] to-[#FDA085]',
+    'from-[#84FAB0] to-[#8FD3F4]',
+    'from-[#E0C3FC] to-[#8EC5FC]',
+  ];
+  const getGradient = (title: string) => {
+    let sum = 0;
+    for (let i = 0; i < title.length; i++) sum += title.charCodeAt(i);
+    return EXPLORE_GRADIENTS[sum % EXPLORE_GRADIENTS.length];
+  };
+
+  const isSimpleLayout = activeTab === 'explore' || activeTab === 'swipe';
+
+  const tabsRow = (
+    <div className="flex items-center gap-6 overflow-x-auto">
+      {CATEGORY_TABS.map((tab) => {
+        const isActive = activeTab === tab;
+        return (
+          <button
+            key={tab}
+            onClick={() => handleTabClick(tab)}
+            className={`whitespace-nowrap cursor-pointer transition-all duration-150 ${
+              isActive
+                ? 'text-[13px] text-text-primary font-bold border-b-2 border-text-primary pb-0.5'
+                : 'text-xs text-text-secondary hover:text-text-primary font-medium'
+            }`}
           >
-            <Grid className="w-3.5 h-3.5" />
-            <span>Search Catalog</span>
+            {CATEGORY_LABELS[tab]}
           </button>
-          <button 
-            onClick={() => setSubTab('swipe')} 
-            className={`px-4 py-2 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer flex items-center gap-1.5 ${subTab === 'swipe' ? 'bg-accent text-white shadow' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Swipe Affinity</span>
-          </button>
+        );
+      })}
+    </div>
+  );
+
+  const searchInput = (wide: boolean) => (
+    <div className={`relative flex-shrink-0 ${wide ? 'w-96' : 'w-full'}`}>
+      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400 pointer-events-none">
+        <Search className="w-4 h-4" />
+      </span>
+      <input
+        type="text"
+        placeholder="Search what you need"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full bg-neutral-100 border border-borderGlass pl-10 pr-10 py-2.5 rounded-full focus:outline-none focus:border-accent text-sm text-text-primary placeholder:text-text-secondary"
+      />
+      <button className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-text-primary transition-colors cursor-pointer">
+        <SlidersHorizontal className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
+  const DISCIPLINE_TAGS = ['Graphic Design','VFX','Photography','Branding','Fashion Design','Video Editing','Interior Design','3D Artist','FilmMaker','UX/UI Design','Animation','Pattern-making','Packaging','Creative Direction','Art Direction','Motion Design'];
+  const SENSIBILITY_TAGS = ['Minimalist','Experimental','Editorial','Organic','Illustrative','Y2K','Conceptual','Brutalist','Documentary','Geometric','Narrative'];
+  const TYPE_TAGS = ['Freelance','Project','Full-Time','Part-Time'];
+  const LOCATION_TAGS = ['Remote','Hybrid','Barcelona','Madrid','Berlin','London','New York','Europe-Based','Japan','America','Latin America'];
+
+  const pillClass = (active: boolean) =>
+    `border rounded-full px-3 py-1 text-[11px] cursor-pointer transition-all ${active ? 'border-[#101010] bg-[#101010] text-white' : 'border-neutral-300 text-text-primary hover:border-[#101010]'}`;
+
+  const filterPanel = (
+    <div className="w-96 flex-shrink-0 space-y-5">
+      <hr className="border-borderGlass" />
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-3">Discipline</p>
+        <div className="flex flex-wrap gap-2">
+          {DISCIPLINE_TAGS.map(d => (
+            <button key={d} onClick={() => setSelectedDiscipline(selectedDiscipline === d ? null : d)} className={pillClass(selectedDiscipline === d)}>{d}</button>
+          ))}
+          <button className="border border-neutral-300 rounded-full w-7 h-7 flex items-center justify-center text-neutral-400 hover:border-[#101010] text-sm cursor-pointer">+</button>
         </div>
       </div>
 
-      {subTab === 'grid' && (
-        <div className={selectedCategory === 'inspiration' ? 'space-y-6' : 'grid grid-cols-1 md:grid-cols-4 gap-8'}>
-
-          {/* Left Column - Swiss Editorial Filters (hidden on inspiration) */}
-          {selectedCategory !== 'inspiration' && (
-          <div className="hidden md:block md:col-span-1 space-y-6 sticky top-24 self-start max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 scrollbar-thin">
-            <div className="flex items-center justify-between border-b border-borderGlass pb-3">
-              <span className="text-xs font-display font-black tracking-tight text-neutral-800 dark:text-neutral-200 uppercase">
-                Filters
-              </span>
-              {(selectedDiscipline || selectedSensibility || selectedAvailability || selectedLocation || selectedExperience || selectedLanguage) && (
-                <button
-                  onClick={() => {
-                    setSelectedDiscipline(null);
-                    setSelectedSensibility(null);
-                    setSelectedAvailability(null);
-                    setSelectedLocation(null);
-                    setSelectedExperience(null);
-                    setSelectedLanguage(null);
-                  }}
-                  className="text-[10px] text-accent hover:underline font-bold uppercase tracking-wider cursor-pointer"
-                >
-                  Clear All
-                </button>
-              )}
+      {activeTab === 'briefs' ? (
+        <>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-3">Type</p>
+            <div className="flex flex-wrap gap-2">
+              {TYPE_TAGS.map(t => (
+                <button key={t} onClick={() => setSelectedType(selectedType === t ? null : t)} className={pillClass(selectedType === t)}>{t}</button>
+              ))}
             </div>
-
-            {/* Filter: DISCIPLINE */}
-            <div className="space-y-2 pb-4 border-b border-borderGlass/50">
-              <div className="text-[10px] font-display font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                Discipline
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {['Graphic Design', 'Photography', 'Packaging', 'Motion', 'UX/UI'].map((item) => {
-                  const isSelected = selectedDiscipline === item;
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => setSelectedDiscipline(isSelected ? null : item)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-black dark:border-white font-semibold'
-                          : 'bg-transparent text-neutral-600 dark:text-neutral-400 border-borderGlass hover:border-neutral-400 dark:hover:border-neutral-600'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Filter: VISUAL SENSIBILITY */}
-            <div className="space-y-2 pb-4 border-b border-borderGlass/50">
-              <div className="text-[10px] font-display font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                Visual Sensibility
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {['Minimalist', 'Experimental', 'Editorial', 'Organic', 'Brutalist'].map((item) => {
-                  const isSelected = selectedSensibility === item;
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => setSelectedSensibility(isSelected ? null : item)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-black dark:border-white font-semibold'
-                          : 'bg-transparent text-neutral-600 dark:text-neutral-400 border-borderGlass hover:border-neutral-400 dark:hover:border-neutral-600'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Filter: AVAILABILITY */}
-            <div className="space-y-2 pb-4 border-b border-borderGlass/50">
-              <div className="text-[10px] font-display font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                Availability
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {['Available now', 'Freelance', 'Full-time'].map((item) => {
-                  const isSelected = selectedAvailability === item;
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => setSelectedAvailability(isSelected ? null : item)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-black dark:border-white font-semibold'
-                          : 'bg-transparent text-neutral-600 dark:text-neutral-400 border-borderGlass hover:border-neutral-400 dark:hover:border-neutral-600'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Filter: LOCATION */}
-            <div className="space-y-2 pb-4 border-b border-borderGlass/50">
-              <div className="text-[10px] font-display font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                Location
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {['Barcelona', 'London', 'Paris', 'Remote'].map((item) => {
-                  const isSelected = selectedLocation === item;
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => setSelectedLocation(isSelected ? null : item)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-black dark:border-white font-semibold'
-                          : 'bg-transparent text-neutral-600 dark:text-neutral-400 border-borderGlass hover:border-neutral-400 dark:hover:border-neutral-600'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Filter: EXPERIENCE */}
-            <div className="space-y-2 pb-4 border-b border-borderGlass/50">
-              <div className="text-[10px] font-display font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                Experience
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {['Junior', 'Mid', 'Senior'].map((item) => {
-                  const isSelected = selectedExperience === item;
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => setSelectedExperience(isSelected ? null : item)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-black dark:border-white font-semibold'
-                          : 'bg-transparent text-neutral-600 dark:text-neutral-400 border-borderGlass hover:border-neutral-400 dark:hover:border-neutral-600'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Filter: LANGUAGE */}
-            <div className="space-y-2 pb-4">
-              <div className="text-[10px] font-display font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                Language
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {['English', 'Spanish', 'French'].map((item) => {
-                  const isSelected = selectedLanguage === item;
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => setSelectedLanguage(isSelected ? null : item)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-full border transition duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-black dark:border-white font-semibold'
-                          : 'bg-transparent text-neutral-600 dark:text-neutral-400 border-borderGlass hover:border-neutral-400 dark:hover:border-neutral-600'
-                      }`}
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
           </div>
-          )}
-
-          {/* Right Column - Catalog Results Grid */}
-          <div className={selectedCategory === 'inspiration' ? 'space-y-6' : 'col-span-1 md:col-span-3 space-y-6'}>
-            
-            {/* Quick Filters + Search bar */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="flex items-center gap-2 w-full md:max-w-lg">
-                <div className="relative flex-1">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400">
-                    <Search className="w-4 h-4" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder={`Search ${selectedCategory}...`}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-neutral-100 dark:bg-neutral-800/80 border border-borderGlass pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-accent text-sm"
-                  />
-                </div>
-                {selectedCategory === 'inspiration' && (
-                  <button
-                    onClick={() => {
-                      setSelectedDiscipline(null);
-                      setSelectedSensibility(null);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-3 rounded-xl border border-borderGlass bg-neutral-100 dark:bg-neutral-800/80 text-neutral-500 hover:text-accent hover:border-accent transition text-xs font-semibold cursor-pointer"
-                    title="Filters"
-                  >
-                    <Sliders className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              
-              {/* Quick Overhauled Categories selector */}
-              <div className="flex gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
-                {(['inspiration', 'projects', 'creators', 'studios', 'briefs', 'communities'] as const).map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setSearchQuery('');
-                    }}
-                    className={`px-4.5 py-2.5 rounded-xl text-xs font-bold cursor-pointer border whitespace-nowrap uppercase tracking-wider transition duration-200 ${
-                      selectedCategory === cat
-                        ? 'bg-accent text-white border-accent shadow-sm'
-                        : 'bg-neutral-100 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 border-borderGlass hover:border-neutral-400'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-3">Location</p>
+            <div className="flex flex-wrap gap-2">
+              {LOCATION_TAGS.map(l => (
+                <button key={l} onClick={() => setSelectedLocation(selectedLocation === l ? null : l)} className={pillClass(selectedLocation === l)}>{l}</button>
+              ))}
+              <button className="border border-neutral-300 rounded-full w-7 h-7 flex items-center justify-center text-neutral-400 hover:border-[#101010] text-sm cursor-pointer">+</button>
             </div>
-
-            {loading ? (
-              <div className="flex justify-center py-20">
-                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : (
-              <div className="min-h-[300px]">
-
-                {/* INSPIRATION: full-width image-only grid */}
-                {selectedCategory === 'inspiration' && (
-                  <div>
-                    {dbProjects.length === 0 ? (
-                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
-                        No projects yet. Be the first to publish.
-                      </div>
-                    ) : (
-                      <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-2 space-y-2">
-                        {dbProjects.map((project) => {
-                          const gradients = ['from-[#FF9A9E] to-[#FECFEF]','from-[#A1C4FD] to-[#C2E9FB]','from-[#F6D365] to-[#FDA085]','from-[#84FAB0] to-[#8FD3F4]','from-[#E0C3FC] to-[#8EC5FC]'];
-                          let sum = 0; for (let i = 0; i < project.title.length; i++) sum += project.title.charCodeAt(i);
-                          const gradient = gradients[sum % gradients.length];
-                          const heightClass = project.title.length % 3 === 0 ? 'h-56' : project.title.length % 2 === 0 ? 'h-72' : 'h-44';
-                          return (
-                            <div key={project.id} className="break-inside-avoid rounded-xl overflow-hidden group relative cursor-pointer">
-                              <div className={`relative w-full ${heightClass}`}>
-                                {project.coverUrl ? (
-                                  <img src={project.coverUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className={`w-full h-full bg-gradient-to-tr ${gradient}`} />
-                                )}
-                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                                  <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">
-                                    {project.creatorName}
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CATEGORY 1: PROJECTS GRID */}
-                {selectedCategory === 'projects' && (
-                  <div>
-                    {filteredProjects.length === 0 ? (
-                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
-                        No design projects match your active search terms.
-                      </div>
-                    ) : (
-                      <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-                        {filteredProjects.map((project, idx) => (
-                          <div key={idx} className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col">
-                            <div className="w-full h-48 bg-gradient-to-tr from-accent/5 to-[#FF2D55]/10 flex flex-col justify-end p-4 relative">
-                              <div className="absolute top-4 left-4 w-3.5 h-3.5 rounded-full border border-neutral-300 dark:border-neutral-700 shadow-sm" style={{ backgroundColor: project.paletteHex?.[2] || '#1A1A1A' }} />
-                              <span className="text-[9px] bg-white/20 dark:bg-black/20 text-neutral-700 dark:text-neutral-200 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider absolute top-4 right-4 backdrop-blur-sm">
-                                {project.technique}
-                              </span>
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col justify-end p-4">
-                                <h4 className="text-sm font-display font-bold text-white leading-tight">{project.title}</h4>
-                                <span className="text-[10px] text-white/80 mt-1 hover:underline">by {project.creatorName}</span>
-                              </div>
-                            </div>
-                            <div className="p-4 flex justify-between items-center bg-white/40 dark:bg-[#1e1e20]/40 border-t border-borderGlass/30">
-                              <Link 
-                                href={`/profile/${project.creatorId}`}
-                                className="text-xs font-bold text-neutral-600 dark:text-neutral-300 hover:text-accent truncate flex-1"
-                              >
-                                {project.creatorName}
-                              </Link>
-                              <ChevronRight className="w-4 h-4 text-neutral-400" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CATEGORY 2: CREATORS GRID */}
-                {selectedCategory === 'creators' && (
-                  <div>
-                    {filteredCreators.length === 0 ? (
-                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
-                        No creative portfolio profiles found matching your query.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredCreators.map((creator) => (
-                          <div key={creator.uid} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-2">
-                                  <Link href={`/profile/${creator.uid}`} className="hover:text-accent font-display font-black text-sm text-neutral-800 dark:text-white">
-                                    {creator.name}
-                                  </Link>
-                                  {creator.isAvailable && (
-                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Available for hire" />
-                                  )}
-                                </div>
-                                {creator.isVerified && (
-                                  <span className="text-[9px] bg-accent/15 text-accent font-extrabold px-2 py-0.5 rounded-full uppercase">Verified</span>
-                                )}
-                              </div>
-                              
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed font-sans">
-                                {creator.bio || 'Independent visuals and art direction designer.'}
-                              </p>
-
-                              {creator.location && (
-                                <div className="text-[10px] text-neutral-400 flex items-center gap-1 font-medium">
-                                  <MapPin className="w-3 h-3 text-neutral-500" />
-                                  <span>{creator.location}</span>
-                                </div>
-                              )}
-                              
-                              <div className="flex flex-wrap gap-1.5 pt-1">
-                                <span className="text-[9px] bg-neutral-100 dark:bg-neutral-800 text-neutral-500 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-extrabold">{creator.practice || 'freelance'}</span>
-                                {creator.disciplines?.slice(0, 2).map((d) => (
-                                  <span key={d} className="text-[9px] bg-accent/5 text-accent px-2.5 py-0.5 rounded-full uppercase tracking-wider font-extrabold">{d}</span>
-                                ))}
-                              </div>
-                            </div>
-
-                            <button 
-                              onClick={() => handleContact(creator.uid, creator.name)}
-                              className="mt-4 w-full bg-accent hover:bg-accent-hover text-white text-xs font-bold py-2.5 rounded-xl transition active:scale-95 shadow flex items-center justify-center gap-1"
-                            >
-                              <span>Contact Designer</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CATEGORY 3: STUDIOS GRID */}
-                {selectedCategory === 'studios' && (
-                  <div>
-                    {filteredStudios.length === 0 ? (
-                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
-                        No design studios found matching your search term.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredStudios.map((studio) => (
-                          <div key={studio.uid} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <Link href={`/profile/${studio.uid}`} className="hover:text-accent font-display font-black text-sm text-neutral-800 dark:text-white">
-                                  {studio.name}
-                                </Link>
-                                <span className="text-[8px] bg-neutral-100 dark:bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full uppercase font-black">{studio.role}</span>
-                              </div>
-
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed font-sans">
-                                {studio.bio || 'Premium creative agency shaping high-end graphic design structures.'}
-                              </p>
-
-                              <div className="flex gap-4 text-[10px] text-neutral-400 font-medium pt-1">
-                                {studio.location && (
-                                  <span className="flex items-center gap-1">
-                                    <MapPin className="w-3 h-3 text-neutral-500" />
-                                    <span>{studio.location}</span>
-                                  </span>
-                                )}
-                                {studio.teamSize && (
-                                  <span className="flex items-center gap-1">
-                                    <Users className="w-3 h-3 text-neutral-500" />
-                                    <span>Team: {studio.teamSize}</span>
-                                  </span>
-                                )}
-                              </div>
-
-                              {studio.disciplines && studio.disciplines.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                  {studio.disciplines.slice(0, 2).map((d) => (
-                                    <span key={d} className="text-[9px] bg-accent/5 text-accent px-2.5 py-0.5 rounded-full uppercase tracking-wider font-extrabold">{d}</span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <button 
-                              onClick={() => handleContact(studio.uid, studio.name)}
-                              className="mt-4 w-full bg-accent hover:bg-accent-hover text-white text-xs font-bold py-2.5 rounded-xl transition active:scale-95 shadow flex items-center justify-center gap-1"
-                            >
-                              <span>Connect Studio</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CATEGORY 4: BRIEFS GRID */}
-                {selectedCategory === 'briefs' && (
-                  <div>
-                    {filteredBriefs.length === 0 ? (
-                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
-                        No active creative briefs found.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {filteredBriefs.map((brief) => (
-                          <div key={brief.id} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start gap-2">
-                                <span className="text-[9px] bg-accent/10 text-accent font-extrabold px-2.5 py-0.5 rounded-full border border-accent/10 uppercase tracking-wider">{brief.modality}</span>
-                                <span className="text-xs bg-green-500/10 text-green-500 font-extrabold px-2.5 py-0.5 rounded-full border border-green-500/10">{brief.budget}</span>
-                              </div>
-                              
-                              <h4 className="font-display font-black text-sm text-neutral-800 dark:text-white pt-1">{brief.title}</h4>
-                              
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-3 leading-relaxed font-sans pt-0.5">
-                                {brief.description}
-                              </p>
-                              
-                              <p className="text-[10px] text-neutral-400">
-                                Posted by <span className="font-bold text-neutral-600 dark:text-neutral-200">{brief.studioName}</span>
-                              </p>
-                            </div>
-
-                            <button 
-                              onClick={() => router.push('/inbox')}
-                              className="mt-4 w-full bg-accent hover:bg-accent-hover text-white text-xs font-bold py-2.5 rounded-xl transition active:scale-95 shadow flex items-center justify-center gap-1"
-                            >
-                              <Briefcase className="w-3.5 h-3.5" />
-                              <span>Apply to Brief</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* CATEGORY 5: COMMUNITIES GRID */}
-                {selectedCategory === 'communities' && (
-                  <div>
-                    {filteredCommunities.length === 0 ? (
-                      <div className="glass rounded-3xl p-8 text-center py-20 text-neutral-500 border border-borderGlass">
-                        No group chat communities matching your search query.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredCommunities.map((comm) => (
-                          <div key={comm.id} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <h4 className="font-display font-black text-sm text-neutral-800 dark:text-white">{comm.name}</h4>
-                                <span className="text-[9px] bg-accent/15 text-accent font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">{comm.memberCount} members</span>
-                              </div>
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-3 leading-relaxed font-sans pt-1">
-                                {comm.description}
-                              </p>
-                            </div>
-
-                            <button 
-                              onClick={() => router.push(`/inbox?tab=communities&id=${comm.id}`)}
-                              className="mt-4 w-full bg-accent hover:bg-accent-hover text-white text-xs font-bold py-2.5 rounded-xl transition active:scale-95 shadow flex items-center justify-center gap-1.5"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                              <span>Join & Chat</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-              </div>
-            )}
-
+          </div>
+        </>
+      ) : (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-3">Visual Sensibility</p>
+          <div className="flex flex-wrap gap-2">
+            {SENSIBILITY_TAGS.map(s => (
+              <button key={s} onClick={() => setSelectedSensibility(selectedSensibility === s ? null : s)} className={pillClass(selectedSensibility === s)}>{s}</button>
+            ))}
+            <button className="border border-neutral-300 rounded-full w-7 h-7 flex items-center justify-center text-neutral-400 hover:border-[#101010] text-sm cursor-pointer">+</button>
           </div>
         </div>
       )}
+    </div>
+  );
 
-      {subTab === 'swipe' && (
-        <div className="grid md:grid-cols-3 gap-8 items-center py-6">
-          <div className="glass p-6 rounded-3xl border border-borderGlass space-y-6 order-2 md:order-1">
-            <div>
-              <h3 className="text-lg font-display font-black text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-accent" />
-                <span>Affinity Vector</span>
-              </h3>
-              <p className="text-xs text-neutral-400 mt-1">Dynamically adjusted based on your Swipe inputs.</p>
+  const selectedBriefObj = filteredBriefs.find(b => b.id === selectedBriefId) ?? null;
+
+  const briefCards = (
+    <div className="flex-1 min-w-0 grid grid-cols-2 gap-3 content-start">
+      {filteredBriefs.map((brief) => (
+        <div
+          key={brief.id}
+          onClick={() => setSelectedBriefId(brief.id === selectedBriefId ? null : brief.id)}
+          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+            selectedBriefId === brief.id
+              ? 'border-[#101010] bg-white shadow-md'
+              : 'border-neutral-200 bg-neutral-50 hover:bg-white hover:border-neutral-300 hover:shadow-sm'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-[#101010] flex items-center justify-center text-white text-[9px] font-bold uppercase flex-shrink-0">
+                {brief.studioName?.slice(0, 2)}
+              </div>
+              <span className="text-xs font-semibold text-text-primary">{brief.studioName}</span>
             </div>
-            
-            <div className="space-y-4">
-              {Object.entries(activeVector).map(([name, val]) => (
-                <div key={name} className="space-y-1">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-neutral-700 dark:text-neutral-300">{name}</span>
-                    <span className="text-accent">{val}%</span>
+            <button className="text-neutral-400 hover:text-text-primary transition-colors cursor-pointer p-0.5" onClick={e => e.stopPropagation()}>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex gap-1.5 mb-2.5">
+            <span className="bg-neutral-100 text-text-secondary text-[10px] font-semibold px-2.5 py-0.5 rounded-full">{brief.discipline}</span>
+            <span className="bg-neutral-100 text-text-secondary text-[10px] font-semibold px-2.5 py-0.5 rounded-full">{brief.jobType}</span>
+          </div>
+          <h4 className="text-sm font-bold text-text-primary leading-snug mb-1">{brief.title}</h4>
+          <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed mb-3">{brief.description}</p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] text-text-secondary uppercase tracking-wide">Budget</p>
+              <p className="text-xs font-bold text-text-primary">{brief.budget}</p>
+            </div>
+            <div className="w-px h-7 bg-neutral-200 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] text-text-secondary uppercase tracking-wide">Deadline</p>
+              <p className="text-xs font-bold text-text-primary">{brief.deadline}</p>
+            </div>
+            <div className="w-px h-7 bg-neutral-200 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] text-text-secondary uppercase tracking-wide">Duration</p>
+              <p className="text-xs font-bold text-text-primary">{brief.duration}</p>
+            </div>
+            <button
+              onClick={e => e.stopPropagation()}
+              className="bg-[#101010] text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer hover:bg-neutral-800 transition-colors flex-shrink-0"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const briefDetail = selectedBriefObj ? (
+    <div className="w-[340px] flex-shrink-0">
+      <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+        <div className="px-5 py-3 border-b border-neutral-100 text-center">
+          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+            {selectedBriefObj.discipline} · {selectedBriefObj.jobType}
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-[#101010] flex items-center justify-center text-white text-xs font-bold uppercase flex-shrink-0">
+                {selectedBriefObj.studioName?.slice(0, 2)}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-text-primary">{selectedBriefObj.studioName}</p>
+                <p className="text-[11px] text-text-secondary">@{selectedBriefObj.studioHandle} · {selectedBriefObj.studioLocation}</p>
+              </div>
+            </div>
+            <button className="border border-neutral-300 text-xs font-semibold px-4 py-1.5 rounded-full cursor-pointer hover:border-[#101010] transition-colors flex-shrink-0">Follow</button>
+          </div>
+          <h3 className="text-xl font-black text-text-primary leading-tight">{selectedBriefObj.title}</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {selectedBriefObj.isUrgent && (
+              <span className="border border-neutral-300 text-xs font-semibold px-3 py-1 rounded-full text-text-primary">Urgent</span>
+            )}
+            <span className="border border-neutral-300 text-xs font-semibold px-3 py-1 rounded-full text-text-primary">{selectedBriefObj.discipline}</span>
+            <span className="border border-neutral-300 text-xs font-semibold px-3 py-1 rounded-full text-text-primary">{selectedBriefObj.jobType}</span>
+            <span className="border border-neutral-300 text-xs font-semibold px-3 py-1 rounded-full text-text-primary">{selectedBriefObj.modality}</span>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-2">About the Brief</p>
+            <p className="text-xs text-text-secondary leading-relaxed">{selectedBriefObj.description}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary mb-3">Details</p>
+            <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-text-secondary mb-0.5">Budget</p>
+                <p className="text-sm font-bold text-text-primary">{selectedBriefObj.budget}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-text-secondary mb-0.5">Language</p>
+                <p className="text-sm font-bold text-text-primary">{selectedBriefObj.language || 'English'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-text-secondary mb-0.5">Start Date</p>
+                <p className="text-sm font-bold text-text-primary">{selectedBriefObj.startDate || 'ASAP'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-text-secondary mb-0.5">Deadline</p>
+                <p className="text-sm font-bold text-text-primary">{selectedBriefObj.deadline}</p>
+              </div>
+            </div>
+          </div>
+          <button className="w-full bg-[#101010] text-white text-sm font-bold py-3 rounded-xl cursor-pointer hover:bg-neutral-800 transition-colors">
+            Apply with my profile
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const contentArea = (
+    <>
+      {loading && activeTab !== 'swipe' && activeTab !== 'brands' ? (
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {activeTab === 'swipe' && (
+            <TasteBuilder
+              isOpen={true}
+              inline
+              onClose={() => { setSubTab('grid'); setSelectedCategory('inspiration'); }}
+            />
+          )}
+
+          {activeTab === 'explore' && (
+            allProjects.length === 0 ? (
+              <p className="text-center py-20 text-neutral-400 text-sm">No projects yet.</p>
+            ) : (
+              <div className="columns-3 gap-1.5">
+                {allProjects.map((project) => (
+                  <div key={project.id} className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100">
+                    <div className={`relative w-full ${getAspect(project.title)}`}>
+                      {project.coverUrl ? <img src={project.coverUrl} alt="" className="w-full h-full object-cover" /> : <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)}`} />}
+                      <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                        <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">{project.creatorName}</Link>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-full bg-neutral-100 dark:bg-neutral-800 h-2 rounded-full overflow-hidden border border-borderGlass/50">
-                    <div className="bg-accent h-full transition-all duration-500" style={{ width: `${val}%` }} />
+                ))}
+              </div>
+            )
+          )}
+
+          {activeTab === 'projects' && (
+            <div className="grid grid-cols-2 gap-4">
+              {filteredProjects.map((project, idx) => (
+                <div key={idx} className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col">
+                  <div className="w-full h-48 bg-gradient-to-tr from-accent/5 to-[#FF2D55]/10 relative">
+                    <div className="absolute top-4 left-4 w-3.5 h-3.5 rounded-full border border-neutral-300 shadow-sm" style={{ backgroundColor: project.paletteHex?.[2] || '#1A1A1A' }} />
+                    <span className="text-[9px] bg-white/20 text-neutral-700 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider absolute top-4 right-4 backdrop-blur-sm">{project.technique}</span>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
+                      <h4 className="text-sm font-bold text-white leading-tight">{project.title}</h4>
+                      <span className="text-[10px] text-white/80 mt-1">by {project.creatorName}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 flex justify-between items-center bg-white/40 border-t border-borderGlass/30">
+                    <Link href={`/profile/${project.creatorId}`} className="text-xs font-bold text-neutral-600 hover:text-accent truncate flex-1">{project.creatorName}</Link>
+                    <ChevronRight className="w-4 h-4 text-neutral-400" />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
-          <div className="flex flex-col items-center justify-center space-y-6 order-1 md:order-2">
-            <SwipeCard 
-              title={SWIPE_DECK[deckIndex % SWIPE_DECK.length].title} 
-              creator={SWIPE_DECK[deckIndex % SWIPE_DECK.length].creator} 
-              technique={SWIPE_DECK[deckIndex % SWIPE_DECK.length].technique} 
-              onSwipe={handleSwipe} 
-            />
-            <div className="flex gap-4">
-              <button 
-                onClick={() => handleSwipe('left')}
-                className="w-12 h-12 bg-white dark:bg-neutral-800 hover:bg-red-500 hover:text-white border border-borderGlass shadow-md rounded-full flex items-center justify-center text-red-500 font-bold transition duration-200 cursor-pointer active:scale-95"
-              >
-                ✕
-              </button>
-              <button 
-                onClick={() => handleSwipe('right')}
-                className="w-12 h-12 bg-white dark:bg-neutral-800 hover:bg-green-500 hover:text-white border border-borderGlass shadow-md rounded-full flex items-center justify-center text-green-500 font-bold transition duration-200 cursor-pointer active:scale-95"
-              >
-                ♥
-              </button>
+          {activeTab === 'creators' && (
+            <div className="grid grid-cols-2 gap-3">
+              {(dbCreators.length > 0 ? dbCreators : FALLBACK_CREATORS).map((creator) => (
+                <div key={creator.uid} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100 cursor-pointer hover:bg-neutral-100 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-neutral-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-neutral-500 uppercase">{creator.name.slice(0, 2)}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-text-primary leading-tight truncate">{creator.name}</p>
+                      {creator.isAvailable && <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />}
+                    </div>
+                    {creator.disciplines && creator.disciplines.length > 0 && (
+                      <p className="text-xs text-text-secondary truncate">{creator.disciplines.slice(0, 2).join(' | ')}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
 
-          <div className="glass p-6 rounded-3xl border border-borderGlass space-y-4 order-3">
-            <h4 className="text-sm font-display font-bold text-neutral-800 dark:text-neutral-100">Predictive Match Engine</h4>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
-              BareFolio calculates aesthetic matches using real-time affinity mapping. Curated feeds prioritize items scoring above 65% across your tactile history.
-            </p>
-            <div className="bg-accent/5 p-4 rounded-2xl flex items-center justify-between border border-accent/10">
-              <span className="text-[10px] text-accent uppercase font-bold tracking-wider">Active Vector</span>
-              <span className="text-xs font-bold text-accent">Tactile Cues</span>
+          {activeTab === 'studios' && (
+            <div className="grid grid-cols-2 gap-3">
+              {(dbStudios.length > 0 ? dbStudios : FALLBACK_STUDIOS).map((studio) => (
+                <div key={studio.uid} className="flex items-start gap-3 p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                  <div className="w-12 h-12 rounded-xl bg-[#101010] flex items-center justify-center flex-shrink-0 text-white text-xs font-bold uppercase">{studio.name.slice(0, 2)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-text-primary leading-tight">{studio.name}</p>
+                        <p className="text-xs text-text-secondary">@{studio.uid.slice(0, 12)}</p>
+                      </div>
+                      <button className="bg-[#101010] text-white text-[11px] font-semibold px-4 py-1.5 rounded-full flex-shrink-0 cursor-pointer hover:bg-neutral-800 transition-colors">Follow</button>
+                    </div>
+                    {studio.disciplines && studio.disciplines.length > 0 && (
+                      <p className="text-xs text-text-secondary mt-1.5">{studio.disciplines.slice(0, 3).join(' | ')}</p>
+                    )}
+                    <p className="text-xs text-text-secondary mt-1">{studio.location || 'Worldwide'}{studio.companyName ? ` · ${studio.companyName}` : ''}</p>
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
+
+          {activeTab === 'communities' && (
+            <div className="grid grid-cols-2 gap-4">
+              {filteredCommunities.map((comm) => (
+                <div key={comm.id} className="glass p-5 rounded-2xl border border-borderGlass shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-display font-black text-sm text-neutral-800">{comm.name}</h4>
+                      <span className="text-[9px] bg-accent/15 text-accent font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">{comm.memberCount} members</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 line-clamp-3 leading-relaxed pt-1">{comm.description}</p>
+                  </div>
+                  <button onClick={() => router.push(`/inbox?tab=communities&id=${comm.id}`)} className="mt-4 w-full bg-accent hover:bg-accent-hover text-white text-xs font-bold py-2.5 rounded-xl transition active:scale-95 shadow flex items-center justify-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" /><span>Join & Chat</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'brands' && (
+            <div className="text-center py-20 text-text-secondary text-sm">Coming soon.</div>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <div className="space-y-6">
+      {activeTab !== 'swipe' && (
+        <div className="flex items-center justify-between gap-6">
+          {searchInput(true)}
+          {tabsRow}
+        </div>
+      )}
+
+      {isSimpleLayout ? (
+        contentArea
+      ) : activeTab === 'briefs' ? (
+        <div className="flex gap-6 items-start">
+          {filterPanel}
+          {briefCards}
+          {briefDetail}
+        </div>
+      ) : (
+        <div className="flex gap-8 items-start">
+          {filterPanel}
+          <div className="flex-1 min-w-0">
+            {contentArea}
           </div>
         </div>
       )}

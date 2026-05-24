@@ -2,16 +2,17 @@
 
 import { useApp } from "@/lib/store";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Header from "./Header";
 import TabBar from "./TabBar";
 import CreateModal from "./CreateModal";
+import CreatePicker from "./CreatePicker";
+import TasteBuilder from "./TasteBuilder";
 
 export default function GlobalShell({ children }: { children: React.ReactNode }) {
-  const { currentUser, loading } = useApp();
+  const { currentUser, loading, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen } = useApp();
   const router = useRouter();
   const pathname = usePathname();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -37,12 +38,14 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FAFAFA] text-[#101010] font-sans">
-      <Header onCreateClick={() => setIsCreateOpen(true)} />
-      <main className="flex-1 pt-6 md:pt-32 pb-24 md:pb-8 w-full px-4 md:px-8">
+      <Header onCreateClick={() => setCreatePickerOpen(true)} />
+      <main className="flex-1 pt-0 md:pt-[24px] pb-24 md:pb-8 w-full px-4 md:px-8">
         {children}
       </main>
-      <TabBar onCreateClick={() => setIsCreateOpen(true)} />
-      <CreateModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <TabBar onCreateClick={() => setCreatePickerOpen(true)} />
+      <CreatePicker isOpen={createPickerOpen} onClose={() => setCreatePickerOpen(false)} />
+      <CreateModal isOpen={newPostOpen} onClose={() => setNewPostOpen(false)} />
+      <TasteBuilder isOpen={tasteBuilderOpen} onClose={() => setTasteBuilderOpen(false)} />
     </div>
   );
 }

@@ -3,243 +3,347 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/lib/store'
-import { useRouter, useSearchParams } from 'next/navigation'
-import type { Conversation, Message, Profile } from '@/lib/database.types'
-import { Send, MessageSquare } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import type { Message, Profile } from '@/lib/database.types'
+import { Search, Bell, MoreHorizontal, Plus, Smile, Mic } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
-interface ConversationWithDetails extends Omit<Conversation, 'last_message'> {
-  other_participant: Profile | null
-  last_message: Message | null
+// ── Mock data ────────────────────────────────────────────────────────────────
+
+const MOCK_CONVERSATIONS = [
+  { id: 'conv-1', name: 'Sandra Rey', role: 'Fashion Designer', initials: 'SR', unread: 3, time: '4 d', preview: "We'd love to discuss a potential coll..." },
+  { id: 'conv-2', name: 'Sophie Bennett', role: 'Photographer', initials: 'SB', unread: 3, time: '4 d', preview: 'Eooo I need the new post' },
+  { id: 'conv-3', name: 'Ethan Walker', role: 'Art Director', initials: 'EW', unread: 0, time: '4 d', preview: 'We can talk tomorrow?' },
+  { id: 'conv-4', name: 'Amelia Scott', role: 'Designer', initials: 'AS', unread: 0, time: 'Sat', preview: 'Sent Saturday' },
+]
+
+const MOCK_MESSAGES: Record<string, { id: string; sender: string; text: string; mine: boolean }[]> = {
+  'conv-1': [
+    { id: 'm1', sender: 'Sandra Rey', text: "Hi, I'm Sandra.\nI'm reaching out to see if you'd be interested in participating in a new fashion project.", mine: false },
+    { id: 'm2', sender: 'me', text: 'Hi Sandra.', mine: true },
+    { id: 'm3', sender: 'me', text: "I'd be interested in learning more about.", mine: true },
+  ],
+  'conv-2': [
+    { id: 'm1', sender: 'Sophie Bennett', text: 'Eooo I need the new post', mine: false },
+  ],
+  'conv-3': [
+    { id: 'm1', sender: 'Ethan Walker', text: 'We can talk tomorrow?', mine: false },
+  ],
+  'conv-4': [
+    { id: 'm1', sender: 'me', text: 'Sent Saturday', mine: true },
+  ],
 }
 
+const MOCK_COMMUNITIES = [
+  { id: 'comm-1', name: 'North Community', handle: 'northstudio', members: 88, initials: 'NC', channels: ['Notifications', 'General', 'Resources'] },
+  { id: 'comm-2', name: 'Graphic Design', handle: 'bare.folio', members: 138, initials: 'GD', channels: ['General', 'Resources', 'Showcase'] },
+  { id: 'comm-3', name: 'UX / UI', handle: 'bare.folio', members: 2000, initials: 'UX', channels: ['General', 'Resources', 'Jobs'] },
+]
+
+const MOCK_CHANNEL_MESSAGES: Record<string, { id: string; sender: string; text: string; mine: boolean }[]> = {
+  'General': [
+    { id: 'c1', sender: 'North Community', text: 'Welcome to North, a space built around design, visual culture, and creative exploration.\n\nThis community brings together people interested in contemporary aesthetics, ideas, and multidisciplinary creative work across branding, digital design, motion, and visual direction.\n\nA place to share perspectives, processes, and conversations around creativity and evolving visual practices.', mine: false },
+  ],
+  'Notifications': [
+    { id: 'c1', sender: 'me', text: "I'm reaching out to see if you'd be interested in participating in a new project.", mine: false },
+    { id: 'c2', sender: 'me', text: "I'd be interested in learning more about.", mine: true },
+  ],
+  'Resources': [],
+}
+
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function InboxPage() {
-  const { currentUser } = useApp()
-  const router = useRouter()
+  const { currentUser, inboxTab } = useApp()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const [inboxTab, setInboxTab] = useState<'chats' | 'communities'>('chats')
-  const [conversations, setConversations] = useState<ConversationWithDetails[]>([])
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
-    searchParams.get('conversation')
-  )
-  const [messages, setMessages] = useState<(Message & { sender: Profile | null })[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>('conv-1')
+  const [selectedCommunityId, setSelectedCommunityId] = useState<string>('comm-1')
+  const [selectedChannel, setSelectedChannel] = useState<string>('General')
   const [newMessage, setNewMessage] = useState('')
-
-  useEffect(() => {
-    if (!currentUser) return
-    loadConversations()
-  }, [currentUser])
-
-  useEffect(() => {
-    if (!selectedConversationId) return
-    loadMessages(selectedConversationId)
-
-    const channel = supabase
-      .channel(`messages-${selectedConversationId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${selectedConversationId}`,
-      }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message & { sender: Profile | null }])
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [selectedConversationId])
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [selectedId, selectedChannel])
 
-  async function loadConversations() {
-    if (!currentUser) return
+  const selectedConv = MOCK_CONVERSATIONS.find(c => c.id === selectedId)
+  const selectedComm = MOCK_COMMUNITIES.find(c => c.id === selectedCommunityId)
+  const chatMessages = selectedId ? (MOCK_MESSAGES[selectedId] ?? []) : []
+  const channelMessages = MOCK_CHANNEL_MESSAGES[selectedChannel] ?? []
 
-    const { data: participations } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', currentUser.id)
-
-    if (!participations?.length) { setConversations([]); return }
-
-    const conversationIds = participations.map(p => p.conversation_id)
-
-    const { data: convs } = await supabase
-      .from('conversations')
-      .select('*')
-      .in('id', conversationIds)
-      .order('last_message_at', { ascending: false, nullsFirst: false })
-
-    if (!convs) return
-
-    const enriched = await Promise.all(convs.map(async (conv) => {
-      const { data: participants } = await supabase
-        .from('conversation_participants')
-        .select('user_id, profiles(*)')
-        .eq('conversation_id', conv.id)
-        .neq('user_id', currentUser.id)
-        .limit(1)
-
-      const { data: lastMsg } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conv.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      return {
-        ...conv,
-        other_participant: (participants?.[0] as any)?.profiles ?? null,
-        last_message: lastMsg ?? null,
-      } as ConversationWithDetails
-    }))
-
-    setConversations(enriched)
-  }
-
-  async function loadMessages(conversationId: string) {
-    const { data } = await supabase
-      .from('messages')
-      .select('*, sender:profiles(id, username, full_name, avatar_url)')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-    setMessages((data ?? []) as any)
-  }
-
-  async function sendMessage() {
-    if (!currentUser || !selectedConversationId || !newMessage.trim()) return
-    const content = newMessage.trim()
+  const handleSend = () => {
+    if (!newMessage.trim()) return
     setNewMessage('')
-    const { error } = await supabase.from('messages').insert({
-      conversation_id: selectedConversationId,
-      sender_id: currentUser.id,
-      content,
-    })
-    if (!error) {
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', selectedConversationId)
-      loadConversations()
-    }
-  }
-
-  if (!currentUser) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-neutral-500">Sign in to view messages.</p>
-      </div>
-    )
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] border border-borderGlass rounded-2xl overflow-hidden">
-      {/* Conversation List */}
-      <div className="w-72 flex-shrink-0 border-r border-neutral-200 dark:border-neutral-800 flex flex-col">
-        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
-          <div className="flex bg-neutral-100 dark:bg-neutral-800 rounded-lg p-0.5 gap-0.5">
-            <button
-              onClick={() => setInboxTab('chats')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition ${inboxTab === 'chats' ? 'bg-white dark:bg-neutral-700 text-text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              Chats
-            </button>
-            <button
-              onClick={() => setInboxTab('communities')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition ${inboxTab === 'communities' ? 'bg-white dark:bg-neutral-700 text-text-primary shadow-sm' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-            >
-              <Send className="w-3.5 h-3.5" />
-              Communities
-            </button>
+    <div className="flex h-[calc(100vh-128px)] border border-neutral-200 rounded-2xl overflow-hidden bg-white">
+
+      {/* ── Column 1: Left sidebar ── */}
+      <div className="w-1/3 flex-shrink-0 border-r border-neutral-100 flex flex-col bg-[#FAFAFA]">
+
+        {/* Search */}
+        <div className="px-4 pt-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search what you need"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-neutral-200 rounded-full pl-8 pr-3 py-2 text-xs text-text-primary placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400"
+            />
           </div>
         </div>
+
+        {/* List */}
         <div className="flex-1 overflow-y-auto">
-          {inboxTab === 'communities' && (
-            <div className="p-6 text-center flex flex-col items-center gap-3 mt-8">
-              <MessageSquare className="w-8 h-8 text-neutral-300 dark:text-neutral-600" />
-              <p className="text-xs text-neutral-400 font-medium">Communities coming soon</p>
-              <p className="text-[10px] text-neutral-500">Group spaces for studios and collectives will appear here.</p>
-            </div>
-          )}
-          {inboxTab === 'chats' && conversations.length === 0 && (
-            <div className="p-6 text-center">
-              <p className="text-xs text-neutral-400">No conversations yet.</p>
-              <p className="text-[10px] text-neutral-500 mt-1">Visit a profile and click Contact to start one.</p>
-            </div>
-          )}
-          {inboxTab === 'chats' && conversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => setSelectedConversationId(conv.id)}
-              className={`w-full text-left px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition ${selectedConversationId === conv.id ? 'bg-neutral-100 dark:bg-neutral-900' : ''}`}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-[11px] font-bold uppercase flex-shrink-0">
-                  {(conv.other_participant?.full_name || conv.other_participant?.username || '?').substring(0, 2)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {conv.other_participant?.full_name ?? conv.other_participant?.username ?? 'Unknown'}
-                  </p>
-                  <p className="text-xs text-neutral-400 truncate mt-0.5">
-                    {conv.last_message?.content ?? 'No messages yet'}
-                  </p>
-                </div>
+          {inboxTab === 'messages' && (
+            <>
+              {/* Section header */}
+              <div className="flex items-center justify-between px-4 py-2">
+                <span className="text-sm font-semibold text-text-primary">Messages</span>
+                <button className="text-xs font-semibold text-[#5B5BD6] cursor-pointer">Requests (1)</button>
               </div>
-            </button>
-          ))}
+
+              {/* Notifications item */}
+              <button
+                onClick={() => router.push('/notifications')}
+                className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${selectedId === 'notifications' ? 'bg-neutral-100' : 'hover:bg-white'}`}
+              >
+                <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center flex-shrink-0 relative">
+                  <Bell className="w-4 h-4 text-neutral-500" />
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#5B5BD6] rounded-full text-[9px] text-white font-bold flex items-center justify-center">3</span>
+                </div>
+                <div className="min-w-0 text-left">
+                  <p className="text-sm font-semibold text-text-primary">Notifications</p>
+                  <p className="text-xs text-neutral-400 truncate">North Studio start following you</p>
+                </div>
+              </button>
+
+              {/* Conversations */}
+              {MOCK_CONVERSATIONS.filter(c =>
+                !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase())
+              ).map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => setSelectedId(conv.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${selectedId === conv.id ? 'bg-neutral-100' : 'hover:bg-white'}`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-neutral-300 flex items-center justify-center flex-shrink-0 text-xs font-bold text-neutral-600 uppercase">
+                    {conv.initials}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-text-primary truncate">{conv.name}</p>
+                      <span className="text-[10px] text-neutral-400 flex-shrink-0 ml-2">{conv.time}</span>
+                    </div>
+                    <p className="text-xs text-neutral-400 truncate">{conv.preview}</p>
+                  </div>
+                  {conv.unread > 0 && (
+                    <span className="w-5 h-5 bg-[#5B5BD6] rounded-full text-[10px] text-white font-bold flex items-center justify-center flex-shrink-0">
+                      {conv.unread}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </>
+          )}
+
+          {inboxTab === 'communities' && (
+            <>
+              <div className="px-4 py-2">
+                <span className="text-sm font-semibold text-text-primary">Communities</span>
+              </div>
+
+              {/* Notifications item */}
+              <button
+                onClick={() => router.push('/notifications')}
+                className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${selectedId === 'notifications' ? 'bg-neutral-100' : 'hover:bg-white'}`}
+              >
+                <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center flex-shrink-0 relative">
+                  <Bell className="w-4 h-4 text-neutral-500" />
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#5B5BD6] rounded-full text-[9px] text-white font-bold flex items-center justify-center">3</span>
+                </div>
+                <div className="min-w-0 text-left">
+                  <p className="text-sm font-semibold text-text-primary">Notifications</p>
+                  <p className="text-xs text-neutral-400 truncate">North Studio start following you</p>
+                </div>
+              </button>
+
+              {MOCK_COMMUNITIES.map(comm => (
+                <button
+                  key={comm.id}
+                  onClick={() => { setSelectedCommunityId(comm.id); setSelectedChannel('General'); setSelectedId(null); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${selectedCommunityId === comm.id && selectedId !== 'notifications' ? 'bg-neutral-100' : 'hover:bg-white'}`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-[#5B5BD6] flex items-center justify-center flex-shrink-0 text-white text-xs font-bold uppercase">
+                    {comm.initials}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-text-primary truncate">{comm.name}</p>
+                    <p className="text-xs text-neutral-400">By @{comm.handle}</p>
+                  </div>
+                  <span className="text-[10px] text-neutral-400 flex-shrink-0">{comm.members >= 1000 ? `${(comm.members / 1000).toFixed(0)}k` : comm.members} <span className="text-neutral-300">⚇</span></span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
-      {/* Message View */}
-      <div className="flex-1 flex flex-col">
-        {selectedConversationId ? (
+      {/* ── Column 2: Community channels (only when communities tab) ── */}
+      {inboxTab === 'communities' && selectedComm && (
+        <div className="w-1/3 flex-shrink-0 border-r border-neutral-100 flex flex-col bg-white">
+          {/* Community header */}
+          <div className="flex items-center justify-between px-4 py-4 border-b border-neutral-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#101010] flex items-center justify-center text-white text-xs font-bold uppercase flex-shrink-0">
+                {selectedComm.initials}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-text-primary">{selectedComm.name}</p>
+                <p className="text-[11px] text-neutral-400">By @{selectedComm.handle}</p>
+              </div>
+            </div>
+            <button className="text-neutral-400 hover:text-text-primary cursor-pointer p-1">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Channels */}
+          <div className="flex-1 overflow-y-auto p-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 px-2 mb-2">Channels</p>
+            {selectedComm.channels.map(ch => (
+              <button
+                key={ch}
+                onClick={() => setSelectedChannel(ch)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors cursor-pointer ${selectedChannel === ch ? 'bg-neutral-100 font-semibold text-text-primary' : 'text-neutral-500 hover:bg-neutral-50 hover:text-text-primary'}`}
+              >
+                {ch === 'Notifications' && <Bell className="w-4 h-4 flex-shrink-0" />}
+                {ch === 'General' && <span className="w-4 h-4 flex-shrink-0 text-center text-xs">💬</span>}
+                {ch === 'Resources' && <span className="w-4 h-4 flex-shrink-0 text-center text-xs">📁</span>}
+                {ch === 'Showcase' && <span className="w-4 h-4 flex-shrink-0 text-center text-xs">🖼</span>}
+                {ch === 'Jobs' && <span className="w-4 h-4 flex-shrink-0 text-center text-xs">💼</span>}
+                {ch}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Column 3: Main content ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+
+        {/* Messages chat view */}
+        {inboxTab === 'messages' && selectedId && selectedConv && (
           <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm ${
-                    msg.sender_id === currentUser.id
-                      ? 'bg-accent text-white'
-                      : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
-                  }`}>
-                    {msg.content}
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-neutral-100">
+              <div className="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center text-xs font-bold text-neutral-600 uppercase flex-shrink-0">
+                {selectedConv.initials}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-text-primary">{selectedConv.name}</p>
+                <p className="text-xs text-neutral-400">{selectedConv.role}</p>
+              </div>
+              <button className="ml-auto text-neutral-400 hover:text-text-primary cursor-pointer p-1">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {chatMessages.map(msg => (
+                <div key={msg.id} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                  {!msg.mine && (
+                    <div className="w-7 h-7 rounded-full bg-neutral-300 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-neutral-600 uppercase">
+                      {selectedConv.initials}
+                    </div>
+                  )}
+                  <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm whitespace-pre-line ${msg.mine ? 'bg-[#101010] text-white rounded-br-sm' : 'bg-neutral-100 text-text-primary rounded-bl-sm'}`}>
+                    {msg.text}
                   </div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
-            <form
-              onSubmit={(e) => { e.preventDefault(); sendMessage() }}
-              className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex gap-2"
-            >
+
+            <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex items-center gap-3 px-4 py-3 border-t border-neutral-100">
+              <button type="button" className="text-neutral-400 hover:text-text-primary cursor-pointer flex-shrink-0">
+                <Plus className="w-5 h-5" />
+              </button>
               <input
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Write a message..."
-                className="flex-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                onChange={e => setNewMessage(e.target.value)}
+                placeholder="Search what you need"
+                className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-neutral-400 focus:outline-none"
               />
-              <button
-                type="submit"
-                disabled={!newMessage.trim()}
-                className="bg-accent text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Send
+              <button type="button" className="text-neutral-400 hover:text-text-primary cursor-pointer flex-shrink-0">
+                <Smile className="w-5 h-5" />
+              </button>
+              <button type="button" className="text-neutral-400 hover:text-text-primary cursor-pointer flex-shrink-0">
+                <Mic className="w-5 h-5" />
               </button>
             </form>
           </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-            <MessageSquare className="w-10 h-10 text-neutral-300 dark:text-neutral-700 mb-3" />
-            <p className="text-sm text-neutral-500">Select a conversation to start messaging</p>
+        )}
+
+        {/* Community channel view */}
+        {inboxTab === 'communities' && selectedComm && (
+          <>
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-neutral-100">
+              <div>
+                <p className="text-sm font-bold text-text-primary">{selectedChannel}</p>
+                <p className="text-xs text-neutral-400">{selectedComm.name}</p>
+              </div>
+              <button className="ml-auto text-neutral-400 hover:text-text-primary cursor-pointer p-1">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {channelMessages.map(msg => (
+                <div key={msg.id} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'} items-start gap-3`}>
+                  {!msg.mine && (
+                    <div className="w-9 h-9 rounded-xl bg-[#101010] flex-shrink-0 flex items-center justify-center text-white text-xs font-bold uppercase">
+                      {selectedComm.initials}
+                    </div>
+                  )}
+                  <div className={`max-w-sm lg:max-w-lg px-4 py-3 rounded-2xl text-sm whitespace-pre-line leading-relaxed ${msg.mine ? 'bg-[#101010] text-white' : 'bg-neutral-50 text-text-primary'}`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex items-center gap-3 px-4 py-3 border-t border-neutral-100">
+              <button type="button" className="text-neutral-400 hover:text-text-primary cursor-pointer flex-shrink-0">
+                <Plus className="w-5 h-5" />
+              </button>
+              <input
+                value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                placeholder="Search what you need"
+                className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-neutral-400 focus:outline-none"
+              />
+              <button type="button" className="text-neutral-400 hover:text-text-primary cursor-pointer flex-shrink-0">
+                <Smile className="w-5 h-5" />
+              </button>
+              <button type="button" className="text-neutral-400 hover:text-text-primary cursor-pointer flex-shrink-0">
+                <Mic className="w-5 h-5" />
+              </button>
+            </form>
+          </>
+        )}
+
+        {/* Empty state */}
+        {!selectedId && inboxTab === 'messages' && (
+          <div className="flex-1 flex items-center justify-center text-neutral-400 text-sm">
+            Select a conversation to start messaging
           </div>
         )}
       </div>
