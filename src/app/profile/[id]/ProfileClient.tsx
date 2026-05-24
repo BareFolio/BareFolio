@@ -25,6 +25,7 @@ import {
   UserCheck,
   CheckCircle,
   FileText,
+  MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -482,7 +483,7 @@ export default function ProfileClient() {
     <div>
 
       {/* ── Banner — 420 px, avatar absolutely inside, rounded 20 px ── */}
-      <div className="relative -mx-4 md:-mx-8 -mt-6 h-[420px] rounded-[20px] overflow-visible">
+      <div className="relative -mx-4 md:-mx-8 md:mt-[48px] h-[420px] rounded-[20px] overflow-visible">
         {/* Background + shapes clipped to rounded rect */}
         <div className="absolute inset-0 bg-[#101010] rounded-[20px] overflow-hidden">
           <BannerShapes />
@@ -518,18 +519,39 @@ export default function ProfileClient() {
       {/* ── ROW A — justo bajo la línea del banner ── */}
       <div className="mt-4 flex items-stretch gap-6">
 
-        {/* LEFT: Nombre + disciplinas con indent, bio + @username al margen */}
-        <div className="flex-1 flex flex-col justify-between">
+        {/* LEFT: Nombre + disciplinas + location + bio */}
+        <div className="flex-1 flex flex-col gap-3">
           <div className="pl-32">
             <h1 className="text-2xl font-bold text-text-primary leading-tight">{profile.name}</h1>
-            <p className="text-sm text-neutral-400 mt-1">{disciplines}</p>
-          </div>
-          {/* bio + @username — pushed to the bottom of the left column */}
-          <div>
-            {profile.bio && (
-              <p className="text-sm text-neutral-600 leading-relaxed max-w-sm">{profile.bio}</p>
+
+            {/* Discipline pills */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {profile.disciplines && profile.disciplines.length > 0 ? (
+                profile.disciplines.map((d, i) => (
+                  <span key={i} className="text-[11px] font-semibold text-neutral-600 bg-neutral-100 px-2.5 py-0.5 rounded-full">{d}</span>
+                ))
+              ) : (
+                <span className="text-[11px] font-semibold text-neutral-600 bg-neutral-100 px-2.5 py-0.5 rounded-full">
+                  {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                </span>
+              )}
+            </div>
+
+            {/* Location */}
+            {profile.location && (
+              <div className="flex items-center gap-1 mt-2">
+                <MapPin className="w-3 h-3 text-neutral-400 flex-shrink-0" />
+                <span className="text-xs text-neutral-400">{profile.location}</span>
+              </div>
             )}
-            <div className="flex items-center gap-4 mt-1">
+          </div>
+
+          {/* Bio + website + username */}
+          <div className="pl-32">
+            {profile.bio && (
+              <p className="text-sm text-neutral-600 leading-relaxed max-w-sm mt-1">{profile.bio}</p>
+            )}
+            <div className="flex items-center gap-4 mt-2">
               {profile.website && (
                 <a
                   href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}

@@ -603,25 +603,20 @@ export default function ExplorePage() {
   });
 
   // Category tab definitions
-  type CategoryTab = 'swipe' | 'explore' | 'projects' | 'creators' | 'studios' | 'briefs' | 'communities' | 'brands';
-  const CATEGORY_TABS: CategoryTab[] = ['Swipe', 'Explore', 'Projects', 'Creators', 'Studios', 'Briefs', 'Communities', 'Brands'].map(t => t.toLowerCase() as CategoryTab);
+  type CategoryTab = 'swipe' | 'inspiration' | 'creators' | 'studios' | 'briefs' | 'communities';
+  const CATEGORY_TABS: CategoryTab[] = ['swipe', 'inspiration', 'creators', 'studios', 'briefs', 'communities'];
   const CATEGORY_LABELS: Record<CategoryTab, string> = {
     swipe: 'Swipe',
-    explore: 'Explore',
-    projects: 'Projects',
+    inspiration: 'Inspiration',
     creators: 'Creators',
     studios: 'Studios',
     briefs: 'Briefs',
     communities: 'Communities',
-    brands: 'Brands',
   };
 
-  // Active tab maps to selectedCategory for legacy tabs; 'explore' maps to inspiration view
   const activeTab: CategoryTab =
     subTab === 'swipe'
       ? 'swipe'
-      : selectedCategory === 'inspiration'
-      ? 'explore'
       : (selectedCategory as CategoryTab);
 
   const handleTabClick = (tab: CategoryTab) => {
@@ -630,11 +625,7 @@ export default function ExplorePage() {
       return;
     }
     setSubTab('grid');
-    if (tab === 'explore') {
-      setSelectedCategory('inspiration');
-    } else {
-      setSelectedCategory(tab as typeof selectedCategory);
-    }
+    setSelectedCategory(tab as typeof selectedCategory);
     setSearchQuery('');
   };
 
@@ -659,7 +650,7 @@ export default function ExplorePage() {
     return EXPLORE_GRADIENTS[sum % EXPLORE_GRADIENTS.length];
   };
 
-  const isSimpleLayout = activeTab === 'explore' || activeTab === 'swipe';
+  const isSimpleLayout = activeTab === 'inspiration' || activeTab === 'swipe';
 
   const tabsRow = (
     <div className="flex items-center gap-6 overflow-x-auto">
@@ -878,7 +869,7 @@ export default function ExplorePage() {
 
   const contentArea = (
     <>
-      {loading && activeTab !== 'swipe' && activeTab !== 'brands' ? (
+      {loading && activeTab !== 'swipe' ? (
         <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
@@ -892,7 +883,7 @@ export default function ExplorePage() {
             />
           )}
 
-          {activeTab === 'explore' && (
+          {activeTab === 'inspiration' && (
             allProjects.length === 0 ? (
               <p className="text-center py-20 text-neutral-400 text-sm">No projects yet.</p>
             ) : (
@@ -900,7 +891,10 @@ export default function ExplorePage() {
                 {allProjects.map((project) => (
                   <div key={project.id} className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100">
                     <div className={`relative w-full ${getAspect(project.title)}`}>
-                      {project.coverUrl ? <img src={project.coverUrl} alt="" className="w-full h-full object-cover" /> : <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)}`} />}
+                      {project.coverUrl
+                        ? <img src={project.coverUrl} alt="" className="w-full h-full object-cover" />
+                        : <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)}`} />
+                      }
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
                         <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">{project.creatorName}</Link>
                       </div>
@@ -911,28 +905,7 @@ export default function ExplorePage() {
             )
           )}
 
-          {activeTab === 'projects' && (
-            <div className="grid grid-cols-2 gap-4">
-              {filteredProjects.map((project, idx) => (
-                <div key={idx} className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col">
-                  <div className="w-full h-48 bg-gradient-to-tr from-accent/5 to-[#FF2D55]/10 relative">
-                    <div className="absolute top-4 left-4 w-3.5 h-3.5 rounded-full border border-neutral-300 shadow-sm" style={{ backgroundColor: project.paletteHex?.[2] || '#1A1A1A' }} />
-                    <span className="text-[9px] bg-white/20 text-neutral-700 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider absolute top-4 right-4 backdrop-blur-sm">{project.technique}</span>
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
-                      <h4 className="text-sm font-bold text-white leading-tight">{project.title}</h4>
-                      <span className="text-[10px] text-white/80 mt-1">by {project.creatorName}</span>
-                    </div>
-                  </div>
-                  <div className="p-4 flex justify-between items-center bg-white/40 border-t border-borderGlass/30">
-                    <Link href={`/profile/${project.creatorId}`} className="text-xs font-bold text-neutral-600 hover:text-accent truncate flex-1">{project.creatorName}</Link>
-                    <ChevronRight className="w-4 h-4 text-neutral-400" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'creators' && (
+{activeTab === 'creators' && (
             <div className="grid grid-cols-2 gap-3">
               {(dbCreators.length > 0 ? dbCreators : FALLBACK_CREATORS).map((creator) => (
                 <div key={creator.uid} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100 cursor-pointer hover:bg-neutral-100 transition-colors">
@@ -995,9 +968,6 @@ export default function ExplorePage() {
             </div>
           )}
 
-          {activeTab === 'brands' && (
-            <div className="text-center py-20 text-text-secondary text-sm">Coming soon.</div>
-          )}
         </>
       )}
     </>
