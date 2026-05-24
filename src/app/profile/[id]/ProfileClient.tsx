@@ -138,17 +138,26 @@ export default function ProfileClient() {
 
     const fetchData = async () => {
       try {
-        const { data: pData, error: profileErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', targetId)
-          .single();
+        // Check if targetId is a valid UUID (if not, it is a slug/username like 'alex-mcqueen')
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+        
+        let query = supabase.from('profiles').select('*');
+        if (isUUID) {
+          query = query.eq('id', targetId);
+        } else {
+          // Format 'alex-mcqueen' to 'alex_mcqueen' to match the database username seed
+          const username = targetId.toLowerCase().replace(/-/g, '_');
+          query = query.eq('username', username);
+        }
+
+        const { data: pData, error: profileErr } = await query.maybeSingle();
 
         if (profileErr || !pData) {
           setProfile(null);
           setLoading(false);
           return;
         }
+
 
         const fp: ProfileData = {
           uid: pData.id,

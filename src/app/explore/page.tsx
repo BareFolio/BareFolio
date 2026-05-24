@@ -337,13 +337,13 @@ export default function ExplorePage() {
       // 1. Projects
       const { data: projData } = await supabase
         .from('projects')
-        .select('*, profile:profiles(id, username, full_name)')
+        .select('*, profiles(id, username, full_name)')
         .eq('verification_status', 'approved');
       if (projData) {
         setDbProjects(projData.map((p: any) => ({
           id: p.id,
           creatorId: p.user_id,
-          creatorName: (p.profile as any)?.full_name || (p.profile as any)?.username || 'Creator',
+          creatorName: p.profiles?.full_name || p.profiles?.username || 'Creator',
           coverUrl: p.cover_url ?? undefined,
           title: p.title,
           description: p.description,
@@ -357,48 +357,48 @@ export default function ExplorePage() {
       const { data: profData } = await supabase.from('profiles').select('*');
       if (profData) {
         const creatorList: CreatorItem[] = profData
-          .filter((p: any) => p.role === 'creator')
+          .filter((p: any) => (p.profile_type || p.role) === 'creator')
           .map((c: any) => ({
             uid: c.id,
-            name: c.name,
-            email: c.email,
-            role: c.role,
+            name: c.full_name || c.username || c.name || 'Creative',
+            email: c.email || '',
+            role: c.profile_type || c.role || 'creator',
             bio: c.bio,
             location: c.location,
-            isAvailable: c.is_available,
+            isAvailable: c.is_available ?? true,
             practice: c.practice,
             disciplines: c.disciplines || [],
-            isVerified: c.is_verified
+            isVerified: c.verified ?? c.is_verified ?? false
           }));
         setDbCreators(creatorList);
 
         const studioList: StudioItem[] = profData
-          .filter((p: any) => p.role === 'studio' || p.role === 'brand')
+          .filter((p: any) => (p.profile_type || p.role) === 'studio' || (p.profile_type || p.role) === 'brand')
           .map((s: any) => ({
             uid: s.id,
-            name: s.name,
-            email: s.email,
-            role: s.role,
+            name: s.full_name || s.username || s.name || 'Studio',
+            email: s.email || '',
+            role: s.profile_type || s.role || 'studio',
             bio: s.bio,
             location: s.location,
-            companyName: s.company_name || s.name,
+            companyName: s.company_name || s.full_name || s.username || s.name,
             companyLink: s.company_link,
             teamSize: s.team_size,
             industry: s.industry,
             disciplines: s.disciplines || s.disciplines_hiring || [],
-            isVerified: s.is_verified
+            isVerified: s.verified ?? s.is_verified ?? false
           }));
         setDbStudios(studioList);
       }
 
       // 3. Briefs
-      const { data: briefData } = await supabase.from('briefs').select('*, profiles:studio_id(name)');
+      const { data: briefData } = await supabase.from('briefs').select('*, profiles(full_name, username)');
       if (briefData) {
         setDbBriefs(briefData.map((b: any) => ({
           id: b.id,
-          studioId: b.studio_id,
-          studioName: b.profiles?.name || 'Studio Member',
-          studioHandle: b.studio_id?.slice(0, 12) || '',
+          studioId: b.user_id,
+          studioName: b.profiles?.full_name || b.profiles?.username || 'Studio Member',
+          studioHandle: b.user_id?.slice(0, 12) || '',
           studioLocation: b.location || '',
           title: b.title,
           description: b.description,
@@ -415,6 +415,7 @@ export default function ExplorePage() {
           createdAt: b.created_at
         })));
       }
+
 
       // 4. Communities
       const { data: commData } = await supabase.from('communities').select('*');
