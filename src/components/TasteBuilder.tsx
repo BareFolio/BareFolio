@@ -73,7 +73,7 @@ const RESULT_IMAGES = [
 
 // ── Edit match panel ─────────────────────────────────────────────────────────
 
-type CardType = typeof CARDS[number];
+type CardType = typeof PREMIUM_FALLBACK_CARDS[number];
 
 function EditMatchPanel({
   tags, matchedCards,
@@ -308,22 +308,17 @@ function ResultsScreen({
   return <div className="fixed inset-0 z-[300] bg-[#FAFAFA] overflow-y-auto px-8">{inner}</div>;
 }
 
-// ── Mock cards ────────────────────────────────────────────────────────────────
+// ── Premium Fallback cards (No Picsum Stock) ──────────────────────────────────
 
-const CARDS = [
-  { id: '1',  image: 'https://picsum.photos/seed/messenger1/600/900', author: 'Lina Brown',   avatar: 'LB', tags: ['Visual Identity', 'Editorial']   },
-  { id: '2',  image: 'https://picsum.photos/seed/gin-aura/600/900',   author: 'Marco Silva',  avatar: 'MS', tags: ['Packaging', 'Branding']           },
-  { id: '3',  image: 'https://picsum.photos/seed/bitter2/600/900',    author: 'Aiko Tanaka',  avatar: 'AT', tags: ['Art Direction', 'Photography']    },
-  { id: '4',  image: 'https://picsum.photos/seed/trojena/600/900',    author: 'Sam Rivers',   avatar: 'SR', tags: ['Motion', 'UI/UX']                 },
-  { id: '5',  image: 'https://picsum.photos/seed/cosmetic9/600/900',  author: 'Elena Voss',   avatar: 'EV', tags: ['Packaging', 'Graphic Design']     },
-  { id: '6',  image: 'https://picsum.photos/seed/poster44/600/900',   author: 'Luis Font',    avatar: 'LF', tags: ['Poster', 'Typography']            },
-  { id: '7',  image: 'https://picsum.photos/seed/fashion7/600/900',   author: 'Cara White',   avatar: 'CW', tags: ['Fashion', 'Editorial']            },
-  { id: '8',  image: 'https://picsum.photos/seed/arch33/600/900',     author: 'Ren Mori',     avatar: 'RM', tags: ['Architecture', 'Spatial Design']  },
-  { id: '9',  image: 'https://picsum.photos/seed/brand55/600/900',    author: 'Noa Klein',    avatar: 'NK', tags: ['Branding', 'Identity']            },
-  { id: '10', image: 'https://picsum.photos/seed/web99/600/900',      author: 'Tom Lee',      avatar: 'TL', tags: ['Web Design', 'Interaction']       },
+const PREMIUM_FALLBACK_CARDS = [
+  { id: 'stow',     image: '/images/stow/stow-boxes.png',        author: 'Raw Lab',      avatar: 'RL', tags: ['Visual Identity', 'Packaging'] },
+  { id: 'stow',     image: '/images/stow/stow-nestor-lasso.png', author: 'Raw Lab',      avatar: 'RL', tags: ['Visual Identity', 'Branding']  },
+  { id: 'emponi',   image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',  author: 'Yanis CGI',    avatar: 'YC', tags: ['CGI Art', 'Motion Design'] },
+  { id: 'tierra',   image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80',  author: 'Luisa Barriga', avatar: 'LB', tags: ['Interiors', 'Architecture']  },
+  { id: 'venu',     image: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=600&q=80',  author: 'Chronos Lab',  avatar: 'CL', tags: ['UI/UX Design', 'Interaction']  }
 ];
 
-const TOTAL = CARDS.length;
+const TOTAL = PREMIUM_FALLBACK_CARDS.length;
 const DRAG_THRESHOLD = 110;
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -370,7 +365,9 @@ export default function TasteBuilder({
         }
 
         if (data) {
-          const mappedCards: CardType[] = data.map((p: any) => {
+          const mappedCards: CardType[] = [];
+          
+          data.forEach((p: any) => {
             const author = p.profile?.full_name || p.profile?.username || 'Anonymous';
             const initials = author
               .split(' ')
@@ -380,18 +377,37 @@ export default function TasteBuilder({
               .slice(0, 2)
               .toUpperCase() || 'U';
 
-            const tags = Array.isArray(p.discipline)
-              ? p.discipline
+            const tags = p.tags && Array.isArray(p.tags) && p.tags.length > 0
+              ? p.tags
               : (p.discipline ? [p.discipline] : ['Design']);
 
-            return {
-              id: p.id.toString(),
-              image: p.cover_url || 'https://picsum.photos/seed/default/600/900',
-              author,
-              avatar: initials,
-              tags
-            };
+            // 1. Add the main cover image
+            if (p.cover_url) {
+              mappedCards.push({
+                id: p.id.toString(),
+                image: p.cover_url,
+                author,
+                avatar: initials,
+                tags
+              });
+            }
+
+            // 2. Add each secondary image inside p.images
+            if (p.images && Array.isArray(p.images)) {
+              p.images.forEach((imgUrl: string, idx: number) => {
+                if (imgUrl && imgUrl !== p.cover_url && imgUrl.trim() !== '') {
+                  mappedCards.push({
+                    id: p.id.toString(), // Navigate back to this project ID on click
+                    image: imgUrl,
+                    author,
+                    avatar: initials,
+                    tags
+                  });
+                }
+              });
+            }
           });
+          
           setDbCards(mappedCards);
         }
       } catch (err) {
@@ -406,7 +422,7 @@ export default function TasteBuilder({
 
   if (!isOpen) return null;
 
-  const activeDeck = dbCards.length >= 5 ? [...dbCards, ...CARDS] : CARDS;
+  const activeDeck = dbCards.length > 0 ? dbCards : PREMIUM_FALLBACK_CARDS;
 
   // Cards cycle infinitely until 10 matches
   const card     = activeDeck[index % activeDeck.length];
