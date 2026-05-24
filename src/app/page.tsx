@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import type { FeedItem as DBFeedItem, ContentType } from '@/lib/database.types';
@@ -36,6 +37,7 @@ function VideoCard({ src }: { src: string }) {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const { currentUser, feedTab } = useApp();
   const [allItems, setAllItems] = useState<MediaFeedItem[]>([]);
   const [forYouItems, setForYouItems] = useState<MediaFeedItem[]>([]);
@@ -226,6 +228,7 @@ export default function HomePage() {
         return (
           <div
             key={item.id}
+            onClick={() => router.push(`/project/${item.id}`)}
             className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden group relative cursor-pointer bg-neutral-100"
           >
             <div className={`relative w-full ${cardAspect(item.id)}`}>

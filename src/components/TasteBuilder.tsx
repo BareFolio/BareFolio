@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Bookmark, Check, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -175,12 +176,14 @@ function EditMatchPanel({
 // ── Results screen ────────────────────────────────────────────────────────────
 
 function ResultsScreen({
-  onRestart, matchedCards: initialMatched, inline,
+  onRestart, matchedCards: initialMatched, inline, onClose,
 }: {
   onRestart: () => void;
   matchedCards: CardType[];
   inline: boolean;
+  onClose?: () => void;
 }) {
+  const router = useRouter();
   const [matched, setMatched]         = useState(initialMatched);
   const [removedTags, setRemovedTags] = useState<string[]>([]);
   const [editOpen, setEditOpen]       = useState(false);
@@ -252,7 +255,11 @@ function ResultsScreen({
         {matched.map((card, i) => (
           <div
             key={card.id || i}
-            className="break-inside-avoid mb-3 relative rounded-2xl overflow-hidden bg-neutral-100 group shadow-sm hover:shadow-md transition-all duration-300"
+            onClick={() => {
+              router.push(`/project/${card.id}`);
+              if (onClose) onClose();
+            }}
+            className="break-inside-avoid mb-3 relative rounded-2xl overflow-hidden bg-neutral-100 group shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
           >
             <img
               src={card.image}
@@ -457,6 +464,7 @@ export default function TasteBuilder({
         onRestart={() => { setPhase('swipe'); setIndex(0); setMatchCount(0); setMatchedCards([]); }}
         matchedCards={matchedCards}
         inline={inline}
+        onClose={onClose}
       />
     );
   }
