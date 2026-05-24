@@ -9,6 +9,7 @@ import { Heart, FolderPlus } from 'lucide-react';
 
 interface MediaFeedItem {
   id: string;
+  projectId?: string;
   type: 'project' | 'post';
   mediaUrl: string;
   isVideo: boolean;
@@ -99,16 +100,39 @@ export default function HomePage() {
   }
 
   function toMediaItems(projects: any[], posts: any[]): MediaFeedItem[] {
-    const projectItems: MediaFeedItem[] = (projects ?? [])
-      .filter((p: any) => p.cover_url)
-      .map((p: any) => ({
-        id: p.id,
-        type: 'project' as const,
-        mediaUrl: p.cover_url,
-        isVideo: detectVideo(p.cover_url),
-        creatorId: p.user_id,
-        createdAt: p.created_at,
-      }));
+    const projectItems: MediaFeedItem[] = [];
+
+    (projects ?? []).forEach((p: any) => {
+      // 1. Add cover_url if it exists
+      if (p.cover_url) {
+        projectItems.push({
+          id: `${p.id}-cover`,
+          projectId: p.id,
+          type: 'project' as const,
+          mediaUrl: p.cover_url,
+          isVideo: detectVideo(p.cover_url),
+          creatorId: p.user_id,
+          createdAt: p.created_at,
+        });
+      }
+
+      // 2. Add each image in p.images
+      if (p.images && Array.isArray(p.images)) {
+        p.images.forEach((imgUrl: string, idx: number) => {
+          if (imgUrl && imgUrl !== p.cover_url && imgUrl.trim() !== '') {
+            projectItems.push({
+              id: `${p.id}-img-${idx}`,
+              projectId: p.id,
+              type: 'project' as const,
+              mediaUrl: imgUrl,
+              isVideo: detectVideo(imgUrl),
+              creatorId: p.user_id,
+              createdAt: p.created_at,
+            });
+          }
+        });
+      }
+    });
 
     const postItems: MediaFeedItem[] = (posts ?? [])
       .filter((p: any) => p.media_urls?.length > 0)
@@ -131,7 +155,7 @@ export default function HomePage() {
       const [{ data: projects }, { data: posts }] = await Promise.all([
         supabase
           .from('projects')
-          .select('id, cover_url, user_id, created_at')
+          .select('id, cover_url, images, user_id, created_at')
           .eq('verification_status', 'approved')
           .order('created_at', { ascending: false })
           .limit(60),
@@ -171,7 +195,7 @@ export default function HomePage() {
       const [{ data: projects }, { data: posts }] = await Promise.all([
         supabase
           .from('projects')
-          .select('id, cover_url, user_id, created_at')
+          .select('id, cover_url, images, user_id, created_at')
           .eq('verification_status', 'approved')
           .in('user_id', followingIds)
           .order('created_at', { ascending: false })
@@ -228,7 +252,7 @@ export default function HomePage() {
         return (
           <div
             key={item.id}
-            onClick={() => router.push(`/project/${item.id}`)}
+            onClick={() => router.push(`/project/${item.projectId || item.id}`)}
             className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden group relative cursor-pointer bg-neutral-100"
           >
             <div className={`relative w-full ${cardAspect(item.id)}`}>
