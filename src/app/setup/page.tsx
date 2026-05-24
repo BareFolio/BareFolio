@@ -229,6 +229,27 @@ create policy "Members send community messages" on public.community_messages for
           <p className="font-semibold text-emerald-600 dark:text-emerald-400">NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_public_key</p>
         </div>
 
+        {/* Build-Time Diagnostic Box */}
+        <div className="w-full text-left bg-red-50 dark:bg-red-950/20 p-4 rounded-2xl font-mono text-xs border border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300">
+          <p className="font-sans font-bold text-[10px] uppercase tracking-wider mb-2 text-red-600 dark:text-red-400">🔍 Vercel / Build-Time Diagnostic:</p>
+          <p className="mb-1">
+            • NEXT_PUBLIC_SUPABASE_URL:{" "}
+            <span className="font-bold underline">
+              {process.env.NEXT_PUBLIC_SUPABASE_URL ? "✅ DETECTED (Loaded)" : "❌ UNDEFINED (Missing!)"}
+            </span>
+          </p>
+          <p className="mb-2">
+            • NEXT_PUBLIC_SUPABASE_ANON_KEY:{" "}
+            <span className="font-bold underline">
+              {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ DETECTED (Loaded)" : "❌ UNDEFINED (Missing!)"}
+            </span>
+          </p>
+          <p className="text-[10px] leading-relaxed font-sans text-neutral-500">
+            If either says ❌ UNDEFINED, Vercel is compiling the site without reading the variables. Double-check your Vercel Dashboard Settings under "Environment Variables", make sure they are checked for "Production", and then trigger a new deployment.
+          </p>
+        </div>
+
+
         {/* Step by step guide */}
         <div className="w-full space-y-4">
           <h4 className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">2. Configuration Guide</h4>
