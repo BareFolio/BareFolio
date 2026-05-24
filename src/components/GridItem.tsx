@@ -41,7 +41,7 @@ export default function GridItem({ project }: { project: ProjectData }) {
   const discipline = project.discipline || project.technique || null;
 
   return (
-    <Link href={`/projects/${project.id}`} className="block">
+    <Link href={`/project?id=${project.id}`} className="block">
       <div className="relative w-full aspect-video rounded-2xl overflow-hidden group cursor-pointer">
 
         {/* Image or gradient placeholder */}

@@ -898,11 +898,21 @@ export default function ExplorePage() {
             ) : (
               <div className="columns-3 gap-1.5">
                 {allProjects.map((project) => (
-                  <div key={project.id} className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100">
+                  <div 
+                    key={project.id} 
+                    onClick={() => router.push(`/project?id=${project.id}`)}
+                    className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100"
+                  >
                     <div className={`relative w-full ${getAspect(project.title)}`}>
                       {project.coverUrl ? <img src={project.coverUrl} alt="" className="w-full h-full object-cover" /> : <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)}`} />}
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                        <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">{project.creatorName}</Link>
+                        <Link 
+                          href={`/profile/${project.creatorId}`} 
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[10px] text-white/90 font-semibold truncate hover:underline"
+                        >
+                          {project.creatorName}
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -914,7 +924,11 @@ export default function ExplorePage() {
           {activeTab === 'projects' && (
             <div className="grid grid-cols-2 gap-4">
               {filteredProjects.map((project, idx) => (
-                <div key={idx} className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col">
+                <div 
+                  key={idx} 
+                  onClick={() => router.push(`/project?id=${project.id}`)}
+                  className="break-inside-avoid glass border border-borderGlass rounded-2xl overflow-hidden hover:shadow-lg transition group cursor-pointer relative flex flex-col"
+                >
                   <div className="w-full h-48 bg-gradient-to-tr from-accent/5 to-[#FF2D55]/10 relative">
                     <div className="absolute top-4 left-4 w-3.5 h-3.5 rounded-full border border-neutral-300 shadow-sm" style={{ backgroundColor: project.paletteHex?.[2] || '#1A1A1A' }} />
                     <span className="text-[9px] bg-white/20 text-neutral-700 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider absolute top-4 right-4 backdrop-blur-sm">{project.technique}</span>
@@ -924,7 +938,13 @@ export default function ExplorePage() {
                     </div>
                   </div>
                   <div className="p-4 flex justify-between items-center bg-white/40 border-t border-borderGlass/30">
-                    <Link href={`/profile/${project.creatorId}`} className="text-xs font-bold text-neutral-600 hover:text-accent truncate flex-1">{project.creatorName}</Link>
+                    <Link 
+                      href={`/profile/${project.creatorId}`} 
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs font-bold text-neutral-600 hover:text-accent truncate flex-1"
+                    >
+                      {project.creatorName}
+                    </Link>
                     <ChevronRight className="w-4 h-4 text-neutral-400" />
                   </div>
                 </div>
