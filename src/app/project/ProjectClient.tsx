@@ -49,6 +49,7 @@ interface ProjectDetail {
     duration: string;
     budget: string;
   };
+  images?: string[];
   modules?: ContentModule[];
 }
 
@@ -63,8 +64,15 @@ const STOW_PROJECT: ProjectDetail = {
   description: 'STOW is inspired by coffee craftsmanship, origin and excellence. The brand aims to select some of the finest single origin coffees in the world, roasting the beans with utmost precision, and then trying to restore the character of each micro-lot through meticulous roasting. In doing so, STOW brings to light the hard work of producers, coffee selectors and roasters, showing the unique nuances and complexity of single origin coffees.',
   likes: '124k',
   comments: '204',
-  coverImage: '/images/stow/stow-boxes.png',
-  secondaryImage: '/images/stow/stow-nestor-lasso.png',
+  coverImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1200&q=80',
+  secondaryImage: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=1200&q=80',
+  images: [
+    'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80',
+  ],
   secondaryText: 'Forming STOW, the initial premium filtered coffee collection from Raw Lab showcases custom paper packaging finishes, debossed metallic container structures, and high-contrast typographic grids that restore the traditional character of single origin coffees.',
   technicalSheet: {
     grower: 'JOSE ROBERTO MONTERROSO',
@@ -100,7 +108,7 @@ const STOW_PROJECT: ProjectDetail = {
       id: 'stow-split-1',
       type: 'split-layout',
       data: {
-        image: '/images/stow/stow-nestor-lasso.png',
+        image: 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1200&q=80',
         text: 'Forming STOW, the initial premium filtered coffee collection from Raw Lab showcases custom paper packaging finishes, debossed metallic container structures, and high-contrast typographic grids that restore the traditional character of single origin coffees.',
         subcaption: 'Swiss Packaging Philosophy'
       }
@@ -145,63 +153,87 @@ const RECOMMENDED_PROJECTS = [
     id: 'emponi',
     title: 'emponi',
     category: 'Motion Design',
-    image: '/images/vessel-studies.png'
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&q=80'
   },
   {
     id: 'tierra',
     title: 'tierra',
     category: 'Brand Strategy',
-    image: '/images/nordic-haven.png'
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80'
   },
   {
     id: 'venu',
     title: 'VEÑU',
     category: 'Typographic Identity',
-    image: '/images/chronicle-specimen.png'
+    image: 'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=600&q=80'
   }
 ];
 
-// Helper to resolve 5 high-fidelity created images per project to maintain absolute stock-free premium coherence
+// Curated Unsplash fallback images grouped by discipline
 const getProjectImages = (projectId: string, discipline: string): string[] => {
-  const idLower = projectId.toLowerCase();
-  
-  if (idLower === 'stow' || idLower === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7d01') {
+  const discLower = (discipline || '').toLowerCase();
+
+  if (discLower.includes('photo') || discLower.includes('light')) {
     return [
-      '/images/stow/stow-boxes.png',
-      '/images/stow/stow-nestor-lasso.png',
-      '/images/stow/stow-beans.png',
-      '/images/stow/stow-tin.png',
-      '/images/stow/stow-bar.png'
+      'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200&q=80',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80',
+      'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1200&q=80',
+      'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1200&q=80',
+      'https://images.unsplash.com/photo-1503174971373-b1f69850bded?w=1200&q=80',
     ];
   }
-
-  const discLower = (discipline || '').toLowerCase();
-  let primary = '/images/chronicle-specimen.png';
-  if (discLower.includes('photo')) {
-    primary = '/images/quietude-cover.png';
-  } else if (discLower.includes('interior') || discLower.includes('lounge') || discLower.includes('nordic')) {
-    primary = '/images/nordic-haven.png';
-  } else if (discLower.includes('3d') || discLower.includes('cgi') || discLower.includes('vessel')) {
-    primary = '/images/vessel-studies.png';
-  } else if (discLower.includes('ui') || discLower.includes('ux') || discLower.includes('interface') || discLower.includes('app')) {
-    primary = '/images/aura-interface.png';
+  if (discLower.includes('pack') || discLower.includes('cosm')) {
+    return [
+      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+      'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=1200&q=80',
+      'https://images.unsplash.com/photo-1567016432779-094069958ea5?w=1200&q=80',
+      'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=1200&q=80',
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1200&q=80',
+    ];
   }
-
-  // Pad the remaining 4 spots with other premium created images so the page layout is rich and full of visual variety
-  const pool = [
-    '/images/quietude-cover.png',
-    '/images/nordic-haven.png',
-    '/images/vessel-studies.png',
-    '/images/chronicle-specimen.png',
-    '/images/aura-interface.png'
-  ].filter(img => img !== primary);
-
+  if (discLower.includes('interior') || discLower.includes('arch')) {
+    return [
+      'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200&q=80',
+      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200&q=80',
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1200&q=80',
+      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=1200&q=80',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80',
+    ];
+  }
+  if (discLower.includes('ui') || discLower.includes('ux') || discLower.includes('interface') || discLower.includes('app') || discLower.includes('dashboard')) {
+    return [
+      'https://images.unsplash.com/photo-1545235617-7a424c1a60cc?w=1200&q=80',
+      'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80',
+      'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=1200&q=80',
+      'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=1200&q=80',
+      'https://images.unsplash.com/photo-1592210454359-9043f067919b?w=1200&q=80',
+    ];
+  }
+  if (discLower.includes('watch') || discLower.includes('product') || discLower.includes('luxury')) {
+    return [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&q=80',
+      'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=1200&q=80',
+      'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=1200&q=80',
+      'https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?w=1200&q=80',
+      'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=1200&q=80',
+    ];
+  }
+  if (discLower.includes('motion') || discLower.includes('type') || discLower.includes('kinet')) {
+    return [
+      'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&q=80',
+      'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=1200&q=80',
+      'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1200&q=80',
+      'https://images.unsplash.com/photo-1620121692029-d088224ddc74?w=1200&q=80',
+      'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1200&q=80',
+    ];
+  }
+  // Default: editorial / branding / graphic design
   return [
-    primary,
-    pool[0],
-    pool[1],
-    pool[2],
-    pool[3]
+    'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=1200&q=80',
+    'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=1200&q=80',
+    'https://images.unsplash.com/photo-1600132806370-bf17e65e942f?w=1200&q=80',
+    'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&q=80',
+    'https://images.unsplash.com/photo-1634942537034-2531766767d1?w=1200&q=80',
   ];
 };
 
@@ -241,61 +273,43 @@ export default function ProjectClient() {
         if (error) throw error;
 
         if (proj) {
-          // Resolve standard dynamic modules
-          const computedModules: ContentModule[] = [];
-          const computedImages = getProjectImages(proj.id, proj.discipline || '');
+          // Use actual DB images first, fall back to Unsplash by discipline
+          const dbImages: string[] = [
+            proj.cover_url,
+            ...(Array.isArray(proj.images) ? proj.images : [])
+          ].filter((url): url is string => !!url && url.trim() !== '');
 
-          computedModules.push({
-            id: `split-${proj.id}`,
-            type: 'split-layout',
-            data: {
-              image: computedImages[2],
-              text: proj.visual_language || 'This composition focuses on strict layout grids, meticulous structural elements, and a tailored color palette that delivers an elegant branding experience.',
-              subcaption: 'Design Language & Geometry'
-            }
-          });
-
-          computedModules.push({
-            id: `tech-${proj.id}`,
-            type: 'technical-sheet',
-            data: {
-              title: proj.title?.slice(0, 10).toUpperCase() || 'SPECIMEN',
-              grower: proj.palette?.slice(0, 3).join(', ') || 'TAILORED COLORS',
-              estate: proj.atmosphere?.toUpperCase() || 'CREATIVE STUDIO',
-              location: proj.profile?.location?.toUpperCase() || 'BARCELONA, SPAIN',
-              altitude: proj.year ? `${proj.year} EDITION` : '2025 CREATION',
-              country: 'GLOBAL PLATFORM',
-              about: proj.description || 'Dedicated to premium design excellence, our workflow centers around pure architectural logic, typographic structure, and emotional visual design.'
-            }
-          });
+          const fallbackImages = getProjectImages(proj.id, proj.discipline || '');
+          const allImages = dbImages.length >= 3 ? dbImages : fallbackImages;
 
           setProject({
             id: proj.id,
             title: proj.title,
-            creatorName: proj.profile?.full_name || proj.profile?.username || 'Creative Partner',
-            creatorAvatar: (proj.profile?.full_name || proj.profile?.username || 'CP').slice(0, 2).toUpperCase(),
+            creatorName: proj.profile?.full_name || proj.profile?.name || proj.profile?.username || 'Creative Partner',
+            creatorAvatar: (proj.profile?.full_name || proj.profile?.name || proj.profile?.username || 'CP').slice(0, 2).toUpperCase(),
             creatorType: proj.profile?.profile_type || 'Creator',
             discipline: proj.discipline || 'Graphic Design / Editorial',
             subtitle: proj.atmosphere || 'Visual Exploration',
             description: proj.description || 'A custom project designed under clean premium aesthetics, highlighting functional minimalism, visual structure, and high-fidelity compositions.',
             likes: '14.2k',
             comments: '32',
-            coverImage: computedImages[0],
-            secondaryImage: computedImages[1],
+            coverImage: allImages[0] || fallbackImages[0],
+            secondaryImage: allImages[1] || fallbackImages[1],
+            images: allImages.slice(0, 6),
             secondaryText: proj.visual_language || 'This composition focuses on strict layout grids, meticulous structural elements, and a tailored color palette that delivers an elegant branding experience.',
             technicalSheet: {
               grower: proj.palette?.slice(0, 2).join(', ') || 'CUSTOM PALETTE',
               estate: proj.atmosphere?.toUpperCase() || 'MINIMALIST STUDIO',
-              location: proj.profile?.location?.toUpperCase() || 'BARCELONA, SPAIN',
+              location: (proj.profile?.location || 'BARCELONA, SPAIN').toUpperCase(),
               altitude: proj.year ? `${proj.year} EDITION` : '2025 CREATION',
               country: 'GLOBAL IDENTITY'
             },
             aboutEstate: proj.description || 'Dedicated to premium design excellence, our workflow centers around pure architectural logic, typographic structure, and emotional visual design.',
             creatives: [
               {
-                name: proj.profile?.full_name?.split(' ')[0] || proj.profile?.username || 'Creator',
+                name: proj.profile?.full_name?.split(' ')[0] || proj.profile?.name?.split(' ')[0] || proj.profile?.username || 'Creator',
                 role: 'Lead Designer',
-                avatar: (proj.profile?.full_name || 'C').slice(0, 1),
+                avatar: (proj.profile?.full_name || proj.profile?.name || 'C').slice(0, 1),
                 image: proj.profile?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
               }
             ],
@@ -306,7 +320,6 @@ export default function ProjectClient() {
               duration: '6 weeks',
               budget: '18.000 €'
             },
-            modules: computedModules
           });
         } else {
           setProject(STOW_PROJECT);
@@ -454,11 +467,7 @@ export default function ProjectClient() {
           <div className="md:col-span-6">
             <div className="rounded-[28px] overflow-hidden shadow-sm aspect-[3/4] max-w-md mx-auto w-full bg-neutral-100 border border-neutral-200/40 hover:shadow-md transition-shadow duration-300">
               <img
-                src={
-                  project.id === 'stow' || project.id === 'd0a92d8f-74fa-4e0d-b86e-b6a2f4fa7d01'
-                    ? '/images/stow/stow-beans.png'
-                    : getProjectImages(project.id, project.discipline)[2]
-                }
+                src={project.images?.[2] || getProjectImages(project.id, project.discipline)[2]}
                 alt={`${project.title} aesthetic architecture`}
                 className="w-full h-full object-cover transition-transform duration-[2000ms] hover:scale-103"
                 draggable={false}
@@ -479,55 +488,70 @@ export default function ProjectClient() {
 
         </div>
 
-        {/* MODULE 3: TECHNICAL CARD PLASTER (WATERMARKED, FULL WIDTH) */}
-        <div className="w-full bg-[#E5E5E5] rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 md:p-14 relative overflow-hidden min-h-[380px] sm:min-h-[420px] flex flex-col justify-between border border-neutral-300/40 shadow-inner">
-          
-          {/* Semi-transparent Giant Watermark */}
-          <div className="font-display font-black text-[80px] sm:text-[120px] md:text-[220px] text-black/[0.04] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none z-0 tracking-widest uppercase leading-none">
-            {project.title.slice(0, 8)}
-          </div>
+        {/* MODULE 3: IMAGE CAROUSEL */}
+        {(() => {
+          const fallback = getProjectImages(project.id, project.discipline);
+          const carouselImgs: string[] = (
+            project.images && project.images.length >= 3
+              ? project.images
+              : [project.coverImage, project.secondaryImage, fallback[2], fallback[3], fallback[4]]
+          ).filter(Boolean).slice(0, 5);
 
-          {/* Technical Details in tabbed monospaced layout */}
-          <div className="relative z-10 font-mono text-[10px] md:text-[11px] uppercase tracking-wider text-neutral-800 space-y-6 max-w-4xl">
-            <div className="grid grid-cols-12 gap-2 border-b border-neutral-300/50 pb-3">
-              <div className="col-span-5 text-neutral-400 font-bold">[G] GROWER</div>
-              <div className="col-span-7 font-black text-neutral-900">{project.technicalSheet.grower}</div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 border-b border-neutral-300/50 pb-3">
-              <div className="col-span-5 text-neutral-400 font-bold">[E] ESTATE</div>
-              <div className="col-span-7 font-black text-neutral-900">{project.technicalSheet.estate}</div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 border-b border-neutral-300/50 pb-3">
-              <div className="col-span-5 text-neutral-400 font-bold">[M] MICRO-LOCATION</div>
-              <div className="col-span-7 font-black text-neutral-900">{project.technicalSheet.location}</div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 border-b border-neutral-300/50 pb-3">
-              <div className="col-span-5 text-neutral-400 font-bold">[A] ALTITUDE</div>
-              <div className="col-span-7 font-black text-neutral-900">{project.technicalSheet.altitude}</div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 border-b border-neutral-300/50 pb-3">
-              <div className="col-span-5 text-neutral-400 font-bold">[C] COUNTRY</div>
-              <div className="col-span-7 font-black text-neutral-900">{project.technicalSheet.country}</div>
-            </div>
-          </div>
+          const idx = carouselIndices['module3'] ?? 0;
+          const prev = () => setCarouselIndices(s => ({ ...s, module3: (idx - 1 + carouselImgs.length) % carouselImgs.length }));
+          const next = () => setCarouselIndices(s => ({ ...s, module3: (idx + 1) % carouselImgs.length }));
 
-          {/* lowercase About paragraph */}
-          <div className="relative z-10 mt-8 sm:mt-10 grid grid-cols-12 gap-4 max-w-4xl">
-            <div className="col-span-12 font-mono text-[10px] text-neutral-400 uppercase tracking-widest font-bold">
-              [ABOUT THE ESTATE]
-            </div>
-            <div className="col-span-12 font-mono text-[11px] text-neutral-600 leading-relaxed lowercase">
-              {project.aboutEstate}
-            </div>
-          </div>
+          return (
+            <div className="relative w-full rounded-[24px] sm:rounded-[32px] overflow-hidden bg-neutral-100 shadow-sm border border-neutral-200/40 group select-none">
+              <div className="aspect-[16/9]">
+                <img
+                  key={idx}
+                  src={carouselImgs[idx]}
+                  alt={`${project.title} — image ${idx + 1}`}
+                  className="w-full h-full object-cover transition-opacity duration-500"
+                  draggable={false}
+                />
+              </div>
 
-          {/* Double Dots Page Indicator */}
-          <div className="relative z-10 mt-8 flex justify-center gap-1.5 select-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-900" />
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-300" />
-          </div>
+              {/* Prev button */}
+              <button
+                onClick={prev}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/75 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md hover:bg-white cursor-pointer"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="w-5 h-5 text-neutral-800" />
+              </button>
 
-        </div>
+              {/* Next button */}
+              <button
+                onClick={next}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/75 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md hover:bg-white cursor-pointer"
+                aria-label="Next image"
+              >
+                <ChevronLeft className="w-5 h-5 text-neutral-800 rotate-180" />
+              </button>
+
+              {/* Dot indicators */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {carouselImgs.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCarouselIndices(s => ({ ...s, module3: i }))}
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      i === idx ? 'bg-white w-5' : 'bg-white/50 w-1.5 hover:bg-white/80'
+                    }`}
+                    aria-label={`Go to image ${i + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Image counter */}
+              <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-sm text-white text-[10px] font-mono px-2.5 py-1 rounded-full tracking-wider">
+                {idx + 1} / {carouselImgs.length}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* MODULE 4: THE CREATIVES & PROJECT BRIEF */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">

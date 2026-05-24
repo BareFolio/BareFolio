@@ -39,7 +39,7 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
   return (
     <div className="flex flex-col min-h-screen bg-[#FAFAFA] text-[#101010] font-sans">
       <Header onCreateClick={() => setCreatePickerOpen(true)} />
-      <main className="flex-1 pt-20 md:pt-[24px] pb-28 md:pb-8 w-full px-4 md:px-8">
+      <main className="flex-1 pt-20 md:pt-[80px] pb-28 md:pb-8 w-full px-4 md:px-8">
         {children}
       </main>
       <TabBar onCreateClick={() => setCreatePickerOpen(true)} />

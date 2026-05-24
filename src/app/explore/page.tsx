@@ -103,7 +103,8 @@ const FALLBACK_PROJECTS: ProjectItem[] = [
     title: 'Minimalist Editorial Layout - Issue 12',
     technique: 'Graphic Design',
     mood: 'Minimalist',
-    paletteHex: ['#FFFFFF', '#1A1A1A', '#C5A880']
+    paletteHex: ['#FFFFFF', '#1A1A1A', '#C5A880'],
+    coverUrl: 'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?w=800&q=80'
   },
   {
     id: 'demo-p-2',
@@ -112,7 +113,8 @@ const FALLBACK_PROJECTS: ProjectItem[] = [
     title: 'Sombra y Luz: A Study of Architectural Geometry',
     technique: 'Photography',
     mood: 'Classic',
-    paletteHex: ['#E6E6E6', '#8C8C8C', '#2A2A2A']
+    paletteHex: ['#E6E6E6', '#8C8C8C', '#2A2A2A'],
+    coverUrl: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80'
   },
   {
     id: 'demo-p-3',
@@ -121,7 +123,8 @@ const FALLBACK_PROJECTS: ProjectItem[] = [
     title: 'Atmosfera Cosmética - Organic Clay Packaging Design',
     technique: 'Packaging',
     mood: 'Minimalist',
-    paletteHex: ['#E9E0D2', '#D3C2B0', '#7E6B5A']
+    paletteHex: ['#E9E0D2', '#D3C2B0', '#7E6B5A'],
+    coverUrl: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&q=80'
   },
   {
     id: 'demo-p-4',
@@ -130,7 +133,8 @@ const FALLBACK_PROJECTS: ProjectItem[] = [
     title: 'Interactive Spatial Dashboard Concept',
     technique: 'UX/UI',
     mood: 'Cyberpunk',
-    paletteHex: ['#0A84FF', '#121214', '#303032']
+    paletteHex: ['#0A84FF', '#121214', '#303032'],
+    coverUrl: 'https://images.unsplash.com/photo-1545235617-7a424c1a60cc?w=800&q=80'
   }
 ];
 
@@ -653,7 +657,7 @@ export default function ExplorePage() {
   const isSimpleLayout = activeTab === 'inspiration' || activeTab === 'swipe';
 
   const tabsRow = (
-    <div className="flex items-center gap-6 overflow-x-auto">
+    <div className="flex items-center gap-5 overflow-x-auto flex-shrink-0 pb-0.5">
       {CATEGORY_TABS.map((tab) => {
         const isActive = activeTab === tab;
         return (
@@ -662,7 +666,7 @@ export default function ExplorePage() {
             onClick={() => handleTabClick(tab)}
             className={`whitespace-nowrap cursor-pointer transition-all duration-150 ${
               isActive
-                ? 'text-[13px] text-text-primary font-bold border-b-2 border-text-primary pb-0.5'
+                ? 'text-sm text-text-primary font-bold border-b-2 border-text-primary pb-0.5'
                 : 'text-xs text-text-secondary hover:text-text-primary font-medium'
             }`}
           >
@@ -673,20 +677,20 @@ export default function ExplorePage() {
     </div>
   );
 
-  const searchInput = (wide: boolean) => (
-    <div className={`relative w-full ${wide ? 'md:w-96' : 'md:w-80'} flex-shrink-1`}>
-      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-neutral-400 pointer-events-none">
-        <Search className="w-4 h-4" />
+  const searchInput = (_wide: boolean) => (
+    <div className="relative w-full md:w-[600px] flex-shrink-0">
+      <span className="absolute inset-y-0 left-0 pl-5 flex items-center text-neutral-400 pointer-events-none">
+        <Search className="w-5 h-5" />
       </span>
       <input
         type="text"
         placeholder="Search what you need"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full bg-neutral-100 border border-borderGlass pl-10 pr-10 py-2.5 rounded-full focus:outline-none focus:border-accent text-sm text-text-primary placeholder:text-text-secondary"
+        className="w-full bg-neutral-100 border border-borderGlass pl-12 pr-12 py-1.5 rounded-full focus:outline-none focus:border-accent text-sm text-text-primary placeholder:text-text-secondary"
       />
-      <button className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-text-primary transition-colors cursor-pointer">
-        <SlidersHorizontal className="w-4 h-4" />
+      <button className="absolute inset-y-0 right-0 pr-5 flex items-center text-neutral-400 hover:text-text-primary transition-colors cursor-pointer">
+        <SlidersHorizontal className="w-5 h-5" />
       </button>
     </div>
   );
@@ -889,7 +893,11 @@ export default function ExplorePage() {
             ) : (
               <div className="columns-3 gap-1.5">
                 {allProjects.map((project) => (
-                  <div key={project.id} className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100">
+                  <Link
+                    key={project.id}
+                    href={`/project?id=${project.id}`}
+                    className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden cursor-pointer group relative bg-neutral-100 block"
+                  >
                     <div className={`relative w-full ${getAspect(project.title)}`}>
                       {project.coverUrl
                         ? <img
@@ -904,10 +912,10 @@ export default function ExplorePage() {
                         : null}
                       <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)} ${project.coverUrl ? 'hidden' : ''}`} />
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                        <Link href={`/profile/${project.creatorId}`} className="text-[10px] text-white/90 font-semibold truncate hover:underline">{project.creatorName}</Link>
+                        <span className="text-[10px] text-white/90 font-semibold truncate">{project.creatorName}</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )
@@ -982,11 +990,12 @@ export default function ExplorePage() {
   );
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-5 w-full">
+      {/* Toolbar: hidden on swipe, otherwise tabs + search */}
       {activeTab !== 'swipe' && (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-          {searchInput(true)}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
           {tabsRow}
+          {searchInput(false)}
         </div>
       )}
 
