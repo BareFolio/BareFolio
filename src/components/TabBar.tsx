@@ -1,52 +1,89 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Search, Plus, MessageSquare, User, PenSquare } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Home, Layers, Search, Inbox } from 'lucide-react';
+import { useApp } from '@/lib/store';
 
 export default function TabBar({ onCreateClick }: { onCreateClick: () => void }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { profile } = useApp();
+
+  const hasActiveChat = searchParams.has('chat') || searchParams.has('channel');
+
+  if (pathname === '/inbox' && hasActiveChat) {
+    return null;
+  }
 
   const navItems = [
     { label: 'Feed', href: '/', icon: Home },
-    { label: 'Posts', href: '/posts', icon: PenSquare },
-    { label: 'Create', onClick: onCreateClick, icon: Plus, isCreate: true },
+    { label: 'Posts', href: '/posts', icon: Layers },
     { label: 'Explore', href: '/explore', icon: Search },
-    { label: 'Inbox', href: '/inbox', icon: MessageSquare },
-    { label: 'Profile', href: '/profile/me', icon: User },
+    { label: 'Inbox', href: '/inbox', icon: Inbox },
+    { label: 'Profile', href: '/profile/me', isProfile: true },
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-borderGlass z-50 px-4 pb-safe flex justify-around items-center h-20 shadow-2xl">
+    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#FAFAFA]/75 dark:bg-neutral-900/75 backdrop-blur-xl px-3 py-2 rounded-full border border-white/20 dark:border-neutral-800/30 shadow-[0_12px_36px_rgba(0,0,0,0.12)] flex items-center justify-between gap-1 max-w-sm w-[90%] transition-all duration-300">
       {navItems.map((item, index) => {
-        const IconComponent = item.icon;
-        
-        if (item.isCreate) {
+        const isProfile = item.isProfile;
+        const isActive = isProfile 
+          ? pathname.startsWith('/profile') 
+          : (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href!));
+
+        if (isProfile) {
           return (
-            <button
+            <Link
               key={index}
-              onClick={item.onClick}
-              className="w-12 h-12 bg-accent hover:bg-accent-hover text-white rounded-full flex items-center justify-center shadow-lg shadow-accent/25 active:scale-95 transition-all cursor-pointer"
+              href="/profile/me"
+              className={`flex items-center justify-center rounded-full transition-all duration-300 ${
+                isActive
+                  ? 'bg-white dark:bg-neutral-800 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-neutral-100 dark:border-neutral-700 px-5 py-2.5 scale-105'
+                  : 'px-3.5 py-2.5'
+              }`}
             >
-              <IconComponent className="w-6 h-6 stroke-[2.5]" />
-            </button>
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile"
+                  className={`w-6 h-6 rounded-full object-cover transition-all ${
+                    isActive ? 'ring-2 ring-neutral-900 dark:ring-white scale-110' : 'opacity-85 hover:opacity-100'
+                  }`}
+                />
+              ) : (
+                <div className={`w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 flex items-center justify-center font-bold text-[9px] uppercase transition-all ${
+                  isActive ? 'ring-2 ring-neutral-900 dark:ring-white scale-110' : 'opacity-85'
+                }`}>
+                  {(profile?.full_name ?? profile?.username)?.slice(0, 2) || 'ME'}
+                </div>
+              )}
+            </Link>
           );
         }
 
-        const isActive = pathname === item.href;
+        const Icon = item.icon!;
         return (
           <Link
             key={index}
-            href={item.href || ''}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-all ${
-              isActive ? 'text-accent scale-105' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            href={item.href!}
+            className={`flex items-center justify-center rounded-full transition-all duration-300 ${
+              isActive
+                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-neutral-100 dark:border-neutral-700 px-5 py-2.5 scale-105'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white px-3.5 py-2.5'
             }`}
           >
-            <IconComponent className="w-5 h-5 mb-1" />
-            <span className="text-[10px] tracking-tight font-medium">{item.label}</span>
+            <Icon 
+              className={`w-5 h-5 transition-all duration-300 ${
+                isActive 
+                  ? 'stroke-[2.5] text-neutral-950 dark:text-white scale-105' 
+                  : 'stroke-[2] text-neutral-500 dark:text-neutral-400 hover:scale-105'
+              }`} 
+            />
           </Link>
         );
       })}
     </div>
   );
 }
+

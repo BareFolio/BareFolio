@@ -244,7 +244,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="columns-3 gap-1.5">
+    <div className="columns-2 md:columns-3 gap-3 md:gap-4">
       {displayedFeed.map((item) => {
         const isLiked = likedIds[item.id] || false;
         const isSaved = savedIds[item.id] || false;
@@ -253,7 +253,7 @@ export default function HomePage() {
           <div
             key={item.id}
             onClick={() => router.push(`/project?id=${item.projectId || item.id}`)}
-            className="break-inside-avoid mb-1.5 rounded-xl overflow-hidden group relative cursor-pointer bg-neutral-100"
+            className="break-inside-avoid mb-3 md:mb-4 rounded-[20px] md:rounded-2xl overflow-hidden group relative cursor-pointer bg-neutral-100"
           >
             <div className={`relative w-full ${cardAspect(item.id)}`}>
             {item.isVideo ? (

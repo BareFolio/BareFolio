@@ -5,7 +5,18 @@ import { useState } from 'react';
 export default function SetupPage() {
   const [copied, setCopied] = useState(false);
 
-  const sqlMigration = `-- 1. Profiles Table (profiles)
+  const sqlMigration = `-- 0. Drop old tables to avoid column mismatches and recreate cleanly
+drop table if exists public.community_messages cascade;
+drop table if exists public.communities cascade;
+drop table if exists public.applications cascade;
+drop table if exists public.messages cascade;
+drop table if exists public.chats cascade;
+drop table if exists public.briefs cascade;
+drop table if exists public.posts cascade;
+drop table if exists public.projects cascade;
+drop table if exists public.profiles cascade;
+
+-- 1. Profiles Table (profiles)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   name text not null,
@@ -35,8 +46,11 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles enable row level security;
+drop policy if exists "Profiles publicly visible" on public.profiles;
 create policy "Profiles publicly visible" on public.profiles for select using (true);
+drop policy if exists "Users update own profile" on public.profiles;
 create policy "Users update own profile" on public.profiles for update using (auth.uid() = id);
+drop policy if exists "Users insert own profile" on public.profiles;
 create policy "Users insert own profile" on public.profiles for insert with check (auth.uid() = id);
 
 -- 2. Projects Table (projects)
@@ -53,7 +67,9 @@ create table if not exists public.projects (
 );
 
 alter table public.projects enable row level security;
+drop policy if exists "Projects publicly visible" on public.projects;
 create policy "Projects publicly visible" on public.projects for select using (true);
+drop policy if exists "Creators update own projects" on public.projects;
 create policy "Creators update own projects" on public.projects for all using (auth.uid() = creator_id);
 
 -- 3. Short Posts Table (posts)
@@ -65,7 +81,9 @@ create table if not exists public.posts (
 );
 
 alter table public.posts enable row level security;
+drop policy if exists "Posts publicly visible" on public.posts;
 create policy "Posts publicly visible" on public.posts for select using (true);
+drop policy if exists "Creators update own posts" on public.posts;
 create policy "Creators update own posts" on public.posts for all using (auth.uid() = creator_id);
 
 -- 4. Briefs Table (briefs)
@@ -81,7 +99,9 @@ create table if not exists public.briefs (
 );
 
 alter table public.briefs enable row level security;
+drop policy if exists "Briefs publicly visible" on public.briefs;
 create policy "Briefs publicly visible" on public.briefs for select using (true);
+drop policy if exists "Studios update own briefs" on public.briefs;
 create policy "Studios update own briefs" on public.briefs for all using (auth.uid() = studio_id);
 
 -- 5. Chat Threads Table (chats)
@@ -95,7 +115,9 @@ create table if not exists public.chats (
 );
 
 alter table public.chats enable row level security;
+drop policy if exists "Chats visible to members" on public.chats;
 create policy "Chats visible to members" on public.chats for select using (auth.uid() = any(members));
+drop policy if exists "Members manage own chats" on public.chats;
 create policy "Members manage own chats" on public.chats for all using (auth.uid() = any(members));
 
 -- 6. Direct Messages Table (messages)
@@ -109,9 +131,11 @@ create table if not exists public.messages (
 );
 
 alter table public.messages enable row level security;
+drop policy if exists "Direct messages visible to chat members" on public.messages;
 create policy "Direct messages visible to chat members" on public.messages for select using (
   exists (select 1 from public.chats where id = chat_id and auth.uid() = any(members))
 );
+drop policy if exists "Members send direct messages" on public.messages;
 create policy "Members send direct messages" on public.messages for insert with check (
   auth.uid() = sender_id and exists (select 1 from public.chats where id = chat_id and auth.uid() = any(members))
 );
@@ -129,10 +153,13 @@ create table if not exists public.applications (
 );
 
 alter table public.applications enable row level security;
+drop policy if exists "Applications visible to owner and studios" on public.applications;
 create policy "Applications visible to owner and studios" on public.applications for select using (
   auth.uid() = creator_id or exists (select 1 from public.briefs b where b.id = brief_id and b.studio_id = auth.uid())
 );
+drop policy if exists "Creators apply to briefs" on public.applications;
 create policy "Creators apply to briefs" on public.applications for insert with check (auth.uid() = creator_id);
+drop policy if exists "Studios update applications" on public.applications;
 create policy "Studios update applications" on public.applications for update using (
   exists (select 1 from public.briefs b where b.id = brief_id and b.studio_id = auth.uid())
 );
@@ -148,7 +175,9 @@ create table if not exists public.communities (
 );
 
 alter table public.communities enable row level security;
+drop policy if exists "Communities publicly visible" on public.communities;
 create policy "Communities publicly visible" on public.communities for select using (true);
+drop policy if exists "Members create communities" on public.communities;
 create policy "Members create communities" on public.communities for insert with check (auth.uid() = created_by);
 
 -- 9. Community Messages Table (community_messages)
@@ -162,7 +191,9 @@ create table if not exists public.community_messages (
 );
 
 alter table public.community_messages enable row level security;
+drop policy if exists "Community messages visible" on public.community_messages;
 create policy "Community messages visible" on public.community_messages for select using (true);
+drop policy if exists "Members send community messages" on public.community_messages;
 create policy "Members send community messages" on public.community_messages for insert with check (auth.uid() = sender_id);
 `;
 

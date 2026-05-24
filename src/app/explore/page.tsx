@@ -1036,16 +1036,12 @@ export default function ExplorePage() {
         contentArea
       ) : activeTab === 'briefs' ? (
         <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
-          {filterPanel}
           {briefCards}
           {briefDetail}
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start w-full">
-          {filterPanel}
-          <div className="flex-1 min-w-0 w-full">
-            {contentArea}
-          </div>
+        <div className="w-full">
+          {contentArea}
         </div>
       )}
     </div>
