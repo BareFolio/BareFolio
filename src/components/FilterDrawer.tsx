@@ -87,6 +87,9 @@ export default function FilterDrawer({
 
       {/* Drawer */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filter-drawer-title"
         className={`fixed right-0 top-0 h-full z-50 bg-white w-full sm:w-[420px] flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
@@ -95,11 +98,12 @@ export default function FilterDrawer({
         <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100 flex-shrink-0">
           <button
             onClick={onClose}
+            aria-label="Close filters"
             className="text-neutral-500 hover:text-[#101010] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-          <span className="text-sm font-bold text-[#101010]">Filters</span>
+          <span id="filter-drawer-title" className="text-sm font-bold text-[#101010]">Filters</span>
           <button
             onClick={() => setPending(null)}
             className="text-sm font-medium text-neutral-500 hover:text-[#101010] transition-colors cursor-pointer"
@@ -115,10 +119,11 @@ export default function FilterDrawer({
             {CATEGORIES.map((cat) => {
               const isSelected = pending === cat.name
               return (
-                <div
+                <button
+                  type="button"
                   key={cat.name}
                   onClick={() => handleCardClick(cat.name)}
-                  className={`relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group ${
+                  className={`relative aspect-[4/3] rounded-2xl overflow-hidden group ${
                     isSelected ? 'ring-2 ring-[#101010] ring-offset-2' : ''
                   }`}
                 >
@@ -126,6 +131,7 @@ export default function FilterDrawer({
                   <img
                     src={cat.img}
                     alt={cat.name}
+                    loading="lazy"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                   {/* Dark gradient overlay */}
@@ -141,7 +147,7 @@ export default function FilterDrawer({
                       <Check className="w-3.5 h-3.5 text-[#101010]" strokeWidth={3} />
                     </div>
                   )}
-                </div>
+                </button>
               )
             })}
           </div>
