@@ -22,6 +22,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
+import FilterDrawer from '@/components/FilterDrawer'
 
 interface CreatorItem {
   uid: string;
@@ -313,6 +314,8 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState<'inspiration' | 'projects' | 'creators' | 'studios' | 'briefs' | 'communities'>('inspiration');
   const [searchQuery, setSearchQuery] = useState('');
   
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+
   // Swiss Editorial Filter States
   const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
   const [selectedSensibility, setSelectedSensibility] = useState<string | null>(null);
@@ -690,7 +693,10 @@ export default function ExplorePage() {
         onChange={(e) => setSearchQuery(e.target.value)}
         className="w-full bg-neutral-100 border border-borderGlass pl-12 pr-12 py-2.5 rounded-full focus:outline-none focus:border-accent text-sm text-text-primary placeholder:text-text-secondary"
       />
-      <button className="absolute inset-y-0 right-0 pr-5 flex items-center text-neutral-400 hover:text-text-primary transition-colors cursor-pointer">
+      <button
+        onClick={() => setFilterDrawerOpen(true)}
+        className="absolute inset-y-0 right-0 pr-5 flex items-center text-neutral-400 hover:text-text-primary transition-colors cursor-pointer"
+      >
         <SlidersHorizontal className="w-5 h-5" />
       </button>
     </div>
@@ -1059,6 +1065,13 @@ export default function ExplorePage() {
           </div>
         </div>
       )}
+      <FilterDrawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        selectedDiscipline={selectedDiscipline}
+        onSelectDiscipline={setSelectedDiscipline}
+        onAdvanced={() => setFilterDrawerOpen(false)}
+      />
     </div>
   );
 }
