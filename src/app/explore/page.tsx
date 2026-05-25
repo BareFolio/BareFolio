@@ -607,11 +607,12 @@ export default function ExplorePage() {
   });
 
   // Category tab definitions
-  type CategoryTab = 'swipe' | 'inspiration' | 'creators' | 'studios' | 'briefs' | 'communities';
-  const CATEGORY_TABS: CategoryTab[] = ['swipe', 'inspiration', 'creators', 'studios', 'briefs', 'communities'];
+  type CategoryTab = 'swipe' | 'inspiration' | 'projects' | 'creators' | 'studios' | 'briefs' | 'communities';
+  const CATEGORY_TABS: CategoryTab[] = ['swipe', 'inspiration', 'projects', 'creators', 'studios', 'briefs', 'communities'];
   const CATEGORY_LABELS: Record<CategoryTab, string> = {
     swipe: 'Swipe',
     inspiration: 'Inspiration',
+    projects: 'Projects',
     creators: 'Creators',
     studios: 'Studios',
     briefs: 'Briefs',
@@ -687,7 +688,7 @@ export default function ExplorePage() {
         placeholder="Search what you need"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full bg-neutral-100 border border-borderGlass pl-12 pr-12 py-1.5 rounded-full focus:outline-none focus:border-accent text-sm text-text-primary placeholder:text-text-secondary"
+        className="w-full bg-neutral-100 border border-borderGlass pl-12 pr-12 py-2.5 rounded-full focus:outline-none focus:border-accent text-sm text-text-primary placeholder:text-text-secondary"
       />
       <button className="absolute inset-y-0 right-0 pr-5 flex items-center text-neutral-400 hover:text-text-primary transition-colors cursor-pointer">
         <SlidersHorizontal className="w-5 h-5" />
@@ -921,7 +922,46 @@ export default function ExplorePage() {
             )
           )}
 
-{activeTab === 'creators' && (
+{activeTab === 'projects' && (
+            filteredProjects.length === 0 ? (
+              <p className="text-center py-20 text-neutral-400 text-sm">No projects found.</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {filteredProjects.map((project) => (
+                  <Link
+                    key={project.id}
+                    href={`/project?id=${project.id}`}
+                    className="group block rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200/50 shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer"
+                  >
+                    <div className="aspect-[4/3] relative overflow-hidden">
+                      {project.coverUrl ? (
+                        <img
+                          src={project.coverUrl}
+                          alt={project.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full bg-gradient-to-tr ${getGradient(project.title)} ${project.coverUrl ? 'hidden' : ''}`} />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </div>
+                    <div className="p-3 space-y-0.5">
+                      <p className="text-xs font-bold text-text-primary leading-tight truncate">{project.title}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] text-text-secondary truncate">{project.creatorName}</p>
+                        <span className="text-[9px] bg-neutral-100 border border-neutral-200 text-text-secondary px-2 py-0.5 rounded-full font-medium flex-shrink-0">{project.technique}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )
+          )}
+
+          {activeTab === 'creators' && (
             <div className="grid grid-cols-2 gap-3">
               {(dbCreators.length > 0 ? dbCreators : FALLBACK_CREATORS).map((creator) => (
                 <div key={creator.uid} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-50 border border-neutral-100 cursor-pointer hover:bg-neutral-100 transition-colors">
@@ -990,7 +1030,7 @@ export default function ExplorePage() {
   );
 
   return (
-    <div className="space-y-5 w-full">
+    <div className="space-y-6 w-full pt-6">
       {/* Toolbar: hidden on swipe, otherwise tabs + search */}
       {activeTab !== 'swipe' && (
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
