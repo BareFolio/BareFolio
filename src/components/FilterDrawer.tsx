@@ -144,11 +144,23 @@ export default function FilterDrawer({
 }: FilterDrawerProps) {
   const [navPath, setNavPath] = useState<string[]>([])
   const [selection, setSelection] = useState<string | null>(null)
+  const [fading, setFading] = useState(false)
+
+  // Smooth fade: fade out → swap content → fade in
+  const navigateTo = (newPath: string[]) => {
+    setFading(true)
+    setTimeout(() => {
+      setNavPath(newPath)
+      setSelection(null)
+      setFading(false)
+    }, 130)
+  }
 
   useEffect(() => {
     if (isOpen) {
       setNavPath([])
       setSelection(selectedDiscipline)
+      setFading(false)
     }
   }, [isOpen, selectedDiscipline])
 
@@ -170,16 +182,14 @@ export default function FilterDrawer({
   const handleCardClick = (item: TreeNode) => {
     const hasChildren = (item.children?.length ?? 0) > 0
     if (hasChildren) {
-      setNavPath((prev) => [...prev, item.name])
-      setSelection(null)
+      navigateTo([...navPath, item.name])
     } else {
       setSelection((prev) => (prev === item.name ? null : item.name))
     }
   }
 
   const handleNavChipRemove = (index: number) => {
-    setNavPath((prev) => prev.slice(0, index))
-    setSelection(null)
+    navigateTo(navPath.slice(0, index))
   }
 
   const handleReset = () => {
@@ -274,7 +284,10 @@ export default function FilterDrawer({
             </div>
           )}
 
-          {/* Section title */}
+          {/* Section title + grid — fades during level transitions */}
+          <div
+            className={`flex-1 flex flex-col min-h-0 transition-opacity duration-[130ms] ${fading ? 'opacity-0' : 'opacity-100'}`}
+          >
           <h2 className="text-xl font-bold text-[#101010] mb-4 flex-shrink-0">
             {navPath.length === 0
               ? 'What are you looking for?'
@@ -290,7 +303,7 @@ export default function FilterDrawer({
             {parentNode && (
               <button
                 type="button"
-                onClick={() => handleNavChipRemove(navPath.length - 1)}
+                onClick={() => navigateTo(navPath.slice(0, navPath.length - 1))}
                 className="row-span-2 relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left transition-all duration-150"
               >
                 <div className="absolute bottom-0 left-0 right-0 p-3.5">
@@ -349,6 +362,7 @@ export default function FilterDrawer({
               )
             })}
           </div>
+          </div>{/* end fade wrapper */}
         </div>
 
         {/* ── Footer ── */}
