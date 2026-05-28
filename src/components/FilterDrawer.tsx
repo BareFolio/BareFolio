@@ -9,6 +9,7 @@ interface TreeNode {
   children?: TreeNode[]
 }
 
+// Tree matching the reference flow exactly
 const CATEGORY_TREE: TreeNode[] = [
   {
     name: 'Design',
@@ -18,40 +19,30 @@ const CATEGORY_TREE: TreeNode[] = [
         name: 'Graphic',
         count: '1.2k works',
         children: [
-          { name: 'Branding' },
-          { name: 'Logo Design' },
-          { name: 'Typography' },
-          { name: 'Identity Systems' },
-          { name: 'Poster Design' },
-          { name: 'Print' },
-          { name: 'Art Direction' },
+          { name: 'Editorial' },
+          { name: 'UX/UI' },
+          { name: 'Interior' },
+          {
+            name: 'Branding',
+            children: [
+              { name: 'Logo design' },
+              { name: 'Identity systems' },
+              { name: 'Brand guidelines' },
+              { name: 'Rebranding' },
+              { name: 'Visual naming' },
+              { name: 'Editorial branding' },
+            ],
+          },
           { name: 'Packaging' },
+          { name: 'Typography' },
+          { name: 'Motion' },
+          { name: 'Digital' },
+          { name: 'Identity' },
         ],
       },
-      {
-        name: 'Product',
-        count: '3k works',
-        children: [
-          { name: 'Consumer Products' },
-          { name: 'Furniture' },
-          { name: 'Footwear' },
-          { name: 'Wearables' },
-          { name: 'Toys' },
-          { name: 'Accessories' },
-        ],
-      },
+      { name: 'Product', count: '3k works' },
       { name: 'Interior', count: '906 works' },
-      {
-        name: 'Fashion',
-        count: '2.3k works',
-        children: [
-          { name: 'Ready-to-wear' },
-          { name: 'Accessories' },
-          { name: 'Footwear' },
-          { name: 'Textile' },
-          { name: 'Couture' },
-        ],
-      },
+      { name: 'Fashion', count: '2.3k works' },
       { name: 'Editorial', count: '256 works' },
       { name: 'Industrial', count: '256 works' },
       { name: 'Video Games', count: '547 works' },
@@ -143,24 +134,12 @@ export default function FilterDrawer({
   onAdvanced,
 }: FilterDrawerProps) {
   const [navPath, setNavPath] = useState<string[]>([])
-  const [selection, setSelection] = useState<string | null>(null)
-  const [fading, setFading] = useState(false)
-
-  // Smooth fade: fade out → swap content → fade in
-  const navigateTo = (newPath: string[]) => {
-    setFading(true)
-    setTimeout(() => {
-      setNavPath(newPath)
-      setSelection(null)
-      setFading(false)
-    }, 130)
-  }
+  const [selections, setSelections] = useState<string[]>([])
 
   useEffect(() => {
     if (isOpen) {
       setNavPath([])
-      setSelection(selectedDiscipline)
-      setFading(false)
+      setSelections(selectedDiscipline ? [selectedDiscipline] : [])
     }
   }, [isOpen, selectedDiscipline])
 
@@ -175,42 +154,55 @@ export default function FilterDrawer({
     return () => document.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
-  const parentNode = getNodeByPath(CATEGORY_TREE, navPath)
+  // Current level items
+  const currentNode = navPath.length > 0 ? getNodeByPath(CATEGORY_TREE, navPath) : null
   const currentItems: TreeNode[] =
-    navPath.length === 0 ? CATEGORY_TREE : (parentNode?.children ?? [])
+    navPath.length === 0 ? CATEGORY_TREE : (currentNode?.children ?? [])
+
+  // Root featured node (always navPath[0])
+  const rootNode = navPath.length > 0 ? getNodeByPath(CATEGORY_TREE, [navPath[0]]) : null
+
+  // Navigate to position i in navPath (going back)
+  const goBack = (i: number) => {
+    setNavPath(navPath.slice(0, i))
+    setSelections([])
+  }
 
   const handleCardClick = (item: TreeNode) => {
     const hasChildren = (item.children?.length ?? 0) > 0
     if (hasChildren) {
-      navigateTo([...navPath, item.name])
+      setNavPath([...navPath, item.name])
+      setSelections([])
     } else {
-      setSelection((prev) => (prev === item.name ? null : item.name))
+      // Multi-select toggle at leaf level
+      setSelections((prev) =>
+        prev.includes(item.name)
+          ? prev.filter((s) => s !== item.name)
+          : [...prev, item.name]
+      )
     }
-  }
-
-  const handleNavChipRemove = (index: number) => {
-    navigateTo(navPath.slice(0, index))
   }
 
   const handleReset = () => {
     setNavPath([])
-    setSelection(null)
+    setSelections([])
   }
 
   const handleFilter = () => {
     const filterValue =
-      selection ?? (navPath.length > 0 ? navPath[navPath.length - 1] : null)
+      selections.length > 0
+        ? selections[0]
+        : navPath.length > 0
+        ? navPath[navPath.length - 1]
+        : null
     onSelectDiscipline(filterValue)
     onClose()
   }
 
-  const handleAdvanced = () => {
-    onAdvanced()
-    onClose()
-  }
+  const hasActiveFilter = navPath.length > 0 || selections.length > 0
 
-  const breadcrumbs = [...navPath, ...(selection ? [selection] : [])]
-  const hasActiveFilter = breadcrumbs.length > 0
+  // Non-root path items (for chips + explicit grid placement)
+  const pathItems = navPath.slice(1) // ["Graphic"] or ["Graphic", "Branding"]
 
   return (
     <>
@@ -247,9 +239,7 @@ export default function FilterDrawer({
             onClick={handleReset}
             disabled={!hasActiveFilter}
             className={`text-sm font-medium transition-colors cursor-pointer ${
-              hasActiveFilter
-                ? 'text-[#101010] hover:text-neutral-500'
-                : 'text-neutral-300 cursor-default'
+              hasActiveFilter ? 'text-[#101010] hover:text-neutral-500' : 'text-neutral-300 cursor-default'
             }`}
           >
             Reset
@@ -258,84 +248,101 @@ export default function FilterDrawer({
 
         {/* ── Body ── */}
         <div className="flex-1 flex flex-col overflow-hidden px-5 py-5">
-          {/* Breadcrumb chips */}
-          {breadcrumbs.length > 0 && (
-            <div className="flex items-center flex-wrap gap-1.5 mb-4 flex-shrink-0">
-              {breadcrumbs.map((crumb, i) => {
-                const isSelectionChip = i === navPath.length
-                return (
-                  <div key={i} className="flex items-center">
-                    {i > 0 && (
-                      <ChevronRight className="w-3 h-3 text-neutral-400 mx-0.5 flex-shrink-0" />
-                    )}
-                    <button
-                      onClick={() => {
-                        if (isSelectionChip) setSelection(null)
-                        else handleNavChipRemove(i)
-                      }}
-                      className="flex items-center gap-1 bg-[#101010] text-white text-xs font-semibold px-3 py-1 rounded-full cursor-pointer hover:bg-neutral-700 transition-colors"
-                    >
-                      <span>{crumb}</span>
-                      <X className="w-2.5 h-2.5 flex-shrink-0" />
-                    </button>
-                  </div>
-                )
-              })}
+
+          {/* Breadcrumb chips (level 3+: non-root path items) */}
+          {pathItems.length > 0 && (
+            <div className="flex items-center flex-wrap gap-1.5 mb-2 flex-shrink-0">
+              {pathItems.map((name, i) => (
+                <button
+                  key={name}
+                  onClick={() => goBack(i + 1)} // go back to before this item
+                  className="flex items-center gap-1 bg-[#101010] text-white text-xs font-semibold px-3 py-1 rounded-full cursor-pointer hover:bg-neutral-700 transition-colors"
+                >
+                  <span>{name}</span>
+                  <X className="w-2.5 h-2.5 flex-shrink-0" />
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Section title + grid — fades during level transitions */}
-          <div
-            className={`flex-1 flex flex-col min-h-0 transition-opacity duration-[130ms] ${fading ? 'opacity-0' : 'opacity-100'}`}
-          >
-          <h2 className="text-xl font-bold text-[#101010] mb-4 flex-shrink-0">
-            {navPath.length === 0
-              ? 'What are you looking for?'
-              : navPath[navPath.length - 1]}
-          </h2>
+          {/* Path text (level 3+) or title */}
+          {navPath.length >= 2 ? (
+            <p className="text-xs text-neutral-400 mb-4 flex-shrink-0">
+              {navPath.map((seg, i) => (
+                <span key={seg}>
+                  {i > 0 && <span className="mx-1">›</span>}
+                  <span className={i === navPath.length - 1 ? 'text-[#101010] font-semibold' : ''}>
+                    {seg}
+                  </span>
+                </span>
+              ))}
+            </p>
+          ) : (
+            <h2 className="text-xl font-bold text-[#101010] mb-4 flex-shrink-0">
+              {navPath.length === 0 ? 'What are you looking for?' : navPath[0]}
+            </h2>
+          )}
 
-          {/* Cards grid — featured parent (black, double height) + children */}
+          {/* ── Grid ── */}
           <div
             className="flex-1 grid grid-cols-2 gap-2 min-h-0"
             style={{ gridAutoRows: '1fr' }}
           >
-            {/* Featured parent card when drilled in */}
-            {parentNode && (
+            {/* ROOT featured card — col 1, always row-span-2 */}
+            {rootNode && (
               <button
+                key="root"
                 type="button"
-                onClick={() => navigateTo(navPath.slice(0, navPath.length - 1))}
-                className="row-span-2 relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left transition-all duration-150"
+                onClick={() => goBack(0)}
+                style={{ gridColumn: 1, gridRow: '1 / span 2' }}
+                className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left"
               >
                 <div className="absolute bottom-0 left-0 right-0 p-3.5">
-                  <p className="font-semibold text-sm leading-snug text-white">
-                    {parentNode.name}
-                  </p>
-                  {parentNode.count && (
-                    <p className="text-xs mt-0.5 text-white/50">{parentNode.count}</p>
+                  <p className="font-semibold text-sm leading-snug text-white">{navPath[0]}</p>
+                  {rootNode.count && (
+                    <p className="text-xs mt-0.5 text-white/50">{rootNode.count}</p>
                   )}
                 </div>
               </button>
             )}
 
-            {/* Children / current level cards */}
-            {currentItems.map((item) => {
-              const isSelected = item.name === selection
-              const hasChildren = (item.children?.length ?? 0) > 0
+            {/* PATH items (navPath[1..]) — col 2, one row each, stacked */}
+            {pathItems.map((name, i) => {
+              const node = getNodeByPath(CATEGORY_TREE, navPath.slice(0, i + 2))
+              return (
+                <button
+                  key={`path-${name}`}
+                  type="button"
+                  onClick={() => goBack(i + 1)}
+                  style={{ gridColumn: 2, gridRow: i + 1 }}
+                  className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left"
+                >
+                  <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                    <p className="font-semibold text-sm leading-snug text-white">{name}</p>
+                    {node?.count && (
+                      <p className="text-xs mt-0.5 text-white/50">{node.count}</p>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
 
+            {/* CURRENT LEVEL items — auto-placed after explicit items */}
+            {currentItems.map((item) => {
+              const isSelected = selections.includes(item.name)
+              const hasChildren = (item.children?.length ?? 0) > 0
               return (
                 <button
                   type="button"
                   key={item.name}
                   onClick={() => handleCardClick(item)}
-                  className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-150 w-full h-full text-left ${
-                    isSelected
-                      ? 'bg-[#101010]'
-                      : 'bg-neutral-100 hover:bg-neutral-200'
+                  className={`relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors w-full h-full ${
+                    isSelected ? 'bg-[#101010]' : 'bg-neutral-100 hover:bg-neutral-200'
                   }`}
                 >
                   {hasChildren && (
                     <ChevronRight
-                      className={`absolute top-3 right-3 w-4 h-4 transition-colors ${
+                      className={`absolute top-3 right-3 w-4 h-4 ${
                         isSelected ? 'text-white/40' : 'text-neutral-400'
                       }`}
                     />
@@ -349,11 +356,7 @@ export default function FilterDrawer({
                       {item.name}
                     </p>
                     {item.count && (
-                      <p
-                        className={`text-xs mt-0.5 ${
-                          isSelected ? 'text-white/50' : 'text-neutral-500'
-                        }`}
-                      >
+                      <p className={`text-xs mt-0.5 ${isSelected ? 'text-white/50' : 'text-neutral-500'}`}>
                         {item.count}
                       </p>
                     )}
@@ -362,7 +365,6 @@ export default function FilterDrawer({
               )
             })}
           </div>
-          </div>{/* end fade wrapper */}
         </div>
 
         {/* ── Footer ── */}
@@ -375,7 +377,7 @@ export default function FilterDrawer({
               Filter
             </button>
             <button
-              onClick={handleAdvanced}
+              onClick={() => { onAdvanced(); onClose() }}
               className="bg-[#101010] text-white rounded-xl py-3 text-sm font-semibold cursor-pointer hover:bg-neutral-800 transition-colors"
             >
               Advanced
