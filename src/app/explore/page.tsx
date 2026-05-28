@@ -22,7 +22,6 @@ import {
   MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
-import FilterDrawer from '@/components/FilterDrawer'
 
 interface CreatorItem {
   uid: string;
@@ -306,7 +305,9 @@ const SWIPE_DECK = [
 ];
 
 export default function ExplorePage() {
-  const { profile } = useApp();
+  const { profile, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline } = useApp();
+  const selectedDiscipline = globalDiscipline;
+  const setSelectedDiscipline = setGlobalDiscipline;
   const router = useRouter();
   const [subTab, setSubTab] = useState<'grid' | 'swipe'>('grid');
   
@@ -314,10 +315,7 @@ export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState<'inspiration' | 'projects' | 'creators' | 'studios' | 'briefs' | 'communities'>('inspiration');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
-
   // Swiss Editorial Filter States
-  const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
   const [selectedSensibility, setSelectedSensibility] = useState<string | null>(null);
   const [selectedAvailability, setSelectedAvailability] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
@@ -1065,13 +1063,6 @@ export default function ExplorePage() {
           </div>
         </div>
       )}
-      <FilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        selectedDiscipline={selectedDiscipline}
-        onSelectDiscipline={setSelectedDiscipline}
-        onAdvanced={() => setFilterDrawerOpen(false)}
-      />
     </div>
   );
 }

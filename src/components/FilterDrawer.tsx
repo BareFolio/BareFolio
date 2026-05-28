@@ -1,7 +1,111 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Check } from 'lucide-react'
+import { X, ChevronRight } from 'lucide-react'
+
+interface TreeNode {
+  name: string
+  count?: string
+  children?: TreeNode[]
+}
+
+const CATEGORY_TREE: TreeNode[] = [
+  {
+    name: 'Design',
+    count: '450k works',
+    children: [
+      {
+        name: 'Graphic Design',
+        children: [
+          { name: 'Branding' },
+          { name: 'Logo Design' },
+          { name: 'Editorial' },
+          { name: 'Art Direction' },
+          { name: 'Illustration' },
+          { name: 'Packaging' },
+        ],
+      },
+      { name: 'UX/UI Design' },
+      {
+        name: 'Fashion Design',
+        children: [
+          { name: 'Ready-to-wear' },
+          { name: 'Accessories' },
+          { name: 'Footwear' },
+          { name: 'Textile' },
+        ],
+      },
+      { name: 'Interior Design' },
+      { name: 'Product Design' },
+      { name: 'Creative Direction' },
+    ],
+  },
+  {
+    name: 'Visual Arts',
+    count: '234k works',
+    children: [
+      { name: 'Illustration' },
+      { name: 'Painting' },
+      { name: 'Sculpture' },
+      { name: 'Pattern-making' },
+      { name: 'Mixed Media' },
+      { name: 'Printmaking' },
+    ],
+  },
+  {
+    name: 'Audiovisuals',
+    count: '657k works',
+    children: [
+      { name: 'FilmMaker' },
+      { name: 'VFX' },
+      { name: 'Video Editing' },
+      { name: 'Podcast' },
+      { name: 'Sound Design' },
+    ],
+  },
+  {
+    name: 'Architecture',
+    count: '450k works',
+    children: [
+      { name: 'Residential' },
+      { name: 'Commercial' },
+      { name: 'Landscape' },
+      { name: 'Urban Planning' },
+      { name: 'Interior Design' },
+    ],
+  },
+  {
+    name: 'Photography',
+    count: '312k works',
+    children: [
+      { name: 'Editorial' },
+      { name: 'Fashion Photography' },
+      { name: 'Architectural Photography' },
+      { name: 'Product Photography' },
+      { name: 'Portrait' },
+      { name: 'Documentary' },
+    ],
+  },
+  {
+    name: 'Motion',
+    count: '198k works',
+    children: [
+      { name: 'Motion Design' },
+      { name: 'Animation' },
+      { name: '3D Animation' },
+      { name: 'Kinetic Typography' },
+      { name: 'VFX' },
+    ],
+  },
+]
+
+function getNodeByPath(tree: TreeNode[], path: string[]): TreeNode | null {
+  if (path.length === 0) return null
+  const node = tree.find((n) => n.name === path[0])
+  if (!node) return null
+  if (path.length === 1) return node
+  return getNodeByPath(node.children ?? [], path.slice(1))
+}
 
 interface FilterDrawerProps {
   isOpen: boolean
@@ -11,17 +115,6 @@ interface FilterDrawerProps {
   onAdvanced: () => void
 }
 
-const CATEGORIES = [
-  { name: 'Design',       count: '450k works', img: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80' },
-  { name: 'Visual Arts',  count: '234k works', img: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=600&q=80' },
-  { name: 'Audiovisuals', count: '657k works', img: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=600&q=80' },
-  { name: 'Architecture', count: '450k works', img: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=600&q=80' },
-  { name: 'Photography',  count: '312k works', img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80' },
-  { name: 'Motion',       count: '198k works', img: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600&q=80' },
-  { name: 'Branding',     count: '389k works', img: 'https://images.unsplash.com/photo-1600132806370-bf17e65e942f?w=600&q=80' },
-  { name: 'Packaging',    count: '276k works', img: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=600&q=80' },
-]
-
 export default function FilterDrawer({
   isOpen,
   onClose,
@@ -29,44 +122,55 @@ export default function FilterDrawer({
   onSelectDiscipline,
   onAdvanced,
 }: FilterDrawerProps) {
-  const [pending, setPending] = useState<string | null>(selectedDiscipline)
+  const [navPath, setNavPath] = useState<string[]>([])
+  const [selection, setSelection] = useState<string | null>(null)
 
-  // Sync pending with selectedDiscipline when drawer opens
   useEffect(() => {
     if (isOpen) {
-      setPending(selectedDiscipline)
+      setNavPath([])
+      setSelection(selectedDiscipline)
     }
   }, [isOpen, selectedDiscipline])
 
-  // Body scroll lock
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // Escape key to close
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && isOpen) onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
-  const handleCardClick = (name: string) => {
-    setPending(prev => (prev === name ? null : name))
+  const parentNode = getNodeByPath(CATEGORY_TREE, navPath)
+  const currentItems: TreeNode[] =
+    navPath.length === 0 ? CATEGORY_TREE : (parentNode?.children ?? [])
+
+  const handleCardClick = (item: TreeNode) => {
+    const hasChildren = (item.children?.length ?? 0) > 0
+    if (hasChildren) {
+      setNavPath((prev) => [...prev, item.name])
+      setSelection(null)
+    } else {
+      setSelection((prev) => (prev === item.name ? null : item.name))
+    }
+  }
+
+  const handleNavChipRemove = (index: number) => {
+    setNavPath((prev) => prev.slice(0, index))
+    setSelection(null)
+  }
+
+  const handleReset = () => {
+    setNavPath([])
+    setSelection(null)
   }
 
   const handleFilter = () => {
-    onSelectDiscipline(pending)
+    const filterValue =
+      selection ?? (navPath.length > 0 ? navPath[navPath.length - 1] : null)
+    onSelectDiscipline(filterValue)
     onClose()
   }
 
@@ -74,6 +178,9 @@ export default function FilterDrawer({
     onAdvanced()
     onClose()
   }
+
+  const breadcrumbs = [...navPath, ...(selection ? [selection] : [])]
+  const hasActiveFilter = breadcrumbs.length > 0
 
   return (
     <>
@@ -94,7 +201,7 @@ export default function FilterDrawer({
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100 flex-shrink-0">
           <button
             onClick={onClose}
@@ -103,57 +210,109 @@ export default function FilterDrawer({
           >
             <X className="w-5 h-5" />
           </button>
-          <span id="filter-drawer-title" className="text-sm font-bold text-[#101010]">Filters</span>
+          <span id="filter-drawer-title" className="text-sm font-bold text-[#101010]">
+            Filters
+          </span>
           <button
-            onClick={() => setPending(null)}
-            className="text-sm font-medium text-neutral-500 hover:text-[#101010] transition-colors cursor-pointer"
+            onClick={handleReset}
+            disabled={!hasActiveFilter}
+            className={`text-sm font-medium transition-colors cursor-pointer ${
+              hasActiveFilter
+                ? 'text-[#101010] hover:text-neutral-500'
+                : 'text-neutral-300 cursor-default'
+            }`}
           >
             Reset
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <h2 className="text-xl font-bold text-[#101010] mb-6">What are you looking for?</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {CATEGORIES.map((cat) => {
-              const isSelected = pending === cat.name
+        {/* ── Body ── */}
+        <div className="flex-1 flex flex-col overflow-hidden px-5 py-5">
+          {/* Breadcrumb chips */}
+          {breadcrumbs.length > 0 && (
+            <div className="flex items-center flex-wrap gap-1.5 mb-4 flex-shrink-0">
+              {breadcrumbs.map((crumb, i) => {
+                const isSelectionChip = i === navPath.length
+                return (
+                  <div key={i} className="flex items-center">
+                    {i > 0 && (
+                      <ChevronRight className="w-3 h-3 text-neutral-400 mx-0.5 flex-shrink-0" />
+                    )}
+                    <button
+                      onClick={() => {
+                        if (isSelectionChip) setSelection(null)
+                        else handleNavChipRemove(i)
+                      }}
+                      className="flex items-center gap-1 bg-[#101010] text-white text-xs font-semibold px-3 py-1 rounded-full cursor-pointer hover:bg-neutral-700 transition-colors"
+                    >
+                      <span>{crumb}</span>
+                      <X className="w-2.5 h-2.5 flex-shrink-0" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Section title */}
+          <h2 className="text-xl font-bold text-[#101010] mb-4 flex-shrink-0">
+            {navPath.length === 0
+              ? 'What are you looking for?'
+              : navPath[navPath.length - 1]}
+          </h2>
+
+          {/* Cards grid — fills remaining height, rows share space equally */}
+          <div
+            className="flex-1 grid grid-cols-2 gap-2 min-h-0"
+            style={{ gridAutoRows: '1fr' }}
+          >
+            {currentItems.map((item) => {
+              const isSelected = item.name === selection
+              const hasChildren = (item.children?.length ?? 0) > 0
+
               return (
                 <button
                   type="button"
-                  key={cat.name}
-                  onClick={() => handleCardClick(cat.name)}
-                  className={`relative aspect-[4/3] rounded-2xl overflow-hidden group ${
-                    isSelected ? 'ring-2 ring-[#101010] ring-offset-2' : ''
+                  key={item.name}
+                  onClick={() => handleCardClick(item)}
+                  className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-150 w-full h-full text-left ${
+                    isSelected
+                      ? 'bg-[#101010]'
+                      : 'bg-neutral-100 hover:bg-neutral-200'
                   }`}
                 >
-                  {/* Background image */}
-                  <img
-                    src={cat.img}
-                    alt={cat.name}
-                    loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  {/* Dark gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  {/* Bottom-left text */}
-                  <div className="absolute bottom-0 left-0 p-3">
-                    <p className="text-white font-bold text-sm leading-tight">{cat.name}</p>
-                    <p className="text-white/60 text-xs">{cat.count}</p>
-                  </div>
-                  {/* Checkmark circle top-right when selected */}
-                  {isSelected && (
-                    <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                      <Check className="w-3.5 h-3.5 text-[#101010]" strokeWidth={3} />
-                    </div>
+                  {hasChildren && (
+                    <ChevronRight
+                      className={`absolute top-3 right-3 w-4 h-4 transition-colors ${
+                        isSelected ? 'text-white/40' : 'text-neutral-400'
+                      }`}
+                    />
                   )}
+                  <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                    <p
+                      className={`font-semibold text-sm leading-snug ${
+                        isSelected ? 'text-white' : 'text-[#101010]'
+                      }`}
+                    >
+                      {item.name}
+                    </p>
+                    {item.count && (
+                      <p
+                        className={`text-xs mt-0.5 ${
+                          isSelected ? 'text-white/50' : 'text-neutral-500'
+                        }`}
+                      >
+                        {item.count}
+                      </p>
+                    )}
+                  </div>
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <div className="border-t border-neutral-100 px-6 py-5 flex-shrink-0">
           <div className="grid grid-cols-2 gap-3">
             <button

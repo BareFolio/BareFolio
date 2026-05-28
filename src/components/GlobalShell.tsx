@@ -8,9 +8,10 @@ import TabBar from "./TabBar";
 import CreateModal from "./CreateModal";
 import CreatePicker from "./CreatePicker";
 import TasteBuilder from "./TasteBuilder";
+import FilterDrawer from "./FilterDrawer";
 
 export default function GlobalShell({ children }: { children: React.ReactNode }) {
-  const { currentUser, loading, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen } = useApp();
+  const { currentUser, loading, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline } = useApp();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -46,6 +47,19 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
       <CreatePicker isOpen={createPickerOpen} onClose={() => setCreatePickerOpen(false)} />
       <CreateModal isOpen={newPostOpen} onClose={() => setNewPostOpen(false)} />
       <TasteBuilder isOpen={tasteBuilderOpen} onClose={() => setTasteBuilderOpen(false)} />
+      <FilterDrawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        selectedDiscipline={globalDiscipline}
+        onSelectDiscipline={(d) => {
+          setGlobalDiscipline(d);
+          if (pathname !== '/explore') router.push('/explore');
+        }}
+        onAdvanced={() => {
+          setFilterDrawerOpen(false);
+          if (pathname !== '/explore') router.push('/explore');
+        }}
+      />
     </div>
   );
 }

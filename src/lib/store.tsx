@@ -52,6 +52,10 @@ interface AppContextType {
   setNewPostOpen: (open: boolean) => void
   tasteBuilderOpen: boolean
   setTasteBuilderOpen: (open: boolean) => void
+  filterDrawerOpen: boolean
+  setFilterDrawerOpen: (open: boolean) => void
+  globalDiscipline: string | null
+  setGlobalDiscipline: (d: string | null) => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -65,6 +69,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [createPickerOpen, setCreatePickerOpen] = useState(false)
   const [newPostOpen, setNewPostOpen] = useState(false)
   const [tasteBuilderOpen, setTasteBuilderOpen] = useState(false)
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+  const [globalDiscipline, setGlobalDiscipline] = useState<string | null>(null)
 
   const refreshProfile = async () => {
     if (!currentUser) return
@@ -173,7 +179,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AppContext.Provider value={{ currentUser, profile, loading, refreshProfile, feedTab, setFeedTab, inboxTab, setInboxTab, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen }}>
+    <AppContext.Provider value={{ currentUser, profile, loading, refreshProfile, feedTab, setFeedTab, inboxTab, setInboxTab, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline }}>
       {children}
     </AppContext.Provider>
   )

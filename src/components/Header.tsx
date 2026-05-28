@@ -16,7 +16,7 @@ interface HeaderProps {
 export default function Header({ onCreateClick }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, feedTab, setFeedTab, inboxTab, setInboxTab } = useApp();
+  const { profile, feedTab, setFeedTab, inboxTab, setInboxTab, setFilterDrawerOpen } = useApp();
   const isHome = pathname === '/';
   const isExplore = pathname === '/explore';
   const isInbox = pathname === '/inbox';
@@ -97,7 +97,10 @@ export default function Header({ onCreateClick }: HeaderProps) {
               placeholder="Search what you need"
               className="w-52 bg-neutral-100/80 pl-9 pr-9 py-2 text-xs rounded-full border border-borderGlass focus:border-accent/40 focus:bg-white focus:outline-none transition-all placeholder-neutral-400 font-sans"
             />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer">
+            <button
+              onClick={() => setFilterDrawerOpen(true)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            >
               <SlidersHorizontal className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -196,13 +199,7 @@ export default function Header({ onCreateClick }: HeaderProps) {
 
         {/* Right: Sliders Filter button */}
         <button
-          onClick={() => {
-            if (isExplore) {
-              // Custom action or routing
-            } else {
-              router.push('/explore');
-            }
-          }}
+          onClick={() => setFilterDrawerOpen(true)}
           className="w-10 h-10 rounded-full hover:bg-neutral-100 flex items-center justify-center text-[#101010] active:scale-95 transition-all cursor-pointer flex-shrink-0"
         >
           <SlidersHorizontal className="w-4.5 h-4.5 stroke-[2]" />
