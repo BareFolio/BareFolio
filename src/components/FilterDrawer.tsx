@@ -15,29 +15,49 @@ const CATEGORY_TREE: TreeNode[] = [
     count: '450k works',
     children: [
       {
-        name: 'Graphic Design',
+        name: 'Graphic',
+        count: '1.2k works',
         children: [
           { name: 'Branding' },
           { name: 'Logo Design' },
-          { name: 'Editorial' },
+          { name: 'Typography' },
+          { name: 'Identity Systems' },
+          { name: 'Poster Design' },
+          { name: 'Print' },
           { name: 'Art Direction' },
-          { name: 'Illustration' },
           { name: 'Packaging' },
         ],
       },
-      { name: 'UX/UI Design' },
       {
-        name: 'Fashion Design',
+        name: 'Product',
+        count: '3k works',
+        children: [
+          { name: 'Consumer Products' },
+          { name: 'Furniture' },
+          { name: 'Footwear' },
+          { name: 'Wearables' },
+          { name: 'Toys' },
+          { name: 'Accessories' },
+        ],
+      },
+      { name: 'Interior', count: '906 works' },
+      {
+        name: 'Fashion',
+        count: '2.3k works',
         children: [
           { name: 'Ready-to-wear' },
           { name: 'Accessories' },
           { name: 'Footwear' },
           { name: 'Textile' },
+          { name: 'Couture' },
         ],
       },
-      { name: 'Interior Design' },
-      { name: 'Product Design' },
-      { name: 'Creative Direction' },
+      { name: 'Editorial', count: '256 works' },
+      { name: 'Industrial', count: '256 works' },
+      { name: 'Video Games', count: '547 works' },
+      { name: '3D', count: '547 works' },
+      { name: 'Experimental', count: '547 works' },
+      { name: 'Illustration', count: '547 works' },
     ],
   },
   {
@@ -261,11 +281,30 @@ export default function FilterDrawer({
               : navPath[navPath.length - 1]}
           </h2>
 
-          {/* Cards grid — fills remaining height, rows share space equally */}
+          {/* Cards grid — featured parent (black, double height) + children */}
           <div
             className="flex-1 grid grid-cols-2 gap-2 min-h-0"
             style={{ gridAutoRows: '1fr' }}
           >
+            {/* Featured parent card when drilled in */}
+            {parentNode && (
+              <button
+                type="button"
+                onClick={() => handleNavChipRemove(navPath.length - 1)}
+                className="row-span-2 relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left transition-all duration-150"
+              >
+                <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                  <p className="font-semibold text-sm leading-snug text-white">
+                    {parentNode.name}
+                  </p>
+                  {parentNode.count && (
+                    <p className="text-xs mt-0.5 text-white/50">{parentNode.count}</p>
+                  )}
+                </div>
+              </button>
+            )}
+
+            {/* Children / current level cards */}
             {currentItems.map((item) => {
               const isSelected = item.name === selection
               const hasChildren = (item.children?.length ?? 0) > 0
