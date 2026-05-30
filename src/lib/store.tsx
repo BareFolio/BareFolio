@@ -46,6 +46,8 @@ interface AppContextType {
   setFeedTab: (tab: 'all' | 'forYou') => void
   inboxTab: 'messages' | 'communities'
   setInboxTab: (tab: 'messages' | 'communities') => void
+  postsTab: 'everyone' | 'following'
+  setPostsTab: (tab: 'everyone' | 'following') => void
   createPickerOpen: boolean
   setCreatePickerOpen: (open: boolean) => void
   newPostOpen: boolean
@@ -66,6 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [feedTab, setFeedTab] = useState<'all' | 'forYou'>('all')
   const [inboxTab, setInboxTab] = useState<'messages' | 'communities'>('messages')
+  const [postsTab, setPostsTab] = useState<'everyone' | 'following'>('everyone')
   const [createPickerOpen, setCreatePickerOpen] = useState(false)
   const [newPostOpen, setNewPostOpen] = useState(false)
   const [tasteBuilderOpen, setTasteBuilderOpen] = useState(false)
@@ -179,7 +182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <AppContext.Provider value={{ currentUser, profile, loading, refreshProfile, feedTab, setFeedTab, inboxTab, setInboxTab, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline }}>
+    <AppContext.Provider value={{ currentUser, profile, loading, refreshProfile, feedTab, setFeedTab, inboxTab, setInboxTab, postsTab, setPostsTab, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline }}>
       {children}
     </AppContext.Provider>
   )
