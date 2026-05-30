@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, ChevronRight, ChevronDown } from 'lucide-react'
 
 interface TreeNode {
@@ -469,55 +469,50 @@ const CATEGORY_TREE: TreeNode[] = [
 
 // ─── Advanced Filters ────────────────────────────────────────────────────────
 
-type AdvancedFilter =
-  | { key: string; label: string; type: 'color'; options: { name: string; hex: string }[] }
-  | { key: string; label: string; type: 'chips'; options: string[] }
+interface AdvancedFilter {
+  key: string
+  label: string
+  options: string[]
+}
 
 const ADVANCED_FILTERS: AdvancedFilter[] = [
   {
-    key: 'color',
-    label: 'Color',
-    type: 'color',
-    options: [
-      { name: 'Black',   hex: '#101010' },
-      { name: 'White',   hex: '#F5F5F5' },
-      { name: 'Red',     hex: '#EF4444' },
-      { name: 'Orange',  hex: '#F97316' },
-      { name: 'Yellow',  hex: '#EAB308' },
-      { name: 'Green',   hex: '#22C55E' },
-      { name: 'Blue',    hex: '#3B82F6' },
-      { name: 'Violet',  hex: '#8B5CF6' },
-      { name: 'Pink',    hex: '#EC4899' },
-      { name: 'Brown',   hex: '#92400E' },
-      { name: 'Gray',    hex: '#9CA3AF' },
-      { name: 'Beige',   hex: '#D4B896' },
-    ],
-  },
-  {
     key: 'visualLanguage',
     label: 'Visual language',
-    type: 'chips',
-    options: ['Minimalist', 'Maximalist', 'Classic', 'Contemporary', 'Vintage', 'Abstract', 'Geometric', 'Organic', 'Bold', 'Expressive'],
+    options: ['Minimalist', 'Maximalist', 'Brutalist', 'Experimental', 'Commercial', 'Conceptual', 'Institutional', 'Abstract', 'Narrative'],
   },
   {
     key: 'format',
     label: 'Format',
-    type: 'chips',
-    options: ['Portrait', 'Landscape', 'Square', 'Panoramic', 'Print', 'Digital', 'Social', 'Poster', 'Book'],
+    options: ['Print', 'Digital', 'Social Media', 'Editorial', 'Commercial', 'Fine Art', 'Documentary', 'Interactive'],
   },
   {
     key: 'composition',
     label: 'Composition',
-    type: 'chips',
-    options: ['Rule of Thirds', 'Centered', 'Symmetrical', 'Asymmetrical', 'Diagonal', 'Grid', 'Negative Space', 'Full Bleed'],
+    options: ['Rule of Thirds', 'Centered', 'Symmetrical', 'Asymmetrical', 'Grid-based', 'Layered', 'Negative Space', 'Full Bleed'],
   },
   {
     key: 'typography',
     label: 'Typography',
-    type: 'chips',
-    options: ['Serif', 'Sans-serif', 'Display', 'Script', 'Monospace', 'Hand-lettering', 'Mixed', 'All-caps'],
+    options: ['Serif', 'Sans-serif', 'Display', 'Script', 'Monospace', 'Hand-lettering', 'All-caps', 'Mixed'],
   },
 ]
+
+// HSV (h:0-360, s:0-1, v:0-1) → "#RRGGBB"
+function hsvToHex(h: number, s: number, v: number): string {
+  const c = v * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = v - c
+  let r = 0, g = 0, b = 0
+  if (h < 60)       { r = c; g = x; b = 0 }
+  else if (h < 120) { r = x; g = c; b = 0 }
+  else if (h < 180) { r = 0; g = c; b = x }
+  else if (h < 240) { r = 0; g = x; b = c }
+  else if (h < 300) { r = x; g = 0; b = c }
+  else              { r = c; g = 0; b = x }
+  const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0').toUpperCase()
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -549,6 +544,12 @@ export default function FilterDrawer({
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [openAccordion, setOpenAccordion] = useState<string | null>(null)
   const [advancedSelections, setAdvancedSelections] = useState<Record<string, string[]>>({})
+  // Color picker
+  const [pickerHue, setPickerHue] = useState(0)
+  const [pickerSV, setPickerSV] = useState({ s: 0, v: 1 })
+  const [colorActive, setColorActive] = useState(false)
+  const gradientRef = useRef<HTMLDivElement>(null)
+  const hueSliderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -557,6 +558,9 @@ export default function FilterDrawer({
       setAdvancedOpen(false)
       setOpenAccordion(null)
       setAdvancedSelections({})
+      setPickerHue(0)
+      setPickerSV({ s: 0, v: 1 })
+      setColorActive(false)
     }
   }, [isOpen, selectedDiscipline])
 
@@ -630,6 +634,23 @@ export default function FilterDrawer({
 
   const toggleAccordion = (key: string) =>
     setOpenAccordion((prev) => (prev === key ? null : key))
+
+  const updateGradientSV = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!gradientRef.current) return
+    const rect = gradientRef.current.getBoundingClientRect()
+    const s = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const v = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height))
+    setPickerSV({ s, v })
+    setColorActive(true)
+  }
+
+  const updateHue = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!hueSliderRef.current) return
+    const rect = hueSliderRef.current.getBoundingClientRect()
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    setPickerHue(Math.round(x * 360))
+    setColorActive(true)
+  }
 
   const toggleAdvancedOption = (key: string, value: string) => {
     setAdvancedSelections((prev) => {
@@ -828,18 +849,96 @@ export default function FilterDrawer({
 
           {/* Accordion list */}
           <div className="flex-1 overflow-y-auto min-w-[400px]">
+
+            {/* ── Color accordion (special: full HSV picker) ── */}
+            <div className="border-b border-neutral-100">
+              <button
+                onClick={() => toggleAccordion('color')}
+                className="w-full flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-neutral-50 transition-colors text-left"
+              >
+                <div>
+                  <span className="text-sm font-medium text-[#101010]">Color</span>
+                  {colorActive && (
+                    <p className="text-xs text-neutral-400 mt-0.5 font-mono tracking-wide">
+                      {hsvToHex(pickerHue, pickerSV.s, pickerSV.v)}
+                    </p>
+                  )}
+                </div>
+                <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform duration-200 flex-shrink-0 ${openAccordion === 'color' ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div
+                className="overflow-hidden transition-all duration-200"
+                style={{ maxHeight: openAccordion === 'color' ? '380px' : '0px' }}
+              >
+                <div className="px-5 pb-5 pt-1">
+                  {/* Saturation/Brightness gradient canvas */}
+                  <div
+                    ref={gradientRef}
+                    className="relative rounded-lg select-none touch-none"
+                    style={{
+                      height: '260px',
+                      cursor: 'crosshair',
+                      background: `linear-gradient(to right, #fff, hsl(${pickerHue}, 100%, 50%))`,
+                    }}
+                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); updateGradientSV(e) }}
+                    onPointerMove={(e) => { if (e.buttons > 0) updateGradientSV(e) }}
+                  >
+                    {/* Black-to-transparent top-to-bottom overlay */}
+                    <div
+                      className="absolute inset-0 rounded-lg pointer-events-none"
+                      style={{ background: 'linear-gradient(to bottom, transparent, #000)' }}
+                    />
+                    {/* Picker dot */}
+                    <div
+                      className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md pointer-events-none"
+                      style={{
+                        left: `${pickerSV.s * 100}%`,
+                        top: `${(1 - pickerSV.v) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        backgroundColor: hsvToHex(pickerHue, pickerSV.s, pickerSV.v),
+                      }}
+                    />
+                  </div>
+
+                  {/* Hue rainbow slider */}
+                  <div
+                    ref={hueSliderRef}
+                    className="relative h-4 rounded-full select-none touch-none mt-3"
+                    style={{
+                      cursor: 'pointer',
+                      background: 'linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)',
+                    }}
+                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); updateHue(e) }}
+                    onPointerMove={(e) => { if (e.buttons > 0) updateHue(e) }}
+                  >
+                    {/* Thumb */}
+                    <div
+                      className="absolute top-1/2 w-5 h-5 rounded-full border-2 border-white shadow-md pointer-events-none"
+                      style={{
+                        left: `${(pickerHue / 360) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        backgroundColor: `hsl(${pickerHue}, 100%, 50%)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── List accordions (Visual language, Format, Composition, Typography) ── */}
             {ADVANCED_FILTERS.map((filter) => {
               const isAccordionOpen = openAccordion === filter.key
               const selected = advancedSelections[filter.key] ?? []
 
               return (
                 <div key={filter.key} className="border-b border-neutral-100">
-                  {/* Accordion header */}
+                  {/* Header */}
                   <button
                     onClick={() => toggleAccordion(filter.key)}
                     className="w-full flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-neutral-50 transition-colors text-left"
                   >
-                    <span className={`text-sm transition-colors ${selected.length > 0 ? 'font-semibold text-[#101010]' : 'font-medium text-[#101010]'}`}>
+                    <span className="text-sm font-medium text-[#101010]">
                       {filter.label}
                       {selected.length > 0 && (
                         <span className="ml-2 inline-flex items-center justify-center w-4 h-4 bg-[#101010] text-white text-[10px] font-bold rounded-full">
@@ -854,45 +953,33 @@ export default function FilterDrawer({
                     />
                   </button>
 
-                  {/* Accordion content */}
+                  {/* Option list */}
                   <div
                     className="overflow-hidden transition-all duration-200"
-                    style={{ maxHeight: isAccordionOpen ? '200px' : '0px' }}
+                    style={{ maxHeight: isAccordionOpen ? `${filter.options.length * 44}px` : '0px' }}
                   >
-                    <div className="px-6 pb-5 pt-1">
-                      {filter.type === 'color' ? (
-                        <div className="grid grid-cols-6 gap-2.5">
-                          {filter.options.map((color) => (
-                            <button
-                              key={color.name}
-                              onClick={() => toggleAdvancedOption(filter.key, color.name)}
-                              title={color.name}
-                              className={`w-9 h-9 rounded-full border-2 transition-all cursor-pointer ${
-                                selected.includes(color.name)
-                                  ? 'border-[#101010] scale-110 shadow-sm'
-                                  : 'border-neutral-200 hover:border-neutral-400'
-                              } ${color.name === 'White' ? 'border-neutral-200' : ''}`}
-                              style={{ backgroundColor: color.hex }}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {filter.options.map((option) => (
-                            <button
-                              key={option}
-                              onClick={() => toggleAdvancedOption(filter.key, option)}
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                                selected.includes(option)
-                                  ? 'bg-[#101010] text-white border-[#101010]'
-                                  : 'bg-white text-[#101010] border-neutral-200 hover:border-neutral-400'
-                              }`}
-                            >
+                    <div className="pb-3">
+                      {filter.options.map((option) => {
+                        const isSelected = selected.includes(option)
+                        return (
+                          <button
+                            key={option}
+                            onClick={() => toggleAdvancedOption(filter.key, option)}
+                            className="w-full flex items-center gap-3.5 px-6 py-2.5 text-left cursor-pointer transition-colors hover:bg-neutral-50"
+                          >
+                            <span className={`text-base leading-none w-4 flex-shrink-0 transition-colors ${
+                              isSelected ? 'text-[#101010] font-medium' : 'text-neutral-300'
+                            }`}>
+                              {isSelected ? '×' : '+'}
+                            </span>
+                            <span className={`text-sm transition-colors ${
+                              isSelected ? 'font-semibold text-[#101010]' : 'font-normal text-[#101010]'
+                            }`}>
                               {option}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                            </span>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
