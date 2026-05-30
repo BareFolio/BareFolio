@@ -14,6 +14,7 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
   const [visibility, setVisibility] = useState<'everyone' | 'followers'>('everyone');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Animation state: rendered keeps element in DOM during exit transition
@@ -58,21 +59,25 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
   const handlePublish = async () => {
     if (!currentUser || !content.trim()) return;
     setLoading(true);
+    setError(null);
     try {
       const mediaUrls = selectedFiles.length > 0 ? await uploadImages(selectedFiles) : [];
-      const { error } = await supabase.from('posts').insert({
+      const { error: insertError } = await supabase.from('posts').insert({
         creator_id: currentUser.id,
         content: content.trim(),
         media_urls: mediaUrls,
         link: link.trim() || null,
+        visibility,
       });
-      if (error) throw error;
+      if (insertError) throw insertError;
       setContent('');
       setLink('');
       setSelectedFiles([]);
+      setError(null);
       onClose();
     } catch (err: any) {
       console.error('Error creating post:', err);
+      setError(err?.message || 'Failed to publish. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -223,6 +228,11 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
 
           <div className="mx-6 border-t border-neutral-100" />
         </div>
+
+        {/* Error message */}
+        {error && (
+          <p className="px-6 pb-2 text-xs text-red-500">{error}</p>
+        )}
 
         {/* Bottom actions */}
         <div className="px-6 py-4 border-t border-neutral-100 flex items-center gap-3">
