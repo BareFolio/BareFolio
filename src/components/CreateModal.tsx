@@ -73,11 +73,11 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
       setContent('');
       setLink('');
       setSelectedFiles([]);
-      setError(null);
       onClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating post:', err);
-      setError(err?.message || 'Failed to publish. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Failed to publish. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -87,6 +87,7 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
     setContent('');
     setLink('');
     setSelectedFiles([]);
+    setError(null);
     onClose();
   };
 
