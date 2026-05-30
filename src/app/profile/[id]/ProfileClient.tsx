@@ -261,7 +261,7 @@ export default function ProfileClient() {
         // Posts
         const { data: postsData } = await supabase
           .from('posts')
-          .select(`id, creator_id, content, created_at, media_urls, profiles:creator_id (full_name, name, avatar_url, username)`)
+          .select(`id, creator_id, content, created_at, media_urls, profiles:creator_id (full_name, avatar_url, username)`)
           .eq('creator_id', targetId)
           .order('created_at', { ascending: false });
 
@@ -273,9 +273,9 @@ export default function ProfileClient() {
               content: p.content,
               created_at: p.created_at,
               mediaUrls: p.media_urls || [],
-              authorName: p.profiles?.full_name || p.profiles?.name || fp.name,
+              authorName: p.profiles?.full_name || fp.name,
               authorUsername: p.profiles?.username || fp.username,
-              likes: Math.floor(Math.random() * 20) + 1,
+              likes: 0,
               liked: false,
               saved: false,
             }))
