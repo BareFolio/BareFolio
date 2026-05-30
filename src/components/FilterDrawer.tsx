@@ -482,6 +482,26 @@ const ADVANCED_FILTERS: AdvancedFilter[] = [
     options: ['Minimalist', 'Maximalist', 'Brutalist', 'Experimental', 'Commercial', 'Conceptual', 'Institutional', 'Abstract', 'Narrative'],
   },
   {
+    key: 'mood',
+    label: 'Mood',
+    options: ['Dark', 'Light', 'Dramatic', 'Playful', 'Calm', 'Energetic', 'Melancholic', 'Bold', 'Subtle', 'Mysterious', 'Romantic', 'Industrial'],
+  },
+  {
+    key: 'technique',
+    label: 'Technique',
+    options: ['Digital', 'Analog', 'Mixed Media', 'Photography', 'Hand-drawn', '3D Rendered', 'Printed', 'AI-assisted', 'Typographic', 'Illustrated'],
+  },
+  {
+    key: 'colorTone',
+    label: 'Color tone',
+    options: ['Warm', 'Cool', 'Neutral', 'High Contrast', 'Low Contrast', 'Vibrant', 'Muted', 'Pastel', 'Dark', 'Monochromatic', 'Earth tones'],
+  },
+  {
+    key: 'era',
+    label: 'Era & style',
+    options: ['Contemporary', 'Vintage', 'Retro', 'Futuristic', 'Classic', 'Modern', 'Post-modern', 'Neo-traditional', 'Bauhaus', 'Timeless'],
+  },
+  {
     key: 'format',
     label: 'Format',
     options: ['Print', 'Digital', 'Social Media', 'Editorial', 'Commercial', 'Fine Art', 'Documentary', 'Interactive'],
@@ -495,6 +515,11 @@ const ADVANCED_FILTERS: AdvancedFilter[] = [
     key: 'typography',
     label: 'Typography',
     options: ['Serif', 'Sans-serif', 'Display', 'Script', 'Monospace', 'Hand-lettering', 'All-caps', 'Mixed'],
+  },
+  {
+    key: 'purpose',
+    label: 'Purpose',
+    options: ['Commercial', 'Editorial', 'Personal project', 'Institutional', 'Experimental', 'Cultural', 'Social impact', 'Educational', 'Speculative'],
   },
 ]
 
@@ -512,6 +537,26 @@ function hsvToHex(h: number, s: number, v: number): string {
   else              { r = c; g = 0; b = x }
   const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0').toUpperCase()
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+// "#RRGGBB" or "RRGGBB" → HSV
+function hexToHsv(hex: string): { h: number; s: number; v: number } | null {
+  const clean = hex.replace('#', '')
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null
+  const r = parseInt(clean.slice(0, 2), 16) / 255
+  const g = parseInt(clean.slice(2, 4), 16) / 255
+  const b = parseInt(clean.slice(4, 6), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
+  const v = max
+  const s = max === 0 ? 0 : d / max
+  let h = 0
+  if (d !== 0) {
+    if (max === r)      h = ((g - b) / d + 6) % 6
+    else if (max === g) h = (b - r) / d + 2
+    else                h = (r - g) / d + 4
+    h = Math.round(h * 60)
+  }
+  return { h, s, v }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -548,6 +593,7 @@ export default function FilterDrawer({
   const [pickerHue, setPickerHue] = useState(0)
   const [pickerSV, setPickerSV] = useState({ s: 0, v: 1 })
   const [colorActive, setColorActive] = useState(false)
+  const [hexInput, setHexInput] = useState('')
   const gradientRef = useRef<HTMLDivElement>(null)
   const hueSliderRef = useRef<HTMLDivElement>(null)
 
@@ -561,6 +607,7 @@ export default function FilterDrawer({
       setPickerHue(0)
       setPickerSV({ s: 0, v: 1 })
       setColorActive(false)
+      setHexInput('')
     }
   }, [isOpen, selectedDiscipline])
 
@@ -642,14 +689,27 @@ export default function FilterDrawer({
     const v = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height))
     setPickerSV({ s, v })
     setColorActive(true)
+    setHexInput(hsvToHex(pickerHue, s, v))
   }
 
   const updateHue = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!hueSliderRef.current) return
     const rect = hueSliderRef.current.getBoundingClientRect()
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    setPickerHue(Math.round(x * 360))
+    const newHue = Math.round(x * 360)
+    setPickerHue(newHue)
     setColorActive(true)
+    setHexInput(hsvToHex(newHue, pickerSV.s, pickerSV.v))
+  }
+
+  const handleHexInput = (raw: string) => {
+    setHexInput(raw)
+    const hsv = hexToHsv(raw)
+    if (hsv) {
+      setPickerHue(hsv.h)
+      setPickerSV({ s: hsv.s, v: hsv.v })
+      setColorActive(true)
+    }
   }
 
   const toggleAdvancedOption = (key: string, value: string) => {
@@ -921,6 +981,31 @@ export default function FilterDrawer({
                         backgroundColor: `hsl(${pickerHue}, 100%, 50%)`,
                       }}
                     />
+                  </div>
+
+                  {/* Hex input */}
+                  <div className="flex items-center gap-2.5 mt-4">
+                    {/* Swatch preview */}
+                    <div
+                      className="w-8 h-8 rounded-md border border-neutral-200 flex-shrink-0"
+                      style={{ backgroundColor: colorActive ? hsvToHex(pickerHue, pickerSV.s, pickerSV.v) : '#ffffff' }}
+                    />
+                    <div className="flex items-center flex-1 border border-neutral-200 rounded-lg overflow-hidden focus-within:border-neutral-400 transition-colors">
+                      <span className="pl-3 pr-1 text-xs text-neutral-400 font-mono select-none">#</span>
+                      <input
+                        type="text"
+                        value={hexInput.replace('#', '')}
+                        onChange={(e) => handleHexInput(e.target.value)}
+                        onBlur={(e) => {
+                          const hex = e.target.value.replace('#', '')
+                          if (hex.length === 6) handleHexInput(hex)
+                        }}
+                        placeholder="e.g. 1708FF"
+                        maxLength={6}
+                        spellCheck={false}
+                        className="flex-1 py-2 pr-3 text-xs font-mono text-[#101010] placeholder-neutral-300 bg-transparent outline-none uppercase"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
