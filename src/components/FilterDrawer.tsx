@@ -533,6 +533,12 @@ export default function FilterDrawer({
     setSelections([])
   }
 
+  // Navigate TO level i (keep navPath[0..i] inclusive)
+  const goToLevel = (i: number) => {
+    setNavPath(navPath.slice(0, i + 1))
+    setSelections([])
+  }
+
   const handleCardClick = (item: TreeNode) => {
     const hasChildren = (item.children?.length ?? 0) > 0
     if (hasChildren) {
@@ -671,18 +677,18 @@ export default function FilterDrawer({
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
               <div
                 className="grid grid-cols-2 gap-2 pb-2"
-                style={{ gridAutoRows: '150px' }}
+                style={{ gridAutoRows: '75px' }}
               >
-                {/* Root featured — col1, row-span-2, always black */}
+                {/* Root featured — col1, row-span-2 → same visual height as level-1 cards */}
                 {rootNode && (
                   <button
                     key="root-featured"
                     type="button"
-                    onClick={() => goBack(0)}
+                    onClick={() => goToLevel(0)}
                     style={{ gridColumn: 1, gridRow: '1 / span 2' }}
                     className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left"
                   >
-                    <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
                       <p className="font-semibold text-sm leading-snug text-white">{navPath[0]}</p>
                       {rootNode.count && (
                         <p className="text-xs mt-0.5 text-white/50">{rootNode.count}</p>
@@ -691,18 +697,18 @@ export default function FilterDrawer({
                   </button>
                 )}
 
-                {/* Path items — col2, one per row, always black */}
+                {/* Path items — col2, one per row (75px each), always black */}
                 {pathItems.map((name, i) => {
                   const node = getNodeByPath(CATEGORY_TREE, navPath.slice(0, i + 2))
                   return (
                     <button
                       key={`path-${name}`}
                       type="button"
-                      onClick={() => goBack(i + 1)}
+                      onClick={() => goToLevel(i + 1)}
                       style={{ gridColumn: 2, gridRow: i + 1 }}
                       className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left"
                     >
-                      <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
                         <p className="font-semibold text-sm leading-snug text-white">{name}</p>
                         {node?.count && (
                           <p className="text-xs mt-0.5 text-white/50">{node.count}</p>
@@ -727,12 +733,12 @@ export default function FilterDrawer({
                     >
                       {hasChildren && (
                         <ChevronRight
-                          className={`absolute top-3 right-3 w-4 h-4 ${
+                          className={`absolute top-2.5 right-2.5 w-3.5 h-3.5 ${
                             isSelected ? 'text-white/40' : 'text-neutral-400'
                           }`}
                         />
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
                         <p
                           className={`font-semibold text-sm leading-snug ${
                             isSelected ? 'text-white' : 'text-[#101010]'
