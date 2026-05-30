@@ -16,10 +16,11 @@ interface HeaderProps {
 export default function Header({ onCreateClick }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, feedTab, setFeedTab, inboxTab, setInboxTab, setFilterDrawerOpen } = useApp();
+  const { profile, feedTab, setFeedTab, inboxTab, setInboxTab, postsTab, setPostsTab, setFilterDrawerOpen } = useApp();
   const isHome = pathname === '/';
   const isExplore = pathname === '/explore';
   const isInbox = pathname === '/inbox';
+  const isPosts = pathname === '/posts';
 
   const handleSignOut = async () => {
     try {
@@ -69,7 +70,7 @@ export default function Header({ onCreateClick }: HeaderProps) {
         </div>
 
         {/* CENTER: tab toggle — absolutely centered */}
-        {(isHome || isInbox) && (
+        {(isHome || isInbox || isPosts) && (
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
             <div className="flex items-center bg-neutral-100 rounded-full p-0.5 gap-0.5">
               {isHome && (
@@ -82,6 +83,12 @@ export default function Header({ onCreateClick }: HeaderProps) {
                 <>
                   <button onClick={() => setInboxTab('messages')} className={`px-5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${inboxTab === 'messages' ? 'bg-[#101010] text-white' : 'text-text-secondary hover:text-text-primary'}`}>Messages</button>
                   <button onClick={() => setInboxTab('communities')} className={`px-5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${inboxTab === 'communities' ? 'bg-[#101010] text-white' : 'text-text-secondary hover:text-text-primary'}`}>Communities</button>
+                </>
+              )}
+              {isPosts && (
+                <>
+                  <button onClick={() => setPostsTab('everyone')} className={`px-5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${postsTab === 'everyone' ? 'bg-[#101010] text-white' : 'text-text-secondary hover:text-text-primary'}`}>Everyone</button>
+                  <button onClick={() => setPostsTab('following')} className={`px-5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${postsTab === 'following' ? 'bg-[#101010] text-white' : 'text-text-secondary hover:text-text-primary'}`}>Following</button>
                 </>
               )}
             </div>
@@ -167,7 +174,7 @@ export default function Header({ onCreateClick }: HeaderProps) {
           <Plus className="w-5 h-5 stroke-[2.5]" />
         </button>
 
-        {/* Center: Custom tab selector pill for 'For you' / 'All' */}
+        {/* Center: Custom tab selector pill */}
         {isHome ? (
           <div className="flex items-center bg-neutral-200/60 p-0.5 rounded-full border border-neutral-300/10 shadow-inner">
             <button
@@ -191,9 +198,32 @@ export default function Header({ onCreateClick }: HeaderProps) {
               All
             </button>
           </div>
+        ) : isPosts ? (
+          <div className="flex items-center bg-neutral-200/60 p-0.5 rounded-full border border-neutral-300/10 shadow-inner">
+            <button
+              onClick={() => setPostsTab('everyone')}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-tight transition-all duration-200 cursor-pointer ${
+                postsTab === 'everyone'
+                  ? 'bg-white text-[#101010] shadow-sm'
+                  : 'text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              Everyone
+            </button>
+            <button
+              onClick={() => setPostsTab('following')}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-tight transition-all duration-200 cursor-pointer ${
+                postsTab === 'following'
+                  ? 'bg-white text-[#101010] shadow-sm'
+                  : 'text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              Following
+            </button>
+          </div>
         ) : (
           <span className="font-display font-black text-sm uppercase tracking-widest text-[#101010]">
-            {pathname === '/explore' ? 'Explore' : pathname === '/inbox' ? 'Inbox' : pathname === '/posts' ? 'Timeline' : 'BareFolio'}
+            {pathname === '/explore' ? 'Explore' : pathname === '/inbox' ? 'Inbox' : 'BareFolio'}
           </span>
         )}
 
