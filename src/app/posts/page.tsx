@@ -42,8 +42,7 @@ function dbRowToPost(row: any): Post {
   else if (hasLink) type = 'text-link';
   else type = 'text';
 
-  const fullName: string =
-    row.profiles?.full_name || row.profiles?.name || 'Unknown';
+  const fullName: string = row.profiles?.full_name || 'Unknown';
   const initials = fullName.slice(0, 2).toUpperCase();
 
   return {
@@ -264,13 +263,16 @@ export default function PostsPage() {
   const [loadingPosts, setLoadingPosts] = useState(true);
 
   const fetchPosts = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setLoadingPosts(false);
+      return;
+    }
     setLoadingPosts(true);
 
     let query = supabase
       .from('posts')
       .select(`
-        id, creator_id, content, media_urls, link, visibility, tags, created_at,
+        id, creator_id, content, media_urls, link, visibility, created_at,
         profiles:creator_id (full_name, avatar_url, location, username)
       `)
       .order('created_at', { ascending: false })
@@ -295,7 +297,14 @@ export default function PostsPage() {
     if (error) {
       console.error('Error fetching posts:', error);
     } else {
-      setPosts((data ?? []).map(dbRowToPost));
+      setPosts(prev => {
+        const existing = new Map(prev.map(p => [p.id, p]));
+        return (data ?? []).map(row => {
+          const mapped = dbRowToPost(row);
+          const old = existing.get(mapped.id);
+          return old ? { ...mapped, liked: old.liked, saved: old.saved } : mapped;
+        });
+      });
     }
     setLoadingPosts(false);
   }, [currentUser, postsTab]);
