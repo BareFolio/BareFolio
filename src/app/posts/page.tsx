@@ -408,7 +408,7 @@ export default function PostsPage() {
             No posts from people you follow yet.
           </div>
         ) : (
-          (posts.length > 0 ? posts : DEMO_POSTS).map(post => {
+          (postsTab === 'everyone' ? [...posts, ...DEMO_POSTS] : posts).map(post => {
             const props = {
               post,
               onLike: () => toggle(post.id, 'liked'),
