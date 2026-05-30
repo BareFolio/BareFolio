@@ -24,3 +24,18 @@ CREATE POLICY "posts_select_visibility" ON public.posts
         AND following_id = creator_id
     )
   );
+
+-- Correct write-side policies to use creator_id (the live DB column name)
+-- These replace the policies from 001 that incorrectly referenced user_id.
+DROP POLICY IF EXISTS "posts_insert_own" ON public.posts;
+DROP POLICY IF EXISTS "posts_update_own" ON public.posts;
+DROP POLICY IF EXISTS "posts_delete_own" ON public.posts;
+
+CREATE POLICY "posts_insert_own" ON public.posts
+  FOR INSERT WITH CHECK (auth.uid() = creator_id);
+
+CREATE POLICY "posts_update_own" ON public.posts
+  FOR UPDATE USING (auth.uid() = creator_id);
+
+CREATE POLICY "posts_delete_own" ON public.posts
+  FOR DELETE USING (auth.uid() = creator_id);
