@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Heart, MessageSquare, Share2, Bookmark, MoreHorizontal } from 'lucide-react';
 import { useApp } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,70 +29,41 @@ interface Post {
   saved: boolean;
 }
 
-// ── Demo data ─────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const DEMO_POSTS: Post[] = [
-  {
-    id: 'p1',
-    type: 'fullsize',
-    author: { name: 'Victor Chaves', initials: 'VC' },
-    location: 'Barcelona',
-    year: 2025,
-    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
-    images: ['https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=800&q=80'],
-    tags: ['Project', 'Graphic Design', 'Packaging'],
+function dbRowToPost(row: any): Post {
+  const mediaUrls: string[] = row.media_urls ?? [];
+  const hasImages = mediaUrls.length > 0;
+  const hasLink = Boolean(row.link);
+
+  let type: PostType;
+  if (hasImages && mediaUrls.length > 1) type = 'carousel';
+  else if (hasImages) type = 'image-text';
+  else if (hasLink) type = 'text-link';
+  else type = 'text';
+
+  const fullName: string =
+    row.profiles?.full_name || row.profiles?.name || 'Unknown';
+  const initials = fullName.slice(0, 2).toUpperCase();
+
+  return {
+    id: row.id,
+    type,
+    author: {
+      name: fullName,
+      initials,
+      avatarUrl: row.profiles?.avatar_url ?? undefined,
+    },
+    location: row.profiles?.location ?? '',
+    year: new Date(row.created_at).getFullYear(),
+    content: row.content,
+    link: row.link ?? undefined,
+    images: hasImages ? mediaUrls : undefined,
+    tags: row.tags ?? undefined,
     liked: false,
     saved: false,
-  },
-  {
-    id: 'p2',
-    type: 'carousel',
-    author: { name: 'Victor Chaves', initials: 'VC' },
-    location: 'Barcelona',
-    year: 2025,
-    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
-    images: [
-      'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1542621334-a254cf47733d?auto=format&fit=crop&w=800&q=80',
-    ],
-    tags: ['Project', 'Graphic Design', 'Packaging'],
-    liked: false,
-    saved: false,
-  },
-  {
-    id: 'p3',
-    type: 'image-text',
-    author: { name: 'Victor Chaves', initials: 'VC' },
-    location: 'Barcelona',
-    year: 2025,
-    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
-    images: ['https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=800&q=80'],
-    liked: false,
-    saved: false,
-  },
-  {
-    id: 'p4',
-    type: 'text-link',
-    author: { name: 'Victor Chaves', initials: 'VC' },
-    location: 'Barcelona',
-    year: 2025,
-    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
-    link: 'victxrchaves.com',
-    liked: false,
-    saved: false,
-  },
-  {
-    id: 'p5',
-    type: 'text',
-    author: { name: 'Victor Chaves', initials: 'VC' },
-    location: 'Barcelona',
-    year: 2025,
-    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
-    liked: false,
-    saved: false,
-  },
-];
+  };
+}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -287,8 +259,64 @@ function TextPost({ post, onLike, onSave }: { post: Post; onLike: () => void; on
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PostsPage() {
-  const [posts, setPosts] = useState<Post[]>(DEMO_POSTS);
-  const { setCreatePickerOpen } = useApp();
+  const { setCreatePickerOpen, postsTab, currentUser } = useApp();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  const fetchPosts = useCallback(async () => {
+    if (!currentUser) return;
+    setLoadingPosts(true);
+
+    let query = supabase
+      .from('posts')
+      .select(`
+        id, creator_id, content, media_urls, link, visibility, tags, created_at,
+        profiles:creator_id (full_name, avatar_url, location, username)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (postsTab === 'following') {
+      const { data: followingRows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', currentUser.id);
+
+      const followingIds = (followingRows ?? []).map((r: any) => r.following_id);
+      if (followingIds.length === 0) {
+        setPosts([]);
+        setLoadingPosts(false);
+        return;
+      }
+      query = query.in('creator_id', followingIds);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching posts:', error);
+    } else {
+      setPosts((data ?? []).map(dbRowToPost));
+    }
+    setLoadingPosts(false);
+  }, [currentUser, postsTab]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const channel = supabase
+      .channel('posts-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        () => { fetchPosts(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [currentUser, fetchPosts]);
 
   const toggle = (id: string, field: 'liked' | 'saved') => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, [field]: !p[field] } : p));
@@ -296,29 +324,41 @@ export default function PostsPage() {
 
   return (
     <>
-    <div className="max-w-md mx-auto space-y-4">
-      {posts.map(post => {
-        const props = {
-          post,
-          onLike: () => toggle(post.id, 'liked'),
-          onSave: () => toggle(post.id, 'saved'),
-        };
+      <div className="max-w-md mx-auto space-y-4">
+        {loadingPosts ? (
+          <div className="flex justify-center py-20">
+            <div className="w-6 h-6 border-2 border-neutral-300 border-t-neutral-800 rounded-full animate-spin" />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-20 text-neutral-400 text-sm">
+            {postsTab === 'following'
+              ? 'No posts from people you follow yet.'
+              : 'No posts yet. Be the first to share something!'}
+          </div>
+        ) : (
+          posts.map(post => {
+            const props = {
+              post,
+              onLike: () => toggle(post.id, 'liked'),
+              onSave: () => toggle(post.id, 'saved'),
+            };
 
-        if (post.type === 'fullsize') return <FullsizePost key={post.id} {...props} />;
-        if (post.type === 'carousel') return <CarouselPost key={post.id} {...props} />;
-        if (post.type === 'image-text') return <ImageTextPost key={post.id} {...props} />;
-        return <TextPost key={post.id} {...props} />;
-      })}
-    </div>
+            if (post.type === 'fullsize') return <FullsizePost key={post.id} {...props} />;
+            if (post.type === 'carousel') return <CarouselPost key={post.id} {...props} />;
+            if (post.type === 'image-text') return <ImageTextPost key={post.id} {...props} />;
+            return <TextPost key={post.id} {...props} />;
+          })
+        )}
+      </div>
 
-    {/* Fixed FAB */}
-    <button
-      onClick={() => setCreatePickerOpen(true)}
-      className="fixed bottom-10 right-8 z-50 flex items-center gap-2 bg-[#101010] text-white text-sm font-semibold px-5 py-3 rounded-full shadow-lg hover:bg-neutral-700 transition-all duration-200 cursor-pointer"
-    >
-      <span className="text-lg leading-none">+</span>
-      New post
-    </button>
+      {/* Fixed FAB */}
+      <button
+        onClick={() => setCreatePickerOpen(true)}
+        className="fixed bottom-10 right-8 z-50 flex items-center gap-2 bg-[#101010] text-white text-sm font-semibold px-5 py-3 rounded-full shadow-lg hover:bg-neutral-700 transition-all duration-200 cursor-pointer"
+      >
+        <span className="text-lg leading-none">+</span>
+        New post
+      </button>
     </>
   );
 }
