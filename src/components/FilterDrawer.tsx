@@ -650,34 +650,36 @@ export default function FilterDrawer({
             </h2>
           )}
 
-          {/* ── ROOT grid: fills height, 6 equal cards ── */}
+          {/* ── ROOT grid: 160px rows, scrollable if needed ── */}
           {navPath.length === 0 ? (
-            <div
-              className="flex-1 grid grid-cols-2 gap-2 min-h-0"
-              style={{ gridAutoRows: '1fr' }}
-            >
-              {currentItems.map((item) => (
-                <button
-                  type="button"
-                  key={item.name}
-                  onClick={() => handleCardClick(item)}
-                  className="relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors bg-neutral-100 hover:bg-neutral-200 w-full h-full"
-                >
-                  <div className="absolute bottom-0 left-0 right-0 p-3.5">
-                    <p className="font-semibold text-sm leading-snug text-[#101010]">{item.name}</p>
-                    {item.count && (
-                      <p className="text-xs mt-0.5 text-neutral-500">{item.count}</p>
-                    )}
-                  </div>
-                </button>
-              ))}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+              <div
+                className="grid grid-cols-2 gap-2 pb-2"
+                style={{ gridAutoRows: '160px' }}
+              >
+                {currentItems.map((item) => (
+                  <button
+                    type="button"
+                    key={item.name}
+                    onClick={() => handleCardClick(item)}
+                    className="relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors bg-neutral-100 hover:bg-neutral-200"
+                  >
+                    <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                      <p className="font-semibold text-sm leading-snug text-[#101010]">{item.name}</p>
+                      {item.count && (
+                        <p className="text-xs mt-0.5 text-neutral-500">{item.count}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             /* ── DEEP grid: fixed row heights, scrollable ── */
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
               <div
                 className="grid grid-cols-2 gap-2 pb-2"
-                style={{ gridAutoRows: '75px' }}
+                style={{ gridAutoRows: '76px' }}
               >
                 {/* Root featured — col1, row-span-2 → same visual height as level-1 cards */}
                 {rootNode && (
