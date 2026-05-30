@@ -29,6 +29,71 @@ interface Post {
   saved: boolean;
 }
 
+// ── Demo data (shown in Everyone tab until real posts populate) ───────────────
+
+const DEMO_POSTS: Post[] = [
+  {
+    id: 'demo-p1',
+    type: 'fullsize',
+    author: { name: 'Victor Chaves', initials: 'VC' },
+    location: 'Barcelona',
+    year: 2025,
+    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
+    images: ['https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=800&q=80'],
+    tags: ['Project', 'Graphic Design', 'Packaging'],
+    liked: false,
+    saved: false,
+  },
+  {
+    id: 'demo-p2',
+    type: 'carousel',
+    author: { name: 'Victor Chaves', initials: 'VC' },
+    location: 'Barcelona',
+    year: 2025,
+    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
+    images: [
+      'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1542621334-a254cf47733d?auto=format&fit=crop&w=800&q=80',
+    ],
+    tags: ['Project', 'Graphic Design', 'Packaging'],
+    liked: false,
+    saved: false,
+  },
+  {
+    id: 'demo-p3',
+    type: 'image-text',
+    author: { name: 'Victor Chaves', initials: 'VC' },
+    location: 'Barcelona',
+    year: 2025,
+    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
+    images: ['https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=800&q=80'],
+    liked: false,
+    saved: false,
+  },
+  {
+    id: 'demo-p4',
+    type: 'text-link',
+    author: { name: 'Victor Chaves', initials: 'VC' },
+    location: 'Barcelona',
+    year: 2025,
+    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
+    link: 'victxrchaves.com',
+    liked: false,
+    saved: false,
+  },
+  {
+    id: 'demo-p5',
+    type: 'text',
+    author: { name: 'Victor Chaves', initials: 'VC' },
+    location: 'Barcelona',
+    year: 2025,
+    content: 'This advanced facial serum delivers intense hydration while improving skin tone texture. Powered by antioxidants and botanical extracts, it helps reduce the look of fine lines and dullness.',
+    liked: false,
+    saved: false,
+  },
+];
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function dbRowToPost(row: any): Post {
@@ -338,14 +403,12 @@ export default function PostsPage() {
           <div className="flex justify-center py-20">
             <div className="w-6 h-6 border-2 border-neutral-300 border-t-neutral-800 rounded-full animate-spin" />
           </div>
-        ) : posts.length === 0 ? (
+        ) : posts.length === 0 && postsTab === 'following' ? (
           <div className="text-center py-20 text-neutral-400 text-sm">
-            {postsTab === 'following'
-              ? 'No posts from people you follow yet.'
-              : 'No posts yet. Be the first to share something!'}
+            No posts from people you follow yet.
           </div>
         ) : (
-          posts.map(post => {
+          (posts.length > 0 ? posts : DEMO_POSTS).map(post => {
             const props = {
               post,
               onLike: () => toggle(post.id, 'liked'),
