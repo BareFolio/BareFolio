@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, ChevronRight } from 'lucide-react'
+import { X, ChevronRight, ChevronDown } from 'lucide-react'
 
 interface TreeNode {
   name: string
@@ -467,6 +467,60 @@ const CATEGORY_TREE: TreeNode[] = [
   },
 ]
 
+// ─── Advanced Filters ────────────────────────────────────────────────────────
+
+type AdvancedFilter =
+  | { key: string; label: string; type: 'color'; options: { name: string; hex: string }[] }
+  | { key: string; label: string; type: 'chips'; options: string[] }
+
+const ADVANCED_FILTERS: AdvancedFilter[] = [
+  {
+    key: 'color',
+    label: 'Color',
+    type: 'color',
+    options: [
+      { name: 'Black',   hex: '#101010' },
+      { name: 'White',   hex: '#F5F5F5' },
+      { name: 'Red',     hex: '#EF4444' },
+      { name: 'Orange',  hex: '#F97316' },
+      { name: 'Yellow',  hex: '#EAB308' },
+      { name: 'Green',   hex: '#22C55E' },
+      { name: 'Blue',    hex: '#3B82F6' },
+      { name: 'Violet',  hex: '#8B5CF6' },
+      { name: 'Pink',    hex: '#EC4899' },
+      { name: 'Brown',   hex: '#92400E' },
+      { name: 'Gray',    hex: '#9CA3AF' },
+      { name: 'Beige',   hex: '#D4B896' },
+    ],
+  },
+  {
+    key: 'visualLanguage',
+    label: 'Visual language',
+    type: 'chips',
+    options: ['Minimalist', 'Maximalist', 'Classic', 'Contemporary', 'Vintage', 'Abstract', 'Geometric', 'Organic', 'Bold', 'Expressive'],
+  },
+  {
+    key: 'format',
+    label: 'Format',
+    type: 'chips',
+    options: ['Portrait', 'Landscape', 'Square', 'Panoramic', 'Print', 'Digital', 'Social', 'Poster', 'Book'],
+  },
+  {
+    key: 'composition',
+    label: 'Composition',
+    type: 'chips',
+    options: ['Rule of Thirds', 'Centered', 'Symmetrical', 'Asymmetrical', 'Diagonal', 'Grid', 'Negative Space', 'Full Bleed'],
+  },
+  {
+    key: 'typography',
+    label: 'Typography',
+    type: 'chips',
+    options: ['Serif', 'Sans-serif', 'Display', 'Script', 'Monospace', 'Hand-lettering', 'Mixed', 'All-caps'],
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getNodeByPath(tree: TreeNode[], path: string[]): TreeNode | null {
   if (path.length === 0) return null
   const node = tree.find((n) => n.name === path[0])
@@ -492,11 +546,17 @@ export default function FilterDrawer({
 }: FilterDrawerProps) {
   const [navPath, setNavPath] = useState<string[]>([])
   const [selections, setSelections] = useState<string[]>([])
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null)
+  const [advancedSelections, setAdvancedSelections] = useState<Record<string, string[]>>({})
 
   useEffect(() => {
     if (isOpen) {
       setNavPath([])
       setSelections(selectedDiscipline ? [selectedDiscipline] : [])
+      setAdvancedOpen(false)
+      setOpenAccordion(null)
+      setAdvancedSelections({})
     }
   }, [isOpen, selectedDiscipline])
 
@@ -568,6 +628,21 @@ export default function FilterDrawer({
   const selChips = selections.map((name) => ({ name, type: 'sel' as const, idx: -1 }))
   const allChips = [...navChips, ...selChips]
 
+  const toggleAccordion = (key: string) =>
+    setOpenAccordion((prev) => (prev === key ? null : key))
+
+  const toggleAdvancedOption = (key: string, value: string) => {
+    setAdvancedSelections((prev) => {
+      const current = prev[key] ?? []
+      return {
+        ...prev,
+        [key]: current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value],
+      }
+    })
+  }
+
   return (
     <>
       <div
@@ -577,149 +652,252 @@ export default function FilterDrawer({
         onClick={onClose}
       />
 
+      {/* Two-panel drawer: expands right when Advanced is open */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="filter-drawer-title"
-        className={`fixed right-0 top-0 h-full z-50 bg-white w-full sm:w-[420px] flex flex-col shadow-2xl transform transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className="fixed right-0 top-0 h-full z-50 bg-white flex flex-row shadow-2xl overflow-hidden"
+        style={{
+          width: advancedOpen ? 'min(820px, 100vw)' : 'min(420px, 100vw)',
+          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.3s ease-out, width 0.3s ease-out',
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100 flex-shrink-0">
-          <button onClick={onClose} aria-label="Close filters"
-            className="text-neutral-500 hover:text-[#101010] transition-colors cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
-          <span id="filter-drawer-title" className="text-sm font-bold text-[#101010]">Filters</span>
-          <button onClick={handleReset} disabled={!hasActiveFilter}
-            className={`text-sm font-medium transition-colors cursor-pointer ${
-              hasActiveFilter ? 'text-[#101010] hover:text-neutral-500' : 'text-neutral-300 cursor-default'
-            }`}>
-            Reset
-          </button>
-        </div>
+        {/* ── LEFT PANEL: category filter ───────────────────────────────── */}
+        <div className="w-[420px] flex-shrink-0 flex flex-col h-full">
 
-        {/* Body */}
-        <div className="flex-1 flex flex-col overflow-hidden px-5 py-5">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100 flex-shrink-0">
+            <button onClick={onClose} aria-label="Close filters"
+              className="text-neutral-500 hover:text-[#101010] transition-colors cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+            <span id="filter-drawer-title" className="text-sm font-bold text-[#101010]">Filters</span>
+            <button onClick={handleReset} disabled={!hasActiveFilter}
+              className={`text-sm font-medium transition-colors cursor-pointer ${
+                hasActiveFilter ? 'text-[#101010] hover:text-neutral-500' : 'text-neutral-300 cursor-default'
+              }`}>
+              Reset
+            </button>
+          </div>
 
-          {/* Chips */}
-          {allChips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3 flex-shrink-0">
-              {allChips.map((chip) => (
-                <button
-                  key={`${chip.type}-${chip.name}`}
-                  onClick={() => chip.type === 'nav' ? goBack(chip.idx) : removeSelection(chip.name)}
-                  className="flex items-center gap-1 bg-[#101010] text-white text-xs font-semibold px-3 py-1 rounded-full cursor-pointer hover:bg-neutral-700 transition-colors"
-                >
-                  <span>{chip.name}</span>
-                  <X className="w-2.5 h-2.5 flex-shrink-0" />
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Body */}
+          <div className="flex-1 flex flex-col overflow-hidden px-5 py-5">
 
-          {/* Title — root only */}
-          {navPath.length === 0 && (
-            <h2 className="text-xl font-bold text-[#101010] mb-4 flex-shrink-0">
-              What are you looking for?
-            </h2>
-          )}
-
-          {/* ROOT grid: 160px rows */}
-          {navPath.length === 0 ? (
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-              <div className="grid grid-cols-2 gap-2 pb-2" style={{ gridAutoRows: '160px' }}>
-                {currentItems.map((item) => (
-                  <button type="button" key={item.name}
-                    onClick={() => handleCardClick(item)}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors bg-neutral-100 hover:bg-neutral-200">
-                    <div className="absolute bottom-0 left-0 right-0 p-3.5">
-                      <p className="font-semibold text-sm leading-snug text-[#101010]">{item.name}</p>
-                      {item.count && <p className="text-xs mt-0.5 text-neutral-500">{item.count}</p>}
-                    </div>
+            {/* Chips */}
+            {allChips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3 flex-shrink-0">
+                {allChips.map((chip) => (
+                  <button
+                    key={`${chip.type}-${chip.name}`}
+                    onClick={() => chip.type === 'nav' ? goBack(chip.idx) : removeSelection(chip.name)}
+                    className="flex items-center gap-1 bg-[#101010] text-white text-xs font-semibold px-3 py-1 rounded-full cursor-pointer hover:bg-neutral-700 transition-colors"
+                  >
+                    <span>{chip.name}</span>
+                    <X className="w-2.5 h-2.5 flex-shrink-0" />
                   </button>
                 ))}
               </div>
-            </div>
-          ) : (
-            /* DEEP grid: 76px rows, featured (row-span-2) = 160px = same as root */
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-              <div className="grid grid-cols-2 gap-2 pb-2" style={{ gridAutoRows: '76px' }}>
+            )}
 
-                {/* Root featured — col1, row-span-2 → 160px */}
-                {rootNode && (
-                  <button key="root-featured" type="button"
-                    onClick={() => goToLevel(0)}
-                    style={{ gridColumn: 1, gridRow: '1 / span 2' }}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left">
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <p className="font-semibold text-sm leading-snug text-white">{navPath[0]}</p>
-                      {rootNode.count && <p className="text-xs mt-0.5 text-white/50">{rootNode.count}</p>}
-                    </div>
-                  </button>
-                )}
+            {/* Title — root only */}
+            {navPath.length === 0 && (
+              <h2 className="text-xl font-bold text-[#101010] mb-4 flex-shrink-0">
+                What are you looking for?
+              </h2>
+            )}
 
-                {/* Path items — col2, one per row */}
-                {pathItems.map((name, i) => {
-                  const node = getNodeByPath(CATEGORY_TREE, navPath.slice(0, i + 2))
-                  return (
-                    <button key={`path-${name}`} type="button"
-                      onClick={() => goToLevel(i + 1)}
-                      style={{ gridColumn: 2, gridRow: i + 1 }}
-                      className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="font-semibold text-sm leading-snug text-white">{name}</p>
-                        {node?.count && <p className="text-xs mt-0.5 text-white/50">{node.count}</p>}
-                      </div>
-                    </button>
-                  )
-                })}
-
-                {/* Current items — auto-placed */}
-                {currentItems.map((item) => {
-                  const isSelected = selections.includes(item.name)
-                  const hasChildren = (item.children?.length ?? 0) > 0
-                  return (
+            {/* ROOT grid: 160px rows */}
+            {navPath.length === 0 ? (
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                <div className="grid grid-cols-2 gap-2 pb-2" style={{ gridAutoRows: '160px' }}>
+                  {currentItems.map((item) => (
                     <button type="button" key={item.name}
                       onClick={() => handleCardClick(item)}
-                      className={`relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors w-full h-full ${
-                        isSelected ? 'bg-[#101010]' : 'bg-neutral-100 hover:bg-neutral-200'
-                      }`}>
-                      {hasChildren && (
-                        <ChevronRight className={`absolute top-2.5 right-2.5 w-3.5 h-3.5 ${
-                          isSelected ? 'text-white/40' : 'text-neutral-400'
-                        }`} />
-                      )}
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className={`font-semibold text-sm leading-snug ${
-                          isSelected ? 'text-white' : 'text-[#101010]'
-                        }`}>{item.name}</p>
-                        {item.count && (
-                          <p className={`text-xs mt-0.5 ${isSelected ? 'text-white/50' : 'text-neutral-500'}`}>
-                            {item.count}
-                          </p>
-                        )}
+                      className="relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors bg-neutral-100 hover:bg-neutral-200">
+                      <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                        <p className="font-semibold text-sm leading-snug text-[#101010]">{item.name}</p>
+                        {item.count && <p className="text-xs mt-0.5 text-neutral-500">{item.count}</p>}
                       </div>
                     </button>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
+            ) : (
+              /* DEEP grid: 76px rows, featured (row-span-2) = 160px = same as root */
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                <div className="grid grid-cols-2 gap-2 pb-2" style={{ gridAutoRows: '76px' }}>
+
+                  {/* Root featured — col1, row-span-2 → 160px */}
+                  {rootNode && (
+                    <button key="root-featured" type="button"
+                      onClick={() => goToLevel(0)}
+                      style={{ gridColumn: 1, gridRow: '1 / span 2' }}
+                      className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="font-semibold text-sm leading-snug text-white">{navPath[0]}</p>
+                        {rootNode.count && <p className="text-xs mt-0.5 text-white/50">{rootNode.count}</p>}
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Path items — col2, one per row */}
+                  {pathItems.map((name, i) => {
+                    const node = getNodeByPath(CATEGORY_TREE, navPath.slice(0, i + 2))
+                    return (
+                      <button key={`path-${name}`} type="button"
+                        onClick={() => goToLevel(i + 1)}
+                        style={{ gridColumn: 2, gridRow: i + 1 }}
+                        className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#101010] text-left">
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="font-semibold text-sm leading-snug text-white">{name}</p>
+                          {node?.count && <p className="text-xs mt-0.5 text-white/50">{node.count}</p>}
+                        </div>
+                      </button>
+                    )
+                  })}
+
+                  {/* Current items — auto-placed */}
+                  {currentItems.map((item) => {
+                    const isSelected = selections.includes(item.name)
+                    const hasChildren = (item.children?.length ?? 0) > 0
+                    return (
+                      <button type="button" key={item.name}
+                        onClick={() => handleCardClick(item)}
+                        className={`relative rounded-2xl overflow-hidden cursor-pointer text-left transition-colors w-full h-full ${
+                          isSelected ? 'bg-[#101010]' : 'bg-neutral-100 hover:bg-neutral-200'
+                        }`}>
+                        {hasChildren && (
+                          <ChevronRight className={`absolute top-2.5 right-2.5 w-3.5 h-3.5 ${
+                            isSelected ? 'text-white/40' : 'text-neutral-400'
+                          }`} />
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className={`font-semibold text-sm leading-snug ${
+                            isSelected ? 'text-white' : 'text-[#101010]'
+                          }`}>{item.name}</p>
+                          {item.count && (
+                            <p className={`text-xs mt-0.5 ${isSelected ? 'text-white/50' : 'text-neutral-500'}`}>
+                              {item.count}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-neutral-100 px-6 py-5 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={handleFilter}
+                className="border border-neutral-300 rounded-xl py-3 text-sm font-semibold cursor-pointer hover:border-[#101010] transition-colors">
+                Filter
+              </button>
+              <button
+                onClick={() => setAdvancedOpen((v) => !v)}
+                className={`rounded-xl py-3 text-sm font-semibold cursor-pointer transition-colors ${
+                  advancedOpen
+                    ? 'bg-neutral-100 text-[#101010] hover:bg-neutral-200'
+                    : 'bg-[#101010] text-white hover:bg-neutral-800'
+                }`}
+              >
+                Advanced
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-neutral-100 px-6 py-5 flex-shrink-0">
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={handleFilter}
-              className="border border-neutral-300 rounded-xl py-3 text-sm font-semibold cursor-pointer hover:border-[#101010] transition-colors">
-              Filter
-            </button>
-            <button onClick={() => { onAdvanced(); onClose() }}
-              className="bg-[#101010] text-white rounded-xl py-3 text-sm font-semibold cursor-pointer hover:bg-neutral-800 transition-colors">
-              Advanced
-            </button>
+        {/* ── RIGHT PANEL: advanced filters ─────────────────────────────── */}
+        <div
+          className="flex flex-col h-full border-l border-neutral-100 bg-white overflow-hidden"
+          style={{
+            width: advancedOpen ? '400px' : '0px',
+            opacity: advancedOpen ? 1 : 0,
+            transition: 'width 0.3s ease-out, opacity 0.2s ease-out',
+          }}
+        >
+          {/* Panel header */}
+          <div className="flex items-center px-6 py-5 border-b border-neutral-100 flex-shrink-0 min-w-[400px]">
+            <h2 className="text-sm font-bold text-[#101010]">Advanced Filters</h2>
+          </div>
+
+          {/* Accordion list */}
+          <div className="flex-1 overflow-y-auto min-w-[400px]">
+            {ADVANCED_FILTERS.map((filter) => {
+              const isAccordionOpen = openAccordion === filter.key
+              const selected = advancedSelections[filter.key] ?? []
+
+              return (
+                <div key={filter.key} className="border-b border-neutral-100">
+                  {/* Accordion header */}
+                  <button
+                    onClick={() => toggleAccordion(filter.key)}
+                    className="w-full flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-neutral-50 transition-colors text-left"
+                  >
+                    <span className={`text-sm transition-colors ${selected.length > 0 ? 'font-semibold text-[#101010]' : 'font-medium text-[#101010]'}`}>
+                      {filter.label}
+                      {selected.length > 0 && (
+                        <span className="ml-2 inline-flex items-center justify-center w-4 h-4 bg-[#101010] text-white text-[10px] font-bold rounded-full">
+                          {selected.length}
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-neutral-400 transition-transform duration-200 flex-shrink-0 ${
+                        isAccordionOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Accordion content */}
+                  <div
+                    className="overflow-hidden transition-all duration-200"
+                    style={{ maxHeight: isAccordionOpen ? '200px' : '0px' }}
+                  >
+                    <div className="px-6 pb-5 pt-1">
+                      {filter.type === 'color' ? (
+                        <div className="grid grid-cols-6 gap-2.5">
+                          {filter.options.map((color) => (
+                            <button
+                              key={color.name}
+                              onClick={() => toggleAdvancedOption(filter.key, color.name)}
+                              title={color.name}
+                              className={`w-9 h-9 rounded-full border-2 transition-all cursor-pointer ${
+                                selected.includes(color.name)
+                                  ? 'border-[#101010] scale-110 shadow-sm'
+                                  : 'border-neutral-200 hover:border-neutral-400'
+                              } ${color.name === 'White' ? 'border-neutral-200' : ''}`}
+                              style={{ backgroundColor: color.hex }}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {filter.options.map((option) => (
+                            <button
+                              key={option}
+                              onClick={() => toggleAdvancedOption(filter.key, option)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                                selected.includes(option)
+                                  ? 'bg-[#101010] text-white border-[#101010]'
+                                  : 'bg-white text-[#101010] border-neutral-200 hover:border-neutral-400'
+                              }`}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
