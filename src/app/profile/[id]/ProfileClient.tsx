@@ -35,7 +35,7 @@ interface ProfileData {
   uid: string;
   name: string;
   email: string;
-  role: 'seeker' | 'creator' | 'studio' | 'brand';
+  role: 'seeker' | 'creator' | 'studio' | 'brand' | 'organization';
   bio?: string;
   location?: string;
   avatarUrl?: string;
@@ -122,7 +122,6 @@ export default function ProfileClient() {
 
   // Follow
   const [isFollowing, setIsFollowing] = useState(false);
-  const [dbHasFullName, setDbHasFullName] = useState(false);
 
   // Posts interaction
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -140,92 +139,38 @@ export default function ProfileClient() {
 
     const fetchData = async () => {
       try {
-        // Check if targetId is a valid UUID (if not, it is a slug/username like 'alex-mcqueen')
+        // Check if targetId is a valid UUID (if not, it is a handle like 'alex-mcqueen')
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
-        
-        let query = supabase.from('profiles').select('*');
+
+        let query = supabase.from('accounts').select('*, creator_profiles(disciplines)');
         if (isUUID) {
           query = query.eq('id', targetId);
         } else {
-          // Format 'alex-mcqueen' to 'alex_mcqueen' to match the database username seed
-          const username = targetId.toLowerCase().replace(/-/g, '_');
-          query = query.eq('username', username);
+          // Format 'alex-mcqueen' to 'alex_mcqueen' to match handles
+          const handle = targetId.toLowerCase().replace(/-/g, '_');
+          query = query.eq('handle', handle);
         }
 
         const { data: pData, error: profileErr } = await query.maybeSingle();
 
         if (profileErr || !pData) {
-          // Auto-create missing profile row if it is their own profile (e.g. registered before schema trigger existed)
-          if (isMe && currentUser) {
-            const baseUsername = currentUser.email ? currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') : 'user';
-            const uniqueUsername = `${baseUsername}_${currentUser.id.slice(0, 6)}`;
-            
-            let insertResult = await supabase
-              .from('profiles')
-              .insert({
-                id: currentUser.id,
-                username: uniqueUsername,
-                full_name: currentUser.user_metadata?.full_name || baseUsername,
-                profile_type: 'creator'
-              })
-              .select('*')
-              .maybeSingle();
-
-            if (!insertResult.data) {
-              insertResult = await supabase
-                .from('profiles')
-                .insert({
-                  id: currentUser.id,
-                  username: uniqueUsername,
-                  name: currentUser.user_metadata?.full_name || baseUsername,
-                  email: currentUser.email || '',
-                  role: 'creator'
-                })
-                .select('*')
-                .maybeSingle();
-            }
-
-            const newProfile = insertResult.data;
-            if (newProfile) {
-              setDbHasFullName('full_name' in newProfile);
-              const fp: ProfileData = {
-                uid: newProfile.id,
-                name: newProfile.full_name || newProfile.name || newProfile.username || '',
-                email: newProfile.email || '',
-                role: (newProfile.profile_type || newProfile.role || 'creator') as ProfileData['role'],
-                bio: newProfile.bio || '',
-                location: newProfile.location || '',
-                avatarUrl: newProfile.avatar_url || '',
-                website: newProfile.website || '',
-                disciplines: newProfile.disciplines || [],
-                isVerified: newProfile.verified ?? newProfile.is_verified ?? false,
-                username: newProfile.username || '',
-                createdAt: newProfile.created_at,
-              };
-              setProfile(fp);
-              setLoading(false);
-              return;
-            }
-          }
           setProfile(null);
           setLoading(false);
           return;
         }
 
-        setDbHasFullName('full_name' in pData);
-
         const fp: ProfileData = {
           uid: pData.id,
-          name: pData.full_name || pData.name || pData.username || '',
-          email: pData.email || '',
-          role: (pData.profile_type || pData.role || 'creator') as ProfileData['role'],
+          name: pData.display_name || pData.handle || '',
+          email: '',
+          role: (pData.account_type || 'creator') as ProfileData['role'],
           bio: pData.bio || '',
           location: pData.location || '',
           avatarUrl: pData.avatar_url || '',
-          website: pData.website || '',
-          disciplines: pData.disciplines || [],
-          isVerified: pData.verified ?? pData.is_verified ?? false,
-          username: pData.username || '',
+          website: pData.website_url || '',
+          disciplines: pData.creator_profiles?.disciplines || [],
+          isVerified: pData.is_verified ?? false,
+          username: pData.handle || '',
           createdAt: pData.created_at,
         };
         setProfile(fp);
@@ -238,16 +183,15 @@ export default function ProfileClient() {
         const { data: projsData } = await supabase
           .from('projects')
           .select('*')
-          .eq('creator_id', targetId)
-          .eq('verification_status', 'approved')
-          .order('created_at', { ascending: false });
+          .eq('owner_account_id', targetId)
+          .order('published_at', { ascending: false });
 
         if (projsData) {
           setProjects(
             projsData.map((p: any) => ({
               id: p.id,
               title: p.title,
-              creatorId: p.creator_id,
+              creatorId: p.owner_account_id,
               description: p.description,
               coverUrl: p.cover_url,
               discipline: p.discipline,
@@ -261,20 +205,20 @@ export default function ProfileClient() {
         // Posts
         const { data: postsData } = await supabase
           .from('posts')
-          .select(`id, creator_id, content, created_at, media_urls, profiles:creator_id (full_name, avatar_url, username)`)
-          .eq('creator_id', targetId)
+          .select(`id, author_account_id, body, created_at, media_urls, accounts:author_account_id (display_name, avatar_url, handle)`)
+          .eq('author_account_id', targetId)
           .order('created_at', { ascending: false });
 
         if (postsData) {
           setProfilePosts(
             postsData.map((p: any) => ({
               id: p.id,
-              creator_id: p.creator_id,
-              content: p.content,
+              creator_id: p.author_account_id,
+              content: p.body,
               created_at: p.created_at,
               mediaUrls: p.media_urls || [],
-              authorName: p.profiles?.full_name || fp.name,
-              authorUsername: p.profiles?.username || fp.username,
+              authorName: p.accounts?.display_name || fp.name,
+              authorUsername: p.accounts?.handle || fp.username,
               likes: 0,
               liked: false,
               saved: false,
@@ -282,8 +226,8 @@ export default function ProfileClient() {
           );
         }
 
-        // Briefs (studio/brand only)
-        if (pData.profile_type === 'studio' || pData.profile_type === 'brand' || pData.role === 'studio' || pData.role === 'brand') {
+        // Briefs (organization only)
+        if (pData.account_type === 'organization') {
           const { data: briefsData } = await supabase
             .from('briefs')
             .select('*')
@@ -312,12 +256,12 @@ export default function ProfileClient() {
     fetchData();
 
     const ch1 = supabase
-      .channel(`prof-${targetId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${targetId}` }, fetchData)
+      .channel(`acc-${targetId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounts', filter: `id=eq.${targetId}` }, fetchData)
       .subscribe();
     const ch2 = supabase
       .channel(`proj-${targetId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `creator_id=eq.${targetId}` }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `owner_account_id=eq.${targetId}` }, fetchData)
       .subscribe();
 
     return () => {
@@ -393,19 +337,19 @@ export default function ProfileClient() {
     if (!currentUser || !isMe) return;
     setSaveLoading(true);
     try {
-      const updateData: any = {
+      // Update core account fields
+      await supabase.from('accounts').update({
+        display_name: editName.trim() || null,
         bio: editBio.trim() || null,
         location: editLocation.trim() || null,
+      }).eq('id', currentUser.id);
+
+      // Update disciplines in creator_profiles
+      await supabase.from('creator_profiles').upsert({
+        account_id: currentUser.id,
         disciplines: editDisciplines,
-      };
+      });
 
-      if (dbHasFullName) {
-        updateData.full_name = editName.trim() || null;
-      } else {
-        updateData.name = editName.trim() || null;
-      }
-
-      await supabase.from('profiles').update(updateData).eq('id', currentUser.id);
       setIsEditing(false);
     } catch (err) {
       console.error('Save profile error:', err);
@@ -454,7 +398,7 @@ export default function ProfileClient() {
     );
   }
 
-  const isScout = profile.role === 'studio' || profile.role === 'brand';
+  const isScout = profile.role === 'studio' || profile.role === 'brand' || profile.role === 'organization';
   const disciplines = profile.disciplines?.length
     ? profile.disciplines.join(' | ')
     : profile.role.charAt(0).toUpperCase() + profile.role.slice(1);

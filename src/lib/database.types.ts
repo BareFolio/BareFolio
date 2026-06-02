@@ -1,4 +1,4 @@
-export type ProfileType = 'creator' | 'seeker' | 'studio' | 'brand'
+export type ProfileType = 'creator' | 'seeker' | 'studio' | 'brand' | 'organization'
 export type VerificationStatus = 'pending' | 'approved' | 'rejected'
 export type ContentType = 'project' | 'post' | 'brief'
 

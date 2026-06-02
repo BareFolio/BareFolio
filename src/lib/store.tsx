@@ -23,16 +23,16 @@ export interface UserProfile {
 function mapProfile(data: any): UserProfile {
   return {
     uid: data.id,
-    username: data.username,
-    full_name: data.full_name || data.name || null,
-    email: data.email || '',
-    profile_type: (data.profile_type || data.role || 'creator') as ProfileType,
-    bio: data.bio || null,
-    location: data.location || null,
-    avatar_url: data.avatar_url || null,
-    website: data.website || null,
-    disciplines: data.disciplines ?? [],
-    verified: data.verified ?? data.is_verified ?? false,
+    username: data.handle ?? data.username ?? '',
+    full_name: data.display_name ?? data.full_name ?? data.name ?? null,
+    email: data.users?.email ?? data.email ?? '',
+    profile_type: (data.account_type ?? data.profile_type ?? data.role ?? 'creator') as ProfileType,
+    bio: data.bio ?? null,
+    location: data.location ?? null,
+    avatar_url: data.avatar_url ?? null,
+    website: data.website_url ?? data.website ?? null,
+    disciplines: data.creator_profiles?.disciplines ?? data.disciplines ?? [],
+    verified: data.is_verified ?? data.verified ?? false,
     created_at: data.created_at,
   }
 }
@@ -77,7 +77,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (!currentUser) return
-    const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single()
+    const { data } = await supabase
+      .from('accounts')
+      .select('*, creator_profiles(disciplines), users:owner_user_id(email)')
+      .eq('id', currentUser.id)
+      .single()
     if (data) setProfile(mapProfile(data))
   }
 
@@ -98,68 +102,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Query profiles with maybeSingle to prevent crash if missing
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
+      // Query accounts (canonical identity since v3 migration)
+      const { data } = await supabase
+        .from('accounts')
+        .select('*, creator_profiles(disciplines), users:owner_user_id(email)')
         .eq('id', user.id)
         .maybeSingle()
 
-      if (!data) {
-        // Create a default profile row if one doesn't exist
-        const baseUsername = user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') : 'user';
-        const uniqueUsername = `${baseUsername}_${user.id.slice(0, 6)}`;
-        
-        // Dynamically insert supporting both schemas
-        let insertResult = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            username: uniqueUsername,
-            full_name: user.user_metadata?.full_name || baseUsername,
-            profile_type: 'creator'
-          })
-          .select('*')
-          .maybeSingle();
-
-        if (!insertResult.data) {
-          insertResult = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              username: uniqueUsername,
-              name: user.user_metadata?.full_name || baseUsername,
-              email: user.email || '',
-              role: 'creator'
-            })
-            .select('*')
-            .maybeSingle();
-        }
-
-        if (insertResult.data) {
-          setProfile(mapProfile(insertResult.data));
-        } else {
-          console.error('Error creating default profile row');
-        }
-      } else if (data) {
+      if (data) {
         setProfile(mapProfile(data))
+      } else {
+        console.error('No account found for user', user.id)
       }
 
       setLoading(false)
 
       try {
-        supabase.removeChannel(supabase.channel(`profile-${user.id}`));
+        supabase.removeChannel(supabase.channel(`account-${user.id}`));
       } catch (err) {
         console.error('Error removing channel:', err);
       }
 
       profileSubscription = supabase
-        .channel(`profile-${user.id}`)
+        .channel(`account-${user.id}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
-          (payload) => {
-            if (payload.new) setProfile(mapProfile(payload.new as Profile))
+          { event: '*', schema: 'public', table: 'accounts', filter: `id=eq.${user.id}` },
+          () => {
+            // Re-fetch full account including joined tables on any change
+            refreshProfile()
           }
         )
         .subscribe()

@@ -107,7 +107,7 @@ function dbRowToPost(row: any): Post {
   else if (hasLink) type = 'text-link';
   else type = 'text';
 
-  const fullName: string = row.profiles?.full_name || 'Unknown';
+  const fullName: string = row.accounts?.display_name || 'Unknown';
   const initials = fullName.slice(0, 2).toUpperCase();
 
   return {
@@ -116,11 +116,11 @@ function dbRowToPost(row: any): Post {
     author: {
       name: fullName,
       initials,
-      avatarUrl: row.profiles?.avatar_url ?? undefined,
+      avatarUrl: row.accounts?.avatar_url ?? undefined,
     },
-    location: row.profiles?.location ?? '',
+    location: row.accounts?.location ?? '',
     year: new Date(row.created_at).getFullYear(),
-    content: row.content,
+    content: row.body,
     link: row.link ?? undefined,
     images: hasImages ? mediaUrls : undefined,
     tags: row.tags ?? undefined,
@@ -337,8 +337,8 @@ export default function PostsPage() {
     let query = supabase
       .from('posts')
       .select(`
-        id, creator_id, content, media_urls, link, visibility, created_at,
-        profiles:creator_id (full_name, avatar_url, location, username)
+        id, author_account_id, body, media_urls, link, visibility, created_at,
+        accounts:author_account_id (display_name, avatar_url, location, handle)
       `)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -355,7 +355,7 @@ export default function PostsPage() {
         setLoadingPosts(false);
         return;
       }
-      query = query.in('creator_id', followingIds);
+      query = query.in('author_account_id', followingIds);
     }
 
     const { data, error } = await query;
