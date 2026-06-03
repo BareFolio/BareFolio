@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BareFolio — Gestión de Base de Datos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0d; --card: #161616; --card2: #1c1c1c;
+  --border: #2a2a2a; --border2: #333;
+  --text: #f0f0f0; --sub: #777; --sub2: #555;
+  --c1:#818cf8; --c2:#34d399; --c3:#fbbf24; --c4:#60a5fa;
+  --c5:#f472b6; --c6:#a78bfa; --c7:#f87171; --c8:#22d3ee; --cl:#4b5563;
+  --green:#22c55e; --red:#ef4444; --orange:#f97316;
+}
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif; font-size:13px; line-height:1.5; }
+
+/* ── HEADER ── */
+header { padding:20px 32px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:200; background:rgba(13,13,13,.96); backdrop-filter:blur(12px); gap:16px; flex-wrap:wrap; }
+.header-left h1 { font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.header-left p { font-size:11px; color:var(--sub); margin-top:2px; }
+.header-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.legend { display:flex; flex-wrap:wrap; gap:6px; }
+.leg { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--sub); cursor:pointer; padding:3px 7px; border-radius:20px; transition:.15s; }
+.leg:hover { color:var(--text); }
+.leg-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.sb-btn { display:flex; align-items:center; gap:6px; background:#0a0a0a; border:1px solid #3f3f46; color:#e2e8f0; padding:7px 12px; border-radius:8px; font-size:11px; font-weight:600; text-decoration:none; transition:.15s; white-space:nowrap; }
+.sb-btn:hover { border-color:#71717a; }
+
+/* ── MAIN ── */
+main { padding:24px 32px 80px; }
+.phase-section { margin-bottom:36px; }
+.phase-header { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.phase-header::after { content:''; flex:1; height:1px; background:var(--border); }
+.phase-badge { padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; }
+
+/* ── TABLE CARD ── */
+.table-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; border-top:3px solid var(--pc, #333); transition:all .15s; cursor:pointer; position:relative; }
+.table-card:hover { transform:translateY(-2px); box-shadow:0 4px 20px rgba(0,0,0,.5); border-color:var(--pc, #444); }
+.card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.table-names { flex:1; min-width:0; }
+.table-tech { font-weight:700; font-size:12.5px; font-family:'SF Mono','Fira Code',monospace; color:#e2e8f0; }
+.table-friendly { font-size:11px; color:var(--pc, #aaa); font-weight:600; margin-top:1px; }
+.row-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; flex-shrink:0; margin-top:2px; }
+.has-data { background:#052e16; color:#4ade80; }
+.no-data { background:#1c1917; color:#52525b; }
+.divider { height:1px; background:var(--border); margin:8px 0; }
+.fields { display:flex; flex-direction:column; gap:3px; }
+.field-row { display:flex; align-items:center; gap:5px; padding:1px 0; }
+.field-icon { font-size:9px; width:14px; text-align:center; flex-shrink:0; }
+.field-names { flex:1; min-width:0; display:flex; flex-direction:column; gap:0; overflow:hidden; }
+.field-tech { font-size:10.5px; font-family:'SF Mono','Fira Code',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.field-friendly { font-size:9.5px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.field-type { font-size:9.5px; color:var(--sub2); flex-shrink:0; }
+.field-row.pk .field-tech { color:#fcd34d; }
+.field-row.fk .field-tech { color:#93c5fd; }
+.field-row.key .field-tech { color:var(--pc, #e2e8f0); font-weight:600; }
+.more-fields { font-size:10px; color:var(--sub2); margin-top:5px; }
+.edit-hint { position:absolute; bottom:10px; right:12px; font-size:9px; color:var(--sub2); opacity:0; transition:.15s; }
+.table-card:hover .edit-hint { opacity:1; }
+
+/* ── MODAL OVERLAY ── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(4px); z-index:500; display:none; align-items:flex-start; justify-content:flex-end; }
+.overlay.open { display:flex; }
+.panel { background:#111; border-left:1px solid var(--border); width:min(860px, 100vw); height:100vh; overflow-y:auto; display:flex; flex-direction:column; }
+.panel-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; background:#111; z-index:10; }
+.panel-header-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.panel-title-block .tech { font-size:16px; font-weight:700; font-family:'SF Mono','Fira Code',monospace; }
+.panel-title-block .friendly { font-size:12px; color:var(--sub); margin-top:2px; }
+.panel-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.btn { display:inline-flex; align-items:center; gap:5px; padding:7px 13px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; border:none; transition:.15s; text-decoration:none; }
+.btn-green { background:#166534; color:#bbf7d0; }
+.btn-green:hover { background:#15803d; }
+.btn-ghost { background:transparent; color:var(--sub); border:1px solid var(--border); }
+.btn-ghost:hover { color:var(--text); border-color:var(--border2); }
+.btn-close { background:transparent; border:none; color:var(--sub); cursor:pointer; font-size:18px; line-height:1; padding:4px; }
+.btn-close:hover { color:var(--text); }
+.btn-sm { padding:4px 10px; font-size:11px; }
+.btn-red-sm { background:#3f0d0d; color:#fca5a5; }
+.btn-red-sm:hover { background:#7f1d1d; }
+.btn-blue-sm { background:#1e3a5f; color:#93c5fd; }
+.btn-blue-sm:hover { background:#1d4ed8; }
+
+/* ── SEARCH BAR ── */
+.search-bar { position:relative; }
+.search-bar input { background:var(--card); border:1px solid var(--border); color:var(--text); padding:7px 12px 7px 32px; border-radius:7px; font-size:12px; width:220px; outline:none; }
+.search-bar input:focus { border-color:var(--border2); }
+.search-bar::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:11px; pointer-events:none; }
+
+/* ── DATA TABLE ── */
+.panel-body { padding:16px 24px; flex:1; }
+.data-table-wrap { overflow-x:auto; }
+.data-table { width:100%; border-collapse:collapse; font-size:12px; }
+.data-table th { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); color:var(--sub); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+.data-table th .th-inner { display:flex; flex-direction:column; gap:1px; }
+.data-table th .th-tech { color:#ccc; font-family:'SF Mono','Fira Code',monospace; font-size:10px; }
+.data-table th .th-friendly { color:var(--sub); font-size:9px; font-weight:400; text-transform:none; letter-spacing:0; }
+.data-table td { padding:7px 10px; border-bottom:1px solid #1e1e1e; vertical-align:top; max-width:200px; }
+.data-table tr:hover td { background:#161616; }
+.cell-val { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; color:#ccc; font-size:11.5px; display:block; }
+.cell-val.uuid { color:var(--sub2); font-family:monospace; font-size:10px; }
+.cell-val.null { color:var(--sub2); font-style:italic; }
+.cell-val.bool-true { color:var(--green); }
+.cell-val.bool-false { color:var(--red); }
+.cell-actions { display:flex; gap:5px; white-space:nowrap; }
+.empty-state { text-align:center; padding:48px 24px; color:var(--sub); }
+.empty-state h3 { font-size:15px; margin-bottom:8px; }
+.loading { text-align:center; padding:40px; color:var(--sub); }
+.error-msg { background:#3f0d0d; border:1px solid #7f1d1d; color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:12px; margin:12px 0; }
+.success-msg { background:#052e16; border:1px solid #166534; color:#bbf7d0; padding:10px 14px; border-radius:8px; font-size:12px; margin:12px 0; }
+.pagination { display:flex; align-items:center; gap:10px; margin-top:14px; font-size:12px; color:var(--sub); }
+.page-count { flex:1; }
+
+/* ── EDIT FORM (row editor) ── */
+.edit-overlay { position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:600; display:none; align-items:center; justify-content:center; padding:20px; }
+.edit-overlay.open { display:flex; }
+.edit-modal { background:#161616; border:1px solid var(--border2); border-radius:12px; width:min(560px,100%); max-height:90vh; overflow-y:auto; }
+.edit-modal-header { padding:18px 20px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#161616; z-index:5; }
+.edit-modal-header h3 { font-size:14px; font-weight:700; }
+.edit-modal-body { padding:16px 20px 20px; display:flex; flex-direction:column; gap:14px; }
+.form-field { display:flex; flex-direction:column; gap:5px; }
+.form-label { font-size:11px; color:var(--sub); display:flex; flex-direction:column; gap:1px; }
+.form-label .lbl-tech { font-family:'SF Mono','Fira Code',monospace; color:#aaa; font-size:10.5px; }
+.form-label .lbl-friendly { color:var(--sub); font-size:11px; }
+.form-input { background:#0d0d0d; border:1px solid var(--border2); color:var(--text); padding:8px 10px; border-radius:7px; font-size:12px; outline:none; transition:.15s; }
+.form-input:focus { border-color:#555; }
+.form-input[disabled] { opacity:.4; cursor:not-allowed; }
+textarea.form-input { resize:vertical; min-height:80px; font-family:inherit; }
+.edit-modal-footer { padding:12px 20px 16px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; position:sticky; bottom:0; background:#161616; }
+
+/* ── INFO FOOTER ── */
+.info-footer { margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.info-box { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+.info-box h2 { font-size:13px; font-weight:700; margin-bottom:12px; }
+.info-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.info-row:last-child { border-bottom:none; }
+.info-label { color:var(--sub); }
+.live { color:#4ade80; } .empty { color:var(--sub2); } .legacy { color:#f87171; }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:24px; right:24px; z-index:999; background:#1c1c1c; border:1px solid var(--border2); border-radius:10px; padding:12px 16px; font-size:12px; max-width:320px; transform:translateY(100px); opacity:0; transition:.25s; pointer-events:none; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.ok { border-color:#166534; color:#bbf7d0; }
+.toast.err { border-color:#7f1d1d; color:#fca5a5; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>🗄️ BareFolio — Gestión de Base de Datos</h1>
+    <p id="hdr-sub">35 tablas · 7 fases · Última migración: 003_complete_schema_v3.sql · Haz clic en cualquier tabla para ver y editar los datos</p>
+  </div>
+  <div class="header-right">
+    <div class="legend" id="legend"></div>
+    <a href="https://supabase.com/dashboard/project/mzyhiyleoktpeamwjjse/editor" target="_blank" class="sb-btn">
+      <svg width="14" height="14" viewBox="0 0 109 113" fill="none"><path d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97l-1.007-67.251h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284z" fill="url(#g1)"/><path d="M63.708 110.284c-2.86 3.601-8.658 1.628-8.727-2.97l-1.007-67.251h45.22c8.19 0 12.758 9.46 7.665 15.874L63.708 110.284z" fill="url(#g2)" fill-opacity=".2"/><path d="M45.317 2.071c2.86-3.601 8.657-1.628 8.726 2.97l.833 67.251H9.812c-8.19 0-12.759-9.46-7.665-15.875L45.317 2.071z" fill="#3ECF8E"/><defs><linearGradient id="g1" x1="53.974" y1="54.974" x2="94.163" y2="71.829" gradientUnits="userSpaceOnUse"><stop stop-color="#249361"/><stop offset="1" stop-color="#3ECF8E"/></linearGradient><linearGradient id="g2" x1="36.156" y1="30.578" x2="54.484" y2="65.081" gradientUnits="userSpaceOnUse"><stop/><stop offset="1" stop-opacity="0"/></linearGradient></defs></svg>
+      Supabase Studio
+    </a>
+  </div>
+</header>
+
+<main>
+  <div id="schema"></div>
+  <div class="info-footer">
+    <div class="info-box">
+      <h2>📊 Estado actual de los datos</h2>
+      <div class="info-row"><span class="info-label">accounts (cuentas/perfiles)</span><span class="live">10 registros ✓</span></div>
+      <div class="info-row"><span class="info-label">creator_profiles (perfil creador)</span><span class="live">10 registros ✓</span></div>
+      <div class="info-row"><span class="info-label">projects (proyectos)</span><span class="live">8 registros ✓</span></div>
+      <div class="info-row"><span class="info-label">project_blocks (bloques)</span><span class="live">40 registros ✓</span></div>
+      <div class="info-row"><span class="info-label">posts (publicaciones)</span><span class="live">1 registro ✓</span></div>
+      <div class="info-row"><span class="info-label">disciplines / techniques / moods</span><span class="live">20+12+10 ✓</span></div>
+      <div class="info-row"><span class="info-label">follows, reactions, comments…</span><span class="empty">Vacías — UI pendiente</span></div>
+      <div class="info-row"><span class="info-label">profiles, likes, collections (legacy)</span><span class="legacy">⚠ Deprecar próximamente</span></div>
+    </div>
+    <div class="info-box">
+      <h2>✏️ Cómo editar los datos</h2>
+      <div class="info-row"><span class="info-label">1. Haz clic en cualquier tarjeta</span><span style="color:#818cf8">→ Abre panel lateral</span></div>
+      <div class="info-row"><span class="info-label">2. Botón "Nueva fila"</span><span style="color:#34d399">→ Añade un registro</span></div>
+      <div class="info-row"><span class="info-label">3. Botón "Editar" en cada fila</span><span style="color:#60a5fa">→ Edita el registro</span></div>
+      <div class="info-row"><span class="info-label">4. Botón "Eliminar"</span><span style="color:#f87171">→ Borra el registro</span></div>
+      <div class="info-row"><span class="info-label">Acceso completo de admin</span><a href="https://supabase.com/dashboard/project/mzyhiyleoktpeamwjjse/editor" target="_blank" style="color:#3ECF8E;text-decoration:none">→ Supabase Studio ↗</a></div>
+    </div>
+  </div>
+</main>
+
+<!-- DATA PANEL (side panel) -->
+<div class="overlay" id="overlay" onclick="closePanelOnBg(event)">
+  <div class="panel" id="panel">
+    <div class="panel-header">
+      <div class="panel-header-top">
+        <div class="panel-title-block">
+          <div class="tech" id="panel-tech-name"></div>
+          <div class="friendly" id="panel-friendly-name"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn btn-green btn-sm" id="btn-new-row">＋ Nueva fila</button>
+          <button class="btn-close" onclick="closePanel()">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="search-bar">
+          <input type="text" placeholder="Buscar…" id="panel-search" oninput="filterRows()" />
+        </div>
+        <span id="panel-count" style="font-size:11px;color:var(--sub)"></span>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div id="panel-msg"></div>
+      <div id="panel-content" class="data-table-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT / CREATE ROW MODAL -->
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-modal">
+    <div class="edit-modal-header">
+      <h3 id="edit-title">Editar fila</h3>
+      <button class="btn-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="edit-modal-body" id="edit-form"></div>
+    <div class="edit-modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancelar</button>
+      <button class="btn btn-green" id="btn-save" onclick="saveRow()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE INIT ──
+const SB_URL = 'https://mzyhiyleoktpeamwjjse.supabase.co';
+const SB_KEY = 'sb_publishable_TjxZ5t5aGP2HXv2-R5ALVQ_2riwDx8a';
+const { createClient } = supabase;
+const db = createClient(SB_URL, SB_KEY);
+
+// ── FIELD LABELS ──
+const LABELS = {
+  id:'ID único', owner_user_id:'Usuario propietario', handle:'Nombre de usuario (@)',
+  display_name:'Nombre visible', account_type:'Tipo de cuenta', bio:'Biografía',
+  location:'Ubicación', avatar_url:'Foto de perfil', website_url:'Sitio web',
+  is_verified:'¿Verificado?', plan:'Plan de suscripción', created_at:'Fecha de creación',
+  updated_at:'Última actualización', email:'Correo electrónico', first_name:'Nombre',
+  active_account_id:'Cuenta activa', auth_provider:'Proveedor de acceso',
+  account_id:'Cuenta', disciplines:'Disciplinas', practice:'Práctica creativa',
+  tools:'Herramientas que usa', education:'Educación', pronouns:'Pronombres',
+  open_to_work:'¿Disponible para trabajar?', work_types:'Tipos de trabajo',
+  seniority_level:'Nivel de experiencia', languages:'Idiomas',
+  org_type:'Tipo de organización', team_size:'Tamaño del equipo', industries:'Industrias',
+  organization_account_id:'Organización', creator_account_id:'Creador',
+  role:'Rol', status:'Estado',
+  author_account_id:'Autor del post', body:'Contenido / Texto',
+  visibility:'Visibilidad', media_urls:'Imágenes', link:'Enlace',
+  post_id:'Post relacionado', media_url:'Archivo o imagen', media_type:'Tipo de archivo',
+  position:'Orden / Posición',
+  owner_account_id:'Propietario', title:'Título', slug:'URL amigable',
+  tagline:'Subtítulo', cover_url:'Imagen de portada',
+  project_id:'Proyecto relacionado', block_type:'Tipo de bloque', content_text:'Texto del bloque',
+  block_id:'Bloque relacionado',
+  collaborator_account_id:'Colaborador',
+  target_type:'Qué tipo de cosa', target_id:'ID de la cosa',
+  source_type:'Tipo de origen', source_id:'ID de origen',
+  name:'Nombre', category:'Categoría', is_custom:'¿Personalizado?',
+  description:'Descripción',
+  collection_id:'Colección', saved_by_account_id:'Guardado por', is_public:'¿Público?',
+  follower_id:'Seguidor', following_id:'Seguido',
+  account_a_id:'Participante A', account_b_id:'Participante B',
+  sender_account_id:'Remitente', is_read:'¿Leído?', chat_id:'Conversación',
+  community_id:'Comunidad', join_mode:'Modo de acceso',
+  channel_id:'Canal', channel_type:'Tipo de canal',
+  publisher_account_id:'Publicado por', client:'Cliente', year:'Año',
+  brief_id:'Brief / Trabajo', applicant_account_id:'Candidato',
+  application_id:'Candidatura', file_url:'Archivo adjunto',
+  searcher_account_id:'Buscador', filter_disciplines:'Disciplinas filtradas',
+  alerts_enabled:'Alertas activadas',
+  attempt_number:'Intento número', method:'Método de verificación',
+  reporter_account_id:'Denunciante', reason:'Motivo',
+  recipient_account_id:'Destinatario', type:'Tipo de notificación',
+  billing_cycle:'Ciclo de pago',
+  assigned_creator_account_id:'Creador asignado',
+  event_type:'Tipo de evento', target_account_id:'Cuenta objetivo',
+  requester_account_id:'Solicitante',
+  color_palette:'Paleta de colores', mood:'Mood/Estilo',
+  atmosphere:'Ambiente', visual_language:'Lenguaje visual',
+  palette:'Colores', discipline:'Disciplina',
+  created_by:'Creado por', updated_by:'Actualizado por',
+  username:'Nombre de usuario', full_name:'Nombre completo',
+  avatar:'Avatar', profile_type:'Tipo de perfil',
+  user_id:'Usuario', creator_id:'Creador', content:'Contenido',
+};
+
+function lbl(field) {
+  return LABELS[field] || field.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ── TABLE FRIENDLY NAMES ──
+const TABLE_LABELS = {
+  users:'Usuarios de acceso', accounts:'Cuentas / Perfiles públicos',
+  creator_profiles:'Perfil de creador', creator_employment:'Disponibilidad laboral',
+  organization_profiles:'Perfil de organización', account_links:'Multi-cuenta',
+  organization_members:'Miembros del equipo',
+  posts:'Publicaciones del feed', post_attachments:'Adjuntos de posts',
+  projects:'Proyectos del portafolio', project_blocks:'Bloques de proyecto',
+  gallery_items:'Fotos de galería', project_collaborators:'Colaboradores del proyecto',
+  ai_metadata:'Etiquetas de IA', comments:'Comentarios', reactions:'Likes / Reacciones',
+  disciplines:'Disciplinas disponibles', techniques:'Técnicas creativas',
+  mood_tags:'Estilos / Moods', industries:'Industrias',
+  swipe_preferences:'Preferencias de gusto', swipe_interactions:'Historial de swipes',
+  inspiration_collections:'Colecciones de inspiración', saved_items:'Guardados',
+  collection_collaborators:'Colaboradores de colección',
+  follows:'Seguimientos', conversations:'Conversaciones privadas',
+  messages:'Mensajes directos', communities:'Comunidades',
+  community_members:'Miembros de comunidad', community_channels:'Canales de comunidad',
+  channel_messages:'Mensajes de canal',
+  briefs:'Trabajos / Briefs publicados', brief_applications:'Candidaturas',
+  brief_application_documents:'Documentos de candidatura',
+  find_talent_searches:'Búsquedas de talento',
+  creator_verifications:'Solicitudes de verificación',
+  organization_verifications:'Verificación de empresa',
+  content_reports:'Reportes de contenido', notifications:'Notificaciones',
+  subscriptions:'Suscripciones', scout_seats:'Plazas de scouting',
+  analytics_events:'Eventos de analítica', hire_requests:'Solicitudes de contratación',
+  profiles:'Perfiles (LEGACY)', likes:'Likes (LEGACY)', collections:'Colecciones (LEGACY)',
+  applications:'Aplicaciones (LEGACY)', chats:'Chats (LEGACY)',
+};
+
+// ── SCHEMA DATA ──
+const PHASES = [
+  { id:1, label:'Identidad', color:'#818cf8', tables:[
+    { n:'users', rows:10, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'email',t:'texto',k:'key'},{n:'first_name',t:'texto',k:''},
+      {n:'active_account_id',t:'uuid',k:'fk'},{n:'auth_provider',t:'texto',k:''}]},
+    { n:'accounts', rows:10, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'owner_user_id',t:'uuid',k:'fk'},
+      {n:'handle',t:'texto',k:'key'},{n:'display_name',t:'texto',k:'key'},
+      {n:'account_type',t:'tipo',k:''},{n:'plan',t:'tipo',k:''},
+      {n:'avatar_url',t:'url',k:''},{n:'bio',t:'texto',k:''},{n:'location',t:'texto',k:''}]},
+    { n:'creator_profiles', rows:10, fields:[
+      {n:'account_id',t:'uuid',k:'pk'},{n:'disciplines',t:'lista',k:'key'},
+      {n:'practice',t:'tipo',k:''},{n:'tools',t:'lista',k:''},
+      {n:'education',t:'texto',k:''},{n:'pronouns',t:'texto',k:''}]},
+    { n:'creator_employment', rows:0, fields:[
+      {n:'account_id',t:'uuid',k:'pk'},{n:'open_to_work',t:'tipo',k:'key'},
+      {n:'work_types',t:'lista',k:''},{n:'seniority_level',t:'tipo',k:''},{n:'languages',t:'lista',k:''}]},
+    { n:'organization_profiles', rows:0, fields:[
+      {n:'account_id',t:'uuid',k:'pk'},{n:'org_type',t:'tipo',k:'key'},
+      {n:'disciplines',t:'lista',k:''},{n:'team_size',t:'tipo',k:''},{n:'industries',t:'lista',k:''}]},
+    { n:'account_links', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'owner_user_id',t:'uuid',k:'fk'},{n:'account_id',t:'uuid',k:'fk'}]},
+    { n:'organization_members', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'organization_account_id',t:'uuid',k:'fk'},
+      {n:'creator_account_id',t:'uuid',k:'fk'},{n:'role',t:'texto',k:''},{n:'status',t:'tipo',k:''}]},
+  ]},
+  { id:2, label:'Contenido', color:'#34d399', tables:[
+    { n:'posts', rows:1, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'author_account_id',t:'uuid',k:'fk'},
+      {n:'body',t:'texto',k:'key'},{n:'visibility',t:'texto',k:''},
+      {n:'status',t:'tipo',k:''},{n:'media_urls',t:'lista',k:''},{n:'link',t:'url',k:''}]},
+    { n:'post_attachments', rows:1, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'post_id',t:'uuid',k:'fk'},
+      {n:'media_url',t:'url',k:'key'},{n:'media_type',t:'tipo',k:''},{n:'position',t:'nº',k:''}]},
+    { n:'projects', rows:8, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'owner_account_id',t:'uuid',k:'fk'},
+      {n:'title',t:'texto',k:'key'},{n:'slug',t:'texto',k:''},
+      {n:'tagline',t:'texto',k:''},{n:'disciplines',t:'lista',k:''},
+      {n:'visibility',t:'tipo',k:''},{n:'status',t:'tipo',k:''}]},
+    { n:'project_blocks', rows:40, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'project_id',t:'uuid',k:'fk'},
+      {n:'block_type',t:'tipo',k:'key'},{n:'position',t:'nº',k:''},
+      {n:'media_url',t:'url',k:''},{n:'content_text',t:'texto',k:''}]},
+    { n:'gallery_items', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'block_id',t:'uuid',k:'fk'},
+      {n:'media_url',t:'url',k:'key'},{n:'position',t:'nº',k:''}]},
+    { n:'project_collaborators', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'project_id',t:'uuid',k:'fk'},
+      {n:'collaborator_account_id',t:'uuid',k:'fk'},{n:'role',t:'texto',k:''},{n:'status',t:'tipo',k:''}]},
+    { n:'ai_metadata', rows:0, fields:[
+      {n:'project_id',t:'uuid',k:'pk'},{n:'disciplines',t:'lista',k:''},
+      {n:'techniques',t:'lista',k:''},{n:'color_palette',t:'lista',k:''},{n:'mood',t:'lista',k:''}]},
+    { n:'comments', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'author_account_id',t:'uuid',k:'fk'},
+      {n:'target_type',t:'texto',k:'key'},{n:'target_id',t:'uuid',k:''},{n:'body',t:'texto',k:''}]},
+    { n:'reactions', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'account_id',t:'uuid',k:'fk'},
+      {n:'target_type',t:'texto',k:'key'},{n:'target_id',t:'uuid',k:''}]},
+  ]},
+  { id:3, label:'Metadatos & Clasificación', color:'#fbbf24', tables:[
+    { n:'disciplines', rows:20, fields:[
+      {n:'slug',t:'texto',k:'pk'},{n:'name',t:'texto',k:'key'},{n:'category',t:'texto',k:''}]},
+    { n:'techniques', rows:10, fields:[
+      {n:'slug',t:'texto',k:'pk'},{n:'name',t:'texto',k:'key'}]},
+    { n:'mood_tags', rows:12, fields:[
+      {n:'slug',t:'texto',k:'pk'},{n:'name',t:'texto',k:'key'}]},
+    { n:'industries', rows:15, fields:[
+      {n:'slug',t:'texto',k:'pk'},{n:'name',t:'texto',k:'key'},{n:'is_custom',t:'sí/no',k:''}]},
+    { n:'swipe_preferences', rows:0, fields:[
+      {n:'account_id',t:'uuid',k:'pk'},{n:'disciplines',t:'json',k:''},
+      {n:'moods',t:'json',k:''},{n:'formats',t:'json',k:''}]},
+    { n:'swipe_interactions', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'account_id',t:'uuid',k:'fk'},
+      {n:'source_type',t:'texto',k:'key'},{n:'direction',t:'texto',k:''}]},
+  ]},
+  { id:4, label:'Inspiración & Archivo', color:'#60a5fa', tables:[
+    { n:'inspiration_collections', rows:1, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'owner_account_id',t:'uuid',k:'fk'},
+      {n:'name',t:'texto',k:'key'},{n:'is_public',t:'sí/no',k:''}]},
+    { n:'saved_items', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'collection_id',t:'uuid',k:'fk'},
+      {n:'saved_by_account_id',t:'uuid',k:'fk'},{n:'source_type',t:'texto',k:'key'},
+      {n:'source_id',t:'uuid',k:''}]},
+    { n:'collection_collaborators', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'collection_id',t:'uuid',k:'fk'},
+      {n:'collaborator_account_id',t:'uuid',k:'fk'}]},
+  ]},
+  { id:5, label:'Social', color:'#f472b6', tables:[
+    { n:'follows', rows:0, fields:[
+      {n:'follower_id',t:'uuid',k:'fk'},{n:'following_id',t:'uuid',k:'fk'}]},
+    { n:'conversations', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'account_a_id',t:'uuid',k:'fk'},
+      {n:'account_b_id',t:'uuid',k:'fk'},{n:'status',t:'tipo',k:''}]},
+    { n:'messages', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'sender_account_id',t:'uuid',k:'fk'},{n:'is_read',t:'sí/no',k:''}]},
+    { n:'communities', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'owner_account_id',t:'uuid',k:'fk'},
+      {n:'name',t:'texto',k:'key'},{n:'join_mode',t:'tipo',k:''},{n:'plan',t:'tipo',k:''}]},
+    { n:'community_members', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'community_id',t:'uuid',k:'fk'},
+      {n:'account_id',t:'uuid',k:'fk'},{n:'role',t:'tipo',k:''}]},
+    { n:'community_channels', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'community_id',t:'uuid',k:'fk'},
+      {n:'name',t:'texto',k:'key'},{n:'channel_type',t:'tipo',k:''}]},
+    { n:'channel_messages', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'channel_id',t:'uuid',k:'fk'},
+      {n:'sender_account_id',t:'uuid',k:'fk'},{n:'body',t:'texto',k:''}]},
+  ]},
+  { id:6, label:'Economía & Oportunidades', color:'#a78bfa', tables:[
+    { n:'briefs', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'publisher_account_id',t:'uuid',k:'fk'},
+      {n:'title',t:'texto',k:'key'},{n:'disciplines',t:'lista',k:''},
+      {n:'status',t:'tipo',k:''},{n:'visibility',t:'tipo',k:''}]},
+    { n:'brief_applications', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'brief_id',t:'uuid',k:'fk'},
+      {n:'applicant_account_id',t:'uuid',k:'fk'},{n:'status',t:'tipo',k:''}]},
+    { n:'brief_application_documents', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'application_id',t:'uuid',k:'fk'},
+      {n:'file_url',t:'url',k:'key'}]},
+    { n:'find_talent_searches', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'searcher_account_id',t:'uuid',k:'fk'},
+      {n:'filter_disciplines',t:'lista',k:''},{n:'alerts_enabled',t:'sí/no',k:''}]},
+  ]},
+  { id:7, label:'Verificación & Moderación', color:'#f87171', tables:[
+    { n:'creator_verifications', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'account_id',t:'uuid',k:'fk'},
+      {n:'status',t:'tipo',k:'key'},{n:'attempt_number',t:'nº',k:''}]},
+    { n:'organization_verifications', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'account_id',t:'uuid',k:'fk'},
+      {n:'method',t:'texto',k:'key'},{n:'status',t:'tipo',k:''}]},
+    { n:'content_reports', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'reporter_account_id',t:'uuid',k:'fk'},
+      {n:'reason',t:'tipo',k:'key'},{n:'status',t:'tipo',k:''}]},
+    { n:'notifications', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'recipient_account_id',t:'uuid',k:'fk'},
+      {n:'type',t:'tipo',k:'key'},{n:'is_read',t:'sí/no',k:''}]},
+  ]},
+  { id:'l', label:'Tablas Legacy — deprecar', color:'#4b5563', tables:[
+    { n:'profiles', rows:10, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'username',t:'texto',k:''},{n:'role',t:'texto',k:''}]},
+    { n:'likes', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'user_id',t:'uuid',k:'fk'},{n:'target_type',t:'tipo',k:''}]},
+    { n:'collections', rows:1, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'user_id',t:'uuid',k:'fk'},{n:'name',t:'texto',k:''}]},
+    { n:'applications', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'brief_id',t:'uuid',k:'fk'},{n:'creator_id',t:'uuid',k:'fk'}]},
+    { n:'chats', rows:0, fields:[
+      {n:'id',t:'uuid',k:'pk'},{n:'members',t:'lista',k:''}]},
+  ]},
+];
+
+const ICONS = { pk:'🔑', fk:'🔗', key:'★', '':'·', 'pk/fk':'🔑' };
+
+// ── RENDER SCHEMA ──
+const schemaEl = document.getElementById('schema');
+const legendEl = document.getElementById('legend');
+
+PHASES.forEach(p => {
+  const sec = document.createElement('div');
+  sec.className = 'phase-section';
+  const badge = p.id === 'l' ? 'LEGACY' : 'FASE ' + p.id;
+  sec.innerHTML = `
+    <div class="phase-header" style="color:${p.color}">
+      <span class="phase-badge" style="background:${p.color}18;color:${p.color}">${badge}</span>
+      ${p.label}
+    </div>
+    <div class="grid">${p.tables.map(t => renderCard(t, p.color)).join('')}</div>`;
+  schemaEl.appendChild(sec);
+  legendEl.innerHTML += `<span class="leg"><span class="leg-dot" style="background:${p.color}"></span>${p.id==='l'?'Legacy':'F'+p.id}</span>`;
+});
+
+// Add click handlers
+document.querySelectorAll('.table-card').forEach(card => {
+  card.addEventListener('click', () => openPanel(card.dataset.table, card.dataset.color));
+});
+
+function renderCard(t, color) {
+  const badge = t.rows > 0
+    ? `<span class="row-badge has-data">${t.rows} filas</span>`
+    : `<span class="row-badge no-data">vacía</span>`;
+  const fields = t.fields.slice(0,6).map(f => `
+    <div class="field-row ${f.k}">
+      <span class="field-icon">${ICONS[f.k]||'·'}</span>
+      <span class="field-names">
+        <span class="field-tech">${f.n}</span>
+        <span class="field-friendly">${lbl(f.n)}</span>
+      </span>
+      <span class="field-type">${f.t}</span>
+    </div>`).join('');
+  const more = t.fields.length > 6 ? `<p class="more-fields">+${t.fields.length-6} campos más</p>` : '';
+  return `
+    <div class="table-card" style="--pc:${color}" data-table="${t.n}" data-color="${color}">
+      <div class="card-head">
+        <div class="table-names">
+          <div class="table-tech">${t.n}</div>
+          <div class="table-friendly">${TABLE_LABELS[t.n]||t.n}</div>
+        </div>
+        ${badge}
+      </div>
+      <div class="divider"></div>
+      <div class="fields">${fields}</div>
+      ${more}
+      <span class="edit-hint">Clic para ver datos →</span>
+    </div>`;
+}
+
+// ── PANEL STATE ──
+let currentTable = '';
+let currentColor = '';
+let allRows = [];
+let filteredRows = [];
+let currentPage = 0;
+const PAGE_SIZE = 30;
+let editingRow = null;
+let isNewRow = false;
+let tableColumns = [];
+
+async function openPanel(tableName, color) {
+  currentTable = tableName;
+  currentColor = color;
+  document.getElementById('panel-tech-name').textContent = tableName;
+  document.getElementById('panel-tech-name').style.color = color;
+  document.getElementById('panel-friendly-name').textContent = TABLE_LABELS[tableName] || tableName;
+  document.getElementById('panel-search').value = '';
+  document.getElementById('panel-msg').innerHTML = '';
+  document.getElementById('panel-content').innerHTML = '<div class="loading">⏳ Cargando datos…</div>';
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  document.getElementById('btn-new-row').onclick = () => openEditModal(null, true);
+
+  await loadTableData(tableName);
+}
+
+async function loadTableData(tableName) {
+  try {
+    let result = await db.from(tableName).select('*').limit(200).order('created_at', { ascending: false });
+    if (result.error) {
+      // Table may not have created_at — retry without ordering
+      result = await db.from(tableName).select('*').limit(200);
+    }
+    const { data, error } = result;
+    if (error) throw error;
+    allRows = data || [];
+    if (allRows.length > 0) tableColumns = Object.keys(allRows[0]);
+    else {
+      // Try to infer columns from schema data
+      const schTable = PHASES.flatMap(p => p.tables).find(t => t.n === tableName);
+      tableColumns = schTable ? schTable.fields.map(f => f.n) : [];
+    }
+    filterRows();
+  } catch(err) {
+    document.getElementById('panel-content').innerHTML = `
+      <div class="error-msg">❌ No se pudieron cargar los datos: ${err.message || JSON.stringify(err)}<br>
+      <small style="opacity:.7">Nota: Algunas tablas requieren autenticación (RLS activo).
+      <a href="https://supabase.com/dashboard/project/mzyhiyleoktpeamwjjse/editor" target="_blank" style="color:#93c5fd">Abre Supabase Studio</a> para acceso completo.</small></div>`;
+  }
+}
+
+function filterRows() {
+  const q = document.getElementById('panel-search').value.toLowerCase();
+  if (!q) { filteredRows = [...allRows]; }
+  else {
+    filteredRows = allRows.filter(row =>
+      Object.values(row).some(v => String(v).toLowerCase().includes(q))
+    );
+  }
+  currentPage = 0;
+  renderDataTable();
+}
+
+function renderDataTable() {
+  const start = currentPage * PAGE_SIZE;
+  const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
+  const total = filteredRows.length;
+  document.getElementById('panel-count').textContent = `${total} ${total === 1 ? 'registro' : 'registros'}`;
+
+  if (total === 0) {
+    document.getElementById('panel-content').innerHTML = `
+      <div class="empty-state">
+        <h3>Sin datos todavía</h3>
+        <p>Esta tabla está vacía. Usa el botón "Nueva fila" para añadir el primer registro.</p>
+      </div>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  const cols = tableColumns.length > 0 ? tableColumns : Object.keys(pageRows[0]||{});
+  const visibleCols = cols.filter(c => !['created_at','updated_at'].includes(c)).slice(0, 8);
+  const hasDates = cols.includes('created_at');
+
+  let html = `<table class="data-table"><thead><tr>`;
+  visibleCols.forEach(c => {
+    html += `<th><div class="th-inner"><span class="th-tech">${c}</span><span class="th-friendly">${lbl(c)}</span></div></th>`;
+  });
+  if (hasDates) html += `<th><div class="th-inner"><span class="th-tech">created_at</span><span class="th-friendly">Fecha</span></div></th>`;
+  html += `<th></th></tr></thead><tbody>`;
+
+  pageRows.forEach((row, i) => {
+    html += `<tr>`;
+    visibleCols.forEach(c => {
+      const v = row[c];
+      html += `<td><span class="${cellClass(c, v)}" title="${escHtml(String(v??''))}">${formatCell(c, v)}</span></td>`;
+    });
+    if (hasDates) {
+      const d = row.created_at ? new Date(row.created_at).toLocaleDateString('es-ES', {day:'2-digit',month:'short',year:'2-digit'}) : '—';
+      html += `<td><span class="cell-val" style="color:var(--sub2)">${d}</span></td>`;
+    }
+    html += `<td><div class="cell-actions">
+      <button class="btn btn-blue-sm btn-sm" onclick="openEditModal(${start+i}, false)">✏️ Editar</button>
+      <button class="btn btn-red-sm btn-sm" onclick="deleteRow(${start+i})">🗑</button>
+    </div></td></tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('panel-content').innerHTML = html;
+
+  // Pagination
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages > 1) {
+    let pag = `<span class="page-count">Pág ${currentPage+1} / ${totalPages}</span>`;
+    if (currentPage > 0) pag += `<button class="btn btn-ghost btn-sm" onclick="changePage(-1)">← Anterior</button>`;
+    if (currentPage < totalPages-1) pag += `<button class="btn btn-ghost btn-sm" onclick="changePage(1)">Siguiente →</button>`;
+    document.getElementById('pagination').innerHTML = pag;
+  } else {
+    document.getElementById('pagination').innerHTML = '';
+  }
+}
+
+function cellClass(col, val) {
+  if (val === null || val === undefined) return 'cell-val null';
+  if (col === 'id' || col.endsWith('_id')) return 'cell-val uuid';
+  if (typeof val === 'boolean') return `cell-val ${val ? 'bool-true' : 'bool-false'}`;
+  return 'cell-val';
+}
+
+function formatCell(col, val) {
+  if (val === null || val === undefined) return 'null';
+  if (typeof val === 'boolean') return val ? '✓ Sí' : '✗ No';
+  if (Array.isArray(val)) return `[${val.join(', ')}]`;
+  if (typeof val === 'object') return JSON.stringify(val).slice(0, 60);
+  const s = String(val);
+  // Shorten UUIDs
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s)) return s.slice(0, 8) + '…';
+  return escHtml(s.length > 50 ? s.slice(0, 50) + '…' : s);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderDataTable();
+  document.getElementById('panel').scrollTop = 0;
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closePanelOnBg(e) {
+  if (e.target === document.getElementById('overlay')) closePanel();
+}
+
+// ── EDIT MODAL ──
+function openEditModal(rowIndex, isNew) {
+  isNewRow = isNew;
+  editingRow = isNew ? null : filteredRows[rowIndex];
+  const schTable = PHASES.flatMap(p => p.tables).find(t => t.n === currentTable);
+  const fields = schTable ? schTable.fields : tableColumns.map(n => ({n, t:'texto', k:''}));
+
+  document.getElementById('edit-title').textContent = isNew
+    ? `➕ Nueva fila en "${TABLE_LABELS[currentTable] || currentTable}"`
+    : `✏️ Editar en "${TABLE_LABELS[currentTable] || currentTable}"`;
+  document.getElementById('btn-save').textContent = isNew ? 'Crear fila' : 'Guardar cambios';
+
+  let html = '';
+  fields.forEach(f => {
+    const val = editingRow ? (editingRow[f.n] ?? '') : '';
+    const isPK = f.k === 'pk' || f.k === 'pk/fk';
+    const isGenerated = f.n === 'id' || f.n === 'created_at' || f.n === 'updated_at';
+    const disabled = isNew && isGenerated ? 'disabled placeholder="Se genera automáticamente"' : '';
+    const valStr = typeof val === 'object' ? JSON.stringify(val) : String(val === null ? '' : val);
+    const isLong = f.t === 'texto' && (f.n === 'body' || f.n === 'content_text' || f.n === 'bio' || f.n === 'description');
+    html += `
+      <div class="form-field">
+        <label class="form-label">
+          <span class="lbl-tech">${f.n}</span>
+          <span class="lbl-friendly">${lbl(f.n)}</span>
+        </label>
+        ${isLong
+          ? `<textarea class="form-input" data-field="${f.n}" ${disabled}>${escHtml(valStr)}</textarea>`
+          : `<input class="form-input" type="text" data-field="${f.n}" value="${escHtml(valStr)}" ${disabled} />`
+        }
+      </div>`;
+  });
+  document.getElementById('edit-form').innerHTML = html;
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editOverlay').classList.remove('open');
+}
+
+async function saveRow() {
+  const inputs = document.querySelectorAll('#edit-form [data-field]:not([disabled])');
+  const payload = {};
+  inputs.forEach(el => {
+    const field = el.dataset.field;
+    const raw = el.value.trim();
+    if (raw === '') { payload[field] = null; return; }
+    // Try to parse JSON arrays/objects
+    if ((raw.startsWith('[') || raw.startsWith('{')) && !raw.includes(' ')) {
+      try { payload[field] = JSON.parse(raw); return; } catch{}
+    }
+    payload[field] = raw;
+  });
+
+  document.getElementById('btn-save').textContent = '⏳ Guardando…';
+  document.getElementById('btn-save').disabled = true;
+
+  try {
+    let error;
+    if (isNewRow) {
+      ({ error } = await db.from(currentTable).insert(payload));
+    } else {
+      const pkField = tableColumns.includes('id') ? 'id' : tableColumns[0];
+      const pkVal = editingRow[pkField];
+      ({ error } = await db.from(currentTable).update(payload).eq(pkField, pkVal));
+    }
+    if (error) throw error;
+    closeEditModal();
+    showToast(isNewRow ? '✓ Fila creada correctamente' : '✓ Cambios guardados', 'ok');
+    await loadTableData(currentTable);
+  } catch(err) {
+    showToast('❌ Error: ' + (err.message || JSON.stringify(err)), 'err');
+  } finally {
+    document.getElementById('btn-save').textContent = isNewRow ? 'Crear fila' : 'Guardar cambios';
+    document.getElementById('btn-save').disabled = false;
+  }
+}
+
+async function deleteRow(rowIndex) {
+  const row = filteredRows[rowIndex];
+  const pkField = tableColumns.includes('id') ? 'id' : tableColumns[0];
+  const pkVal = row[pkField];
+  const friendly = TABLE_LABELS[currentTable] || currentTable;
+
+  if (!confirm(`¿Eliminar este registro de "${friendly}"?\n\nID: ${pkVal}\n\nEsta acción no se puede deshacer.`)) return;
+
+  try {
+    const { error } = await db.from(currentTable).delete().eq(pkField, pkVal);
+    if (error) throw error;
+    showToast('✓ Registro eliminado', 'ok');
+    await loadTableData(currentTable);
+  } catch(err) {
+    showToast('❌ Error al eliminar: ' + (err.message || JSON.stringify(err)), 'err');
+  }
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('editOverlay').classList.contains('open')) closeEditModal();
+    else closePanel();
+  }
+});
+</script>
+</body>
+</html>

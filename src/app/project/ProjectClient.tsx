@@ -266,7 +266,7 @@ export default function ProjectClient() {
       try {
         const { data: proj, error } = await supabase
           .from('projects')
-          .select('*, profile:profiles(*)')
+          .select('*, account:accounts!owner_account_id(*)')
           .eq('id', id)
           .maybeSingle();
 
@@ -282,12 +282,15 @@ export default function ProjectClient() {
           const fallbackImages = getProjectImages(proj.id, proj.discipline || '');
           const allImages = dbImages.length >= 3 ? dbImages : fallbackImages;
 
+          const creatorName = proj.account?.display_name || proj.account?.handle || 'Creative Partner';
+          const creatorAvatar = creatorName.slice(0, 2).toUpperCase();
+
           setProject({
             id: proj.id,
             title: proj.title,
-            creatorName: proj.profile?.full_name || proj.profile?.name || proj.profile?.username || 'Creative Partner',
-            creatorAvatar: (proj.profile?.full_name || proj.profile?.name || proj.profile?.username || 'CP').slice(0, 2).toUpperCase(),
-            creatorType: proj.profile?.profile_type || 'Creator',
+            creatorName,
+            creatorAvatar,
+            creatorType: proj.account?.account_type || 'Creator',
             discipline: proj.discipline || 'Graphic Design / Editorial',
             subtitle: proj.atmosphere || 'Visual Exploration',
             description: proj.description || 'A custom project designed under clean premium aesthetics, highlighting functional minimalism, visual structure, and high-fidelity compositions.',
@@ -300,17 +303,17 @@ export default function ProjectClient() {
             technicalSheet: {
               grower: proj.palette?.slice(0, 2).join(', ') || 'CUSTOM PALETTE',
               estate: proj.atmosphere?.toUpperCase() || 'MINIMALIST STUDIO',
-              location: (proj.profile?.location || 'BARCELONA, SPAIN').toUpperCase(),
+              location: (proj.account?.location || 'BARCELONA, SPAIN').toUpperCase(),
               altitude: proj.year ? `${proj.year} EDITION` : '2025 CREATION',
               country: 'GLOBAL IDENTITY'
             },
             aboutEstate: proj.description || 'Dedicated to premium design excellence, our workflow centers around pure architectural logic, typographic structure, and emotional visual design.',
             creatives: [
               {
-                name: proj.profile?.full_name?.split(' ')[0] || proj.profile?.name?.split(' ')[0] || proj.profile?.username || 'Creator',
+                name: proj.account?.display_name?.split(' ')[0] || proj.account?.handle || 'Creator',
                 role: 'Lead Designer',
-                avatar: (proj.profile?.full_name || proj.profile?.name || 'C').slice(0, 1),
-                image: proj.profile?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
+                avatar: (proj.account?.display_name || proj.account?.handle || 'C').slice(0, 1),
+                image: proj.account?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
               }
             ],
             meta: {

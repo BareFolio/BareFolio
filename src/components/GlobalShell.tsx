@@ -15,15 +15,25 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
 
+  const PUBLIC_PATHS = ['/', '/landing', '/login', '/onboarding'];
+
   useEffect(() => {
     if (!loading) {
-      if (!currentUser && pathname !== '/login' && pathname !== '/onboarding') {
+      // Unauthenticated users can only access public paths
+      if (!currentUser && !PUBLIC_PATHS.includes(pathname)) {
         router.push('/login');
       }
+      // Authenticated users visiting root → send to the app
+      if (currentUser && pathname === '/') {
+        router.push('/explore');
+      }
+      // /landing is always accessible (for preview even when logged in)
     }
   }, [currentUser, loading, pathname, router]);
 
-  if (loading) {
+  // While checking auth, show public pages instantly (no spinner flash on marketing/auth pages)
+  // Only show the spinner on protected app pages
+  if (loading && !PUBLIC_PATHS.includes(pathname)) {
     return (
       <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
@@ -31,9 +41,10 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
     );
   }
 
-  const isAuthPage = pathname === '/login' || pathname === '/onboarding';
+  const isPublicPage = PUBLIC_PATHS.includes(pathname);
 
-  if (isAuthPage || !currentUser) {
+  // Public pages render without the app chrome (no header/tabbar)
+  if (isPublicPage || !currentUser) {
     return <>{children}</>;
   }
 
