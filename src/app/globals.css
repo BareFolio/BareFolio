@@ -1,39 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  /* Fuentes locales inyectadas desde layout.tsx */
+  /* Fonts (loaded from layout.tsx via next/font/local) */
   --font-sans: var(--font-sans), 'Geist', system-ui, -apple-system, sans-serif;
   --font-display: var(--font-display), 'Switzer', -apple-system, BlinkMacSystemFont, sans-serif;
-  
-  /* Paleta Oficial de BareFolio (Modo Claro) */
-  --bg-primary: #FAFAFA; /* Bare White */
-  --bg-card: rgba(255, 255, 255, 0.8);
-  --border-glass: rgba(16, 16, 16, 0.08); /* Bare Black con opacidad */
-  --border-primary: #F4F4F4; /* Soft Grey */
-  --accent: #4E4BB9; /* Bare Indigo */
-  --accent-hover: #3E3B9E;
-  --text-primary: #101010; /* Bare Black */
-  --text-secondary: #737373; /* Gris suave neutro */
-  --blur-amount: 20px;
+
+  /* ── Figma Color Palette ─────────────────────────────────── */
+  --bare-black:  #101010;
+  --bare-white:  #fafafa;
+  --soft-black:  #181818;
+  --soft-grey:   #f4f4f4;
+  --grey-100:    #e7e7e7;
+  --grey-200:    #e5e5e5;
+  --grey-300:    #d4d4d4;
+  --grey-400:    #a3a3a3;
+  --grey-500:    #737373;
+  --grey-700:    #404040;
+  --blur-bg:     rgba(24, 24, 24, 0.30); /* #1818184d */
+
+  /* ── Semantic aliases (used by app chrome) ─────────────── */
+  --bg-primary:     var(--bare-white);
+  --bg-card:        rgba(255, 255, 255, 0.8);
+  --border-glass:   rgba(16, 16, 16, 0.08);
+  --border-primary: var(--soft-grey);
+  --accent:         #4E4BB9;
+  --accent-hover:   #3E3B9E;
+  --text-primary:   var(--bare-black);
+  --text-secondary: var(--grey-500);
+  --blur-amount:    20px;
 }
 
 @theme {
-  --font-sans: var(--font-sans);
+  --font-sans:    var(--font-sans);
   --font-display: var(--font-display);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-card: var(--bg-card);
-  --color-border-glass: var(--border-glass);
-  --color-border-primary: var(--border-primary);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
+
+  /* Figma palette — exposed to Tailwind as color-* utilities */
+  --color-bare-black:  var(--bare-black);
+  --color-bare-white:  var(--bare-white);
+  --color-soft-black:  var(--soft-black);
+  --color-soft-grey:   var(--soft-grey);
+  --color-grey-100:    var(--grey-100);
+  --color-grey-200:    var(--grey-200);
+  --color-grey-300:    var(--grey-300);
+  --color-grey-400:    var(--grey-400);
+  --color-grey-500:    var(--grey-500);
+  --color-grey-700:    var(--grey-700);
+  --color-blur-bg:     var(--blur-bg);
+
+  /* Semantic */
+  --color-accent:          var(--accent);
+  --color-accent-hover:    var(--accent-hover);
+  --color-bg-primary:      var(--bg-primary);
+  --color-bg-card:         var(--bg-card);
+  --color-border-glass:    var(--border-glass);
+  --color-border-primary:  var(--border-primary);
+  --color-text-primary:    var(--text-primary);
+  --color-text-secondary:  var(--text-secondary);
 }
 
-
 body {
-  background-color: #FAFAFA;
-  color: #101010;
+  background-color: var(--bare-white);
+  color: var(--bare-black);
   font-family: var(--font-sans);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -50,4 +77,51 @@ body {
   font-family: var(--font-display);
 }
 
+/* ── Figma Text Style Utilities ────────────────────────────────
+   Use these classes whenever you need a canonical type style.
+   ─────────────────────────────────────────────────────────── */
 
+/* H1 — Switzer Regular  50 / 51  − 1 px tracking */
+.type-h1 {
+  font-family: var(--font-display);
+  font-size: 50px;
+  font-weight: 400;
+  line-height: calc(51 / 50);
+  letter-spacing: -1px;
+}
+
+/* H2 — Switzer Regular  32 / 36  − 1 px tracking */
+.type-h2 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: calc(36 / 32);
+  letter-spacing: -1px;
+}
+
+/* Text L — Geist Regular  16 / 19  + 1 px tracking */
+.type-text-l {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: calc(19 / 16);
+  letter-spacing: 1px;
+}
+
+/* Button M — Geist Medium  16 / 16  − 2 px tracking */
+.type-button-m {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+/* Desk · Section — Geist SemiBold  12 / 12  + 1 px tracking */
+.type-section {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 1px;
+}
