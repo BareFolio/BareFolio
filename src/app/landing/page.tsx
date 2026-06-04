@@ -1136,6 +1136,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
    Landing Page Root
    ═══════════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
+  const router = useRouter();
   const [modal, setModal] = useState<ModalMode>(null);
   const [footerVisible, setFooterVisible] = useState(false);
   const footerRef = useRef<HTMLElement>(null);
@@ -1150,6 +1151,8 @@ export default function LandingPage() {
     check();
     return () => window.removeEventListener('scroll', check);
   }, []);
+
+  const goToWaitlist = () => router.push('/waitlist');
 
   return (
     <div style={{ background: '#fafafa' }} className="font-sans">
@@ -1169,14 +1172,14 @@ export default function LandingPage() {
       <Block02 />
       <Block03 />
       <Block04 />
-      <Block05 onGetAccess={() => setModal('signup')} />
-      <Footer ref={footerRef} onLogin={() => setModal('login')} onGetAccess={() => setModal('signup')} />
+      <Block05 onGetAccess={goToWaitlist} />
+      <Footer ref={footerRef} onLogin={() => setModal('login')} onGetAccess={goToWaitlist} />
 
       <AuthModal mode={modal} onClose={() => setModal(null)}
         onSwitch={() => setModal(modal === 'login' ? 'signup' : 'login')} />
       <BottomNav
         onLogin={() => setModal('login')}
-        onGetAccess={() => setModal('signup')}
+        onGetAccess={goToWaitlist}
         hidden={footerVisible}
       />
     </div>
