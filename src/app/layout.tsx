@@ -36,6 +36,10 @@ const geist = localFont({
 export const metadata: Metadata = {
   title: "BareFolio - The Visual Portfolio Network",
   description: "Showcase premium design portfolios, share visual updates, and connect with creative agencies and brands.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
