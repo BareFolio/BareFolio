@@ -389,18 +389,17 @@ function Block03() {
               a slightly different version of you, and none of them were designed with
               your process in mind.
             </p>
-            {/* Phones at bottom — absolute centering: left:50%+translateX(-50%) is
-                pixel-perfect regardless of actual image widths */}
-            <div style={{ position: 'relative', height: '310px', margin: '0 -24px' }}>
+            {/* Phones at bottom — clipped to card width */}
+            <div style={{ position: 'relative', height: '270px', overflow: 'hidden' }}>
               <div style={{
                 position: 'absolute', bottom: 0, left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex', alignItems: 'flex-end',
               }}>
                 <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
-                  style={{ height: '270px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
+                  style={{ height: '235px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
                 <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
-                  style={{ height: '300px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-50px' }} />
+                  style={{ height: '265px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-40px' }} />
               </div>
             </div>
           </div>
