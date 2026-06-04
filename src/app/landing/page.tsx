@@ -955,7 +955,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
               fontWeight: 500, fontSize: '15px', letterSpacing: 'normal',
               padding: '12px 0', borderRadius: '100px',
               border: 'none', cursor: 'pointer',
-            }}>Request Access</button>
+            }}>Get Access</button>
           </div>
 
           {/* 2. Brand */}
@@ -1086,7 +1086,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
             </nav>
           </div>
 
-          {/* Right — Login + Request Access */}
+          {/* Right — Login + Get Access */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={onLogin} style={{
               background: 'rgba(255,255,255,0.45)',
@@ -1110,7 +1110,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
             }}
               onMouseEnter={e => (e.currentTarget.style.background = '#333')}
               onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
-            >Request Access</button>
+            >Get Access</button>
           </div>
         </div>
 
