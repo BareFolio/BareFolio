@@ -174,8 +174,8 @@ function Block02() {
   const abajoRP  = eo(rng(p, 0.52, 0.70));
 
   return (
-    <div ref={containerRef} style={{ height: '400vh', background: '#fafafa', overflowX: 'hidden' }}>
-      <div style={{ position: 'sticky', top: 0, height: '100vh', background: '#fafafa', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ height: '400vh', background: '#fafafa' }}>
+      <div style={{ position: 'sticky', top: 0, height: '100vh', background: '#fafafa' }}>
 
         {/* Headline */}
         <div style={{
