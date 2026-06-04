@@ -82,6 +82,26 @@ body {
   font-family: var(--font-display);
 }
 
+/* ── Waitlist page ──────────────────────────────────────────── */
+.waitlist-input::placeholder {
+  color: var(--grey-400);
+  opacity: 1;
+}
+.waitlist-input:focus {
+  outline: none;
+  border-color: var(--grey-300) !important;
+  background: #f4f4f4 !important;
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.3333%); }
+}
+.marquee-track {
+  animation: marquee-scroll 28s linear infinite;
+  will-change: transform;
+}
+
 /* ── Figma Text Style Utilities ────────────────────────────────
    Use these classes whenever you need a canonical type style.
    ─────────────────────────────────────────────────────────── */

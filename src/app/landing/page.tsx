@@ -120,7 +120,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
         }}>
           <button onClick={onClose} style={{
             background: 'none', border: 'none',
-            fontSize: '16px', color: '#101010',
+            color: '#101010',
             cursor: 'pointer', padding: 0, justifySelf: 'start',
             lineHeight: 1, fontSize: '27px',
           }}>✕</button>
