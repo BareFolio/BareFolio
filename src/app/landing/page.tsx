@@ -132,14 +132,14 @@ function AuthModal({ mode, onClose, onSwitch }: {
           }}>Get Help</button>
         </div>
 
-        {/* Content — distributed across full panel height */}
+        {/* Content */}
         <div style={{
           flex: 1, padding: '0 32px 40px',
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          display: 'flex', flexDirection: 'column',
         }}>
 
           {/* Title */}
-          <div style={{ textAlign: 'center', padding: '32px 0 28px' }}>
+          <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
             <h2 style={{
               fontFamily: 'var(--font-display)',
               fontSize: '28px', fontWeight: 500,
@@ -209,9 +209,9 @@ function AuthModal({ mode, onClose, onSwitch }: {
 
           </div>{/* end middle block */}
 
-          {/* Bottom: switch link */}
+          {/* Bottom: switch link — pinned to bottom */}
           <button onClick={onSwitch} style={{
-            background: 'none', border: 'none',
+            marginTop: 'auto', background: 'none', border: 'none',
             fontSize: '14px', color: '#737373',
             cursor: 'pointer', textAlign: 'center',
             paddingTop: '24px',
