@@ -397,7 +397,7 @@ function Block03() {
               <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
                 style={{ width: '47%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
               <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
-                style={{ width: '52%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-8%' }} />
+                style={{ width: '52%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-16%' }} />
             </div>
           </div>
         ) : (
