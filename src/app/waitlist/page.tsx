@@ -428,7 +428,7 @@ export default function WaitlistPage() {
         width: '100%',
         maxWidth: isMobile ? '100%' : 820,
         margin: '0 auto',
-        padding: isMobile ? '64px 20px 40px' : '80px 40px 48px',
+        padding: isMobile ? '80px 20px 0' : '80px 40px 48px',
         gap: isMobile ? 29 : 28,
         position: 'relative', zIndex: 1,
       }}>
@@ -483,18 +483,18 @@ export default function WaitlistPage() {
               <p style={{ margin: 0 }}>
                 Your work lives scattered across platforms built for visibility, not for you.{' '}
                 <strong style={{ fontWeight: 600 }}>BareFolio</strong>{' '}
-                brings it back together, one environment, shaped around how you actually create.{' '}
-                Where the work speaks first.
+                brings it back together, one environment, shaped around how you actually create.
+                <br />Where the work speaks first.
               </p>
             ) : (
               <>
                 <p style={{ margin: 0 }}>
-                  Your work lives scattered across platforms built for visibility, not for you.
+                  Your work lives scattered across platforms built for visibility, not for you.{' '}
+                  <strong style={{ fontWeight: 600 }}>BareFolio</strong>{' '}
+                  brings it back together, one environment, shaped around how you actually create.
                 </p>
                 <p style={{ margin: 0 }}>
-                  <strong style={{ fontWeight: 600 }}>BareFolio</strong>{' '}
-                  brings it back together, one environment, shaped around how you actually create.{' '}
-                  <br />Where the work speaks first.
+                  Where the work speaks first.
                 </p>
               </>
             )}
@@ -650,8 +650,6 @@ export default function WaitlistPage() {
         <MarqueeRow />
       </div>
 
-      {/* Spacer on mobile so footer stays well below fold */}
-      {isMobile && <div style={{ height: 80 }} />}
 
       </div>{/* end above-fold */}
 
