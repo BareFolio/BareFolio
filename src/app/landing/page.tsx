@@ -113,52 +113,54 @@ function AuthModal({ mode, onClose, onSwitch }: {
         overflowY: 'auto',
       }}>
 
-        {/* Top bar */}
+        {/* Top bar — X left | isologo center | Get Help right */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '16px 20px', flexShrink: 0,
+          display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+          alignItems: 'center', padding: '20px 24px', flexShrink: 0,
         }}>
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: '50%',
-            border: 'none', background: 'rgba(0,0,0,0.06)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: '13px', color: '#101010', flexShrink: 0,
+            background: 'none', border: 'none',
+            fontSize: '16px', color: '#101010',
+            cursor: 'pointer', padding: 0, justifySelf: 'start',
+            lineHeight: 1,
           }}>✕</button>
-          <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 22, height: 22, flexShrink: 0 }} />
+          <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 24, height: 24 }} />
           <button style={{
-            marginLeft: 'auto', background: 'none', border: 'none',
-            fontSize: '13px', color: '#101010', cursor: 'pointer', fontWeight: 500,
+            background: 'none', border: 'none',
+            fontSize: '13px', color: '#101010',
+            cursor: 'pointer', fontWeight: 500, justifySelf: 'end',
           }}>Get Help</button>
         </div>
 
-        {/* Content */}
+        {/* Content — distributed across full panel height */}
         <div style={{
-          flex: 1, padding: '32px 28px 48px',
-          display: 'flex', flexDirection: 'column', gap: '24px',
+          flex: 1, padding: '0 32px 40px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
 
           {/* Title */}
-          <div>
+          <div style={{ textAlign: 'center', padding: '32px 0 28px' }}>
             <h2 style={{
               fontFamily: 'var(--font-display)',
               fontSize: '28px', fontWeight: 500,
-              color: '#101010', letterSpacing: '-0.5px', margin: '0 0 8px',
+              color: '#101010', letterSpacing: '-0.5px', margin: '0 0 10px',
             }}>
               {isLogin ? 'Login' : 'Create Account'}
             </h2>
             <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
               {isLogin
                 ? 'Sign in to your account.'
-                : 'Create your account and begin shaping your creative presence.'}
+                : 'Create your account and begin\nshaping your creative presence.'}
             </p>
           </div>
 
-          {/* OAuth */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Middle block: OAuth + divider + form */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* OAuth */}
             <button style={oauthStyle} onClick={() => handleOAuth('google')}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#a3a3a3'; e.currentTarget.style.background = '#fafafa'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e5e5'; e.currentTarget.style.background = '#fff'; }}>
-              {/* Google logo */}
               <svg width="17" height="17" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -167,50 +169,52 @@ function AuthModal({ mode, onClose, onSwitch }: {
               </svg>
               {isLogin ? 'Sign in with Google' : 'Sign up with Google'}
             </button>
-          </div>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ flex: 1, height: 1, background: '#e5e5e5' }} />
-            <span style={{ fontSize: '13px', color: '#a3a3a3' }}>or</span>
-            <div style={{ flex: 1, height: 1, background: '#e5e5e5' }} />
-          </div>
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ flex: 1, height: 1, background: '#e5e5e5' }} />
+              <span style={{ fontSize: '13px', color: '#a3a3a3' }}>or</span>
+              <div style={{ flex: 1, height: 1, background: '#e5e5e5' }} />
+            </div>
 
-          {/* Email / password form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="Email" required style={inputStyle}
-              onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
-              onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
-            />
-            {(isLogin || signupStep === 'password') && (
+            {/* Email / password form */}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input
-                type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Password" required minLength={6} autoFocus={signupStep === 'password'}
-                style={inputStyle}
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="Email" required style={inputStyle}
                 onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
                 onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
               />
-            )}
-            {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>{error}</p>}
-            <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '14px',
-              background: '#101010', color: '#fff',
-              border: 'none', borderRadius: '12px',
-              fontSize: '15px', fontWeight: 600,
-              cursor: loading ? 'default' : 'pointer',
-              opacity: loading ? 0.65 : 1, marginTop: '4px',
-            }}>
-              {loading ? '…' : isLogin ? 'Login' : signupStep === 'email' ? 'Next' : 'Create Account'}
-            </button>
-          </form>
+              {(isLogin || signupStep === 'password') && (
+                <input
+                  type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="Password" required minLength={6} autoFocus={signupStep === 'password'}
+                  style={inputStyle}
+                  onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
+                  onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
+                />
+              )}
+              {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: 0, textAlign: 'center' }}>{error}</p>}
+              <button type="submit" disabled={loading} style={{
+                width: '100%', padding: '14px',
+                background: '#101010', color: '#fff',
+                border: 'none', borderRadius: '12px',
+                fontSize: '15px', fontWeight: 600,
+                cursor: loading ? 'default' : 'pointer',
+                opacity: loading ? 0.65 : 1, marginTop: '4px',
+              }}>
+                {loading ? '…' : isLogin ? 'Login' : signupStep === 'email' ? 'Next' : 'Create Account'}
+              </button>
+            </form>
 
-          {/* Switch */}
+          </div>{/* end middle block */}
+
+          {/* Bottom: switch link */}
           <button onClick={onSwitch} style={{
-            marginTop: 'auto', background: 'none', border: 'none',
+            background: 'none', border: 'none',
             fontSize: '14px', color: '#737373',
             cursor: 'pointer', textAlign: 'center',
+            paddingTop: '24px',
           }}>
             {isLogin ? 'Create account' : 'I have an account'}
           </button>
