@@ -149,7 +149,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
             </h2>
             <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
               {isLogin
-                ? 'Sign in to your account.'
+                ? 'Access your account and keep discovering inspiring content and communities.'
                 : 'Create your account and begin\nshaping your creative presence.'}
             </p>
           </div>
