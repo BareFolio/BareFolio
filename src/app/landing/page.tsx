@@ -222,7 +222,7 @@ function Block02() {
             src="/landing/recursos/Bloque 2_01.png"
             alt="BareFolio"
             style={{
-              height: isMobile ? 'min(600px, 74vh)' : 'min(740px, 94vh)',
+              height: isMobile ? 'min(480px, 56vh)' : 'min(740px, 94vh)',
               width: 'auto',
               filter: 'drop-shadow(0 32px 56px rgba(0,0,0,0.15))',
             }}
@@ -230,7 +230,7 @@ function Block02() {
         </div>
 
         {/* Centro pair — repositioned on mobile to flank the phone */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute',
             left: isMobile ? 'calc(50% - 240px)' : 'calc(50% - 470px)',
