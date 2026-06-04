@@ -407,12 +407,16 @@ export default function WaitlistPage() {
           <div style={{ position: 'absolute', left: -192, top: 747, width: 333, height: 178, background: 'linear-gradient(5.6deg, #fafafa 30%, #f4f4f4 92%)', transform: 'rotate(25deg)', pointerEvents: 'none', zIndex: 0 }} />
         </>}
 
-        {/* BareFolio text logotype — top-left */}
-        <img
-          src="/Logotipo Black.svg"
-          alt="BareFolio"
-          style={{ position: 'absolute', top: 28, left: 28, height: 18, width: 'auto' }}
-        />
+        {/* BareFolio logotype — top-left (mobile: isologo + text, desktop: text only) */}
+        {isMobile ? (
+          <div style={{ position: 'absolute', top: 24, left: 20, display: 'flex', alignItems: 'center', gap: 8, zIndex: 2 }}>
+            <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 22, height: 22 }} />
+            <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 16, width: 'auto' }} />
+          </div>
+        ) : (
+          <img src="/Logotipo Black.svg" alt="BareFolio"
+            style={{ position: 'absolute', top: 28, left: 28, height: 18, width: 'auto' }} />
+        )}
 
       {/* ── Main content — centered column ── */}
       <div style={{
@@ -431,8 +435,8 @@ export default function WaitlistPage() {
 
         {/* Logo + badge */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-          {/* Isologo — 50 % bigger: 24 → 36 */}
-          <img src="/ISOLOGO BLACK.svg" alt="BareFolio" style={{ width: 36, height: 36 }} />
+          {/* Isologo — hidden on mobile (moved to top-left header) */}
+          {!isMobile && <img src="/ISOLOGO BLACK.svg" alt="BareFolio" style={{ width: 36, height: 36 }} />}
 
           {/* Chip badge — larger text */}
           <div style={{
@@ -475,14 +479,25 @@ export default function WaitlistPage() {
             lineHeight: isMobile ? '14px' : '19px', letterSpacing: isMobile ? '0.12px' : '0.16px', color: '#101010',
             textAlign: 'center', maxWidth: isMobile ? 355 : 685,
           }}>
-            <p style={{ margin: 0 }}>
-              Your work lives scattered across platforms built for visibility, not for you.
-            </p>
-            <p style={{ margin: 0 }}>
-              <strong style={{ fontWeight: 600 }}>BareFolio</strong>{' '}
-              brings it back together, one environment, shaped around how you actually create.{' '}
-              <br />Where the work speaks first.
-            </p>
+            {isMobile ? (
+              <p style={{ margin: 0 }}>
+                Your work lives scattered across platforms built for visibility, not for you.{' '}
+                <strong style={{ fontWeight: 600 }}>BareFolio</strong>{' '}
+                brings it back together, one environment, shaped around how you actually create.{' '}
+                Where the work speaks first.
+              </p>
+            ) : (
+              <>
+                <p style={{ margin: 0 }}>
+                  Your work lives scattered across platforms built for visibility, not for you.
+                </p>
+                <p style={{ margin: 0 }}>
+                  <strong style={{ fontWeight: 600 }}>BareFolio</strong>{' '}
+                  brings it back together, one environment, shaped around how you actually create.{' '}
+                  <br />Where the work speaks first.
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -577,13 +592,13 @@ export default function WaitlistPage() {
                   type="text" placeholder="Name"
                   value={name} onChange={e => setName(e.target.value)}
                   className="waitlist-input"
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 37 : 46, fontSize: isMobile ? 13 : 16 }}
+                  style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 46, fontSize: isMobile ? 13 : 16 }}
                 />
                 <input
                   type="text" placeholder="Surname"
                   value={surname} onChange={e => setSurname(e.target.value)}
                   className="waitlist-input"
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 37 : 46, fontSize: isMobile ? 13 : 16 }}
+                  style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 46, fontSize: isMobile ? 13 : 16 }}
                 />
               </div>
 
@@ -594,13 +609,13 @@ export default function WaitlistPage() {
                   value={email} onChange={e => setEmail(e.target.value)}
                   className="waitlist-input"
                   required
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 36 : 44, fontSize: isMobile ? 13 : 16 }}
+                  style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 44, fontSize: isMobile ? 13 : 16 }}
                 />
                 <button
                   type="submit"
                   style={{
-                    width: isMobile ? 97 : 120,
-                    height: isMobile ? 36 : 44,
+                    width: isMobile ? 110 : 120,
+                    height: isMobile ? 46 : 44,
                     flexShrink: 0,
                     background: '#101010', border: 'none', borderRadius: 10,
                     fontFamily: 'var(--font-sans)', fontSize: isMobile ? 13 : 16, fontWeight: 500,
@@ -634,6 +649,9 @@ export default function WaitlistPage() {
       <div style={{ width: '100%' }}>
         <MarqueeRow />
       </div>
+
+      {/* Spacer on mobile so footer stays well below fold */}
+      {isMobile && <div style={{ height: 80 }} />}
 
       </div>{/* end above-fold */}
 
