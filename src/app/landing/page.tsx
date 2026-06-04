@@ -214,7 +214,7 @@ function Block02() {
         {/* Phone */}
         <div style={{
           position: 'absolute', left: '50%',
-          ...(isMobile ? { bottom: 0 } : { top: '26%' }),
+          ...(isMobile ? { bottom: '10%' } : { top: '26%' }),
           transform: `translateX(-50%) translateY(${(1 - phoneP) * 120}px)`,
           opacity: phoneP, zIndex: 30, pointerEvents: 'none',
         }}>
@@ -389,18 +389,15 @@ function Block03() {
               a slightly different version of you, and none of them were designed with
               your process in mind.
             </p>
-            {/* Phones at bottom — clipped to card width */}
-            <div style={{ position: 'relative', height: '270px', overflow: 'hidden' }}>
-              <div style={{
-                position: 'absolute', bottom: 0, left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex', alignItems: 'flex-end',
-              }}>
-                <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
-                  style={{ height: '235px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
-                <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
-                  style={{ height: '265px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-40px' }} />
-              </div>
+            {/* Phones centered in card — percentage widths guarantee fit, no clipping */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+              marginTop: '24px',
+            }}>
+              <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
+                style={{ width: '47%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
+              <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
+                style={{ width: '52%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-8%' }} />
             </div>
           </div>
         ) : (
@@ -522,7 +519,7 @@ function Block04() {
         'Bare uses AI to automatically analyze and classify every image by style, technique, and visual characteristics. This creates precise, meaningful filters that let you explore work based on how it actually looks, not how it\'s labeled.',
         'Just a curated system that makes finding the right work effortless.',
       ],
-      video: '/landing/recursos/Bloque 04_01.mov',
+      video: '/landing/recursos/Bloque 04_01.mp4',
     },
     {
       tag: 'HOW IT WORKS',
@@ -532,7 +529,7 @@ function Block04() {
         'Each creator submits a project. A team evaluates the technical quality and the strength of the submission. Not the creator\'s background, not years of experience. Just the work.',
         'If accepted, the system automatically classifies your file. If not, you can try again.',
       ],
-      video: '/landing/recursos/Bloque 04_02.mov',
+      video: '/landing/recursos/Bloque 04_02.mp4',
     },
     {
       tag: 'PERSONALIZE',
@@ -542,7 +539,7 @@ function Block04() {
         'Your work shouldn\'t be confined to a fixed layout or shaped by an algorithm. With Bare, you define how your profile looks, how projects are organized, and how your work is experienced.',
         'Customize your grid, structure your projects, and decide what is seen first — from final pieces to process, from exploration to finished work.',
       ],
-      video: '/landing/recursos/Bloque 04_03.mov',
+      video: '/landing/recursos/Bloque 04_03.mp4',
     },
   ];
 
@@ -1041,7 +1038,8 @@ export default function LandingPage() {
 
       {/* BLOQUE 01 — Full-screen video hero */}
       <section style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
-        <video src="/landing/bloque-01.mp4" autoPlay muted loop playsInline
+        <video src="/landing/bloque-01.mp4" autoPlay muted loop playsInline preload="auto"
+          poster="/landing/bloque-01-poster.jpg"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
