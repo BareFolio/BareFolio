@@ -122,7 +122,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
             background: 'none', border: 'none',
             fontSize: '16px', color: '#101010',
             cursor: 'pointer', padding: 0, justifySelf: 'start',
-            lineHeight: 1,
+            lineHeight: 1, fontSize: '27px',
           }}>✕</button>
           <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 24, height: 24 }} />
           <button style={{
