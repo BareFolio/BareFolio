@@ -155,16 +155,6 @@ function AuthModal({ mode, onClose, onSwitch }: {
 
           {/* OAuth */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button style={oauthStyle} onClick={() => handleOAuth('apple')}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a3a3a3'; e.currentTarget.style.background = '#fafafa'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e5e5'; e.currentTarget.style.background = '#fff'; }}>
-              {/* Apple logo */}
-              <svg width="17" height="17" viewBox="0 0 814 1000" fill="currentColor">
-                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.9-155.5-127.4C46 423.8 6.1 312.3 6.1 207.8c0-163.8 107.1-250.6 206.6-250.6 78.6 0 143.5 52.2 192.1 52.2 46 0 119.3-55.4 208.1-55.4 33.1 0 133.8 3.2 196 110.6zm-180.5-117.8c-33.4 43.9-59.6 91.5-59.6 139.2 0 6.4.6 12.9 1.3 19.3 5.1.6 13.4 1.3 21.7 1.3 43.9 0 93.1-29.5 122-68.7 26.5-35.3 46-83.6 46-131.3 0-6.4-.6-12.9-1.3-19.3-4.5.6-11.5 1.3-18.5 1.3-43.3 0-91.5 28.2-112.3 58.2z"/>
-              </svg>
-              {isLogin ? 'Sign in with Apple' : 'Sign up with Apple'}
-            </button>
-
             <button style={oauthStyle} onClick={() => handleOAuth('google')}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#a3a3a3'; e.currentTarget.style.background = '#fafafa'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e5e5'; e.currentTarget.style.background = '#fff'; }}>
