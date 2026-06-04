@@ -214,7 +214,7 @@ function Block02() {
         {/* Phone */}
         <div style={{
           position: 'absolute', left: '50%',
-          top: isMobile ? '16%' : '26%',
+          ...(isMobile ? { bottom: 0 } : { top: '26%' }),
           transform: `translateX(-50%) translateY(${(1 - phoneP) * 120}px)`,
           opacity: phoneP, zIndex: 30, pointerEvents: 'none',
         }}>
