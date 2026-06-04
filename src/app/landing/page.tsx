@@ -22,34 +22,47 @@ function useIsMobile() {
   return m;
 }
 
-/* ─── Auth Modal ──────────────────────────────────────────────── */
+/* ─── Auth Modal (slide-in panel) ────────────────────────────── */
 type ModalMode = 'login' | 'signup' | null;
 
 function AuthModal({ mode, onClose, onSwitch }: {
   mode: ModalMode; onClose: () => void; onSwitch: () => void;
 }) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [signupStep, setSignupStep] = useState<'email' | 'password'>('email');
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
 
-  if (!mode) return null;
+  const isOpen  = mode !== null;
   const isLogin = mode === 'login';
+
+  // Reset form whenever modal opens or switches mode
+  useEffect(() => {
+    if (mode) { setEmail(''); setPassword(''); setError(''); setSignupStep('email'); }
+  }, [mode]);
+
+  async function handleOAuth(provider: 'google' | 'apple') {
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/explore` },
+      });
+    } catch (err: any) { setError(err.message || 'Error.'); }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Signup step 1 → step 2
+    if (!isLogin && signupStep === 'email') { setSignupStep('password'); return; }
     setLoading(true); setError('');
     try {
       if (isLogin) {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
       } else {
-        const { error: err } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { full_name: name, display_name: name } },
-        });
+        const { error: err } = await supabase.auth.signUp({ email, password });
         if (err) throw err;
       }
       router.push('/explore');
@@ -58,50 +71,161 @@ function AuthModal({ mode, onClose, onSwitch }: {
     } finally { setLoading(false); }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '13px 16px', boxSizing: 'border-box',
+    border: '1.5px solid #e5e5e5', borderRadius: '12px',
+    fontSize: '15px', color: '#101010', background: '#fff', outline: 'none',
+    transition: 'border-color 0.15s',
+  };
+  const oauthStyle: React.CSSProperties = {
+    width: '100%', padding: '13px 16px',
+    border: '1.5px solid #e5e5e5', borderRadius: '12px',
+    background: '#fff', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+    fontSize: '15px', fontWeight: 500, color: '#101010',
+    transition: 'border-color 0.15s, background 0.15s',
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl relative">
-        <button onClick={onClose}
-          className="absolute top-5 right-5 text-neutral-400 hover:text-neutral-700 w-7 h-7 flex items-center justify-center rounded-full hover:bg-neutral-100 transition-colors">✕</button>
-        <div className="mb-7"><img src="/Logotipo Black.svg" alt="BareFolio" className="h-5 w-auto" /></div>
-        <h2 className="font-display font-bold text-[22px] tracking-tight text-[#101010] mb-1">
-          {isLogin ? 'Bienvenido de vuelta' : 'Crear cuenta'}
-        </h2>
-        <p className="text-sm text-neutral-500 mb-7">
-          {isLogin ? 'Accede a tu espacio creativo.' : 'Únete a la comunidad de creadores.'}
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {!isLogin && (
-            <div>
-              <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1.5 block">Nombre</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" required
-                className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-neutral-400 transition-colors" />
-            </div>
-          )}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      display: 'flex', justifyContent: 'flex-end',
+      pointerEvents: isOpen ? 'auto' : 'none',
+    }}>
+      {/* Blurred backdrop */}
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.18)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        opacity: isOpen ? 1 : 0,
+        transition: 'opacity 0.35s ease',
+      }} />
+
+      {/* Slide-in panel */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        width: '100%', maxWidth: '420px', height: '100%',
+        background: '#ffffff',
+        display: 'flex', flexDirection: 'column',
+        transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.38s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflowY: 'auto',
+      }}>
+
+        {/* Top bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '16px 20px', flexShrink: 0,
+        }}>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: 'none', background: 'rgba(0,0,0,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', fontSize: '13px', color: '#101010', flexShrink: 0,
+          }}>✕</button>
+          <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 22, height: 22, flexShrink: 0 }} />
+          <button style={{
+            marginLeft: 'auto', background: 'none', border: 'none',
+            fontSize: '13px', color: '#101010', cursor: 'pointer', fontWeight: 500,
+          }}>Get Help</button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          flex: 1, padding: '32px 28px 48px',
+          display: 'flex', flexDirection: 'column', gap: '24px',
+        }}>
+
+          {/* Title */}
           <div>
-            <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1.5 block">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" required
-              className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-neutral-400 transition-colors" />
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '28px', fontWeight: 500,
+              color: '#101010', letterSpacing: '-0.5px', margin: '0 0 8px',
+            }}>
+              {isLogin ? 'Login' : 'Create Account'}
+            </h2>
+            <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
+              {isLogin
+                ? 'Sign in to your account.'
+                : 'Create your account and begin shaping your creative presence.'}
+            </p>
           </div>
-          <div>
-            <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-1.5 block">Contraseña</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6}
-              className="w-full border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-neutral-400 transition-colors" />
+
+          {/* OAuth */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button style={oauthStyle} onClick={() => handleOAuth('apple')}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a3a3a3'; e.currentTarget.style.background = '#fafafa'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e5e5'; e.currentTarget.style.background = '#fff'; }}>
+              {/* Apple logo */}
+              <svg width="17" height="17" viewBox="0 0 814 1000" fill="currentColor">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.9-155.5-127.4C46 423.8 6.1 312.3 6.1 207.8c0-163.8 107.1-250.6 206.6-250.6 78.6 0 143.5 52.2 192.1 52.2 46 0 119.3-55.4 208.1-55.4 33.1 0 133.8 3.2 196 110.6zm-180.5-117.8c-33.4 43.9-59.6 91.5-59.6 139.2 0 6.4.6 12.9 1.3 19.3 5.1.6 13.4 1.3 21.7 1.3 43.9 0 93.1-29.5 122-68.7 26.5-35.3 46-83.6 46-131.3 0-6.4-.6-12.9-1.3-19.3-4.5.6-11.5 1.3-18.5 1.3-43.3 0-91.5 28.2-112.3 58.2z"/>
+              </svg>
+              {isLogin ? 'Sign in with Apple' : 'Sign up with Apple'}
+            </button>
+
+            <button style={oauthStyle} onClick={() => handleOAuth('google')}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#a3a3a3'; e.currentTarget.style.background = '#fafafa'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e5e5'; e.currentTarget.style.background = '#fff'; }}>
+              {/* Google logo */}
+              <svg width="17" height="17" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              {isLogin ? 'Sign in with Google' : 'Sign up with Google'}
+            </button>
           </div>
-          {error && <p className="text-xs text-red-500 bg-red-50 border border-red-100 px-3 py-2.5 rounded-xl">{error}</p>}
-          <button type="submit" disabled={loading}
-            className="mt-1 bg-[#101010] hover:bg-neutral-800 text-white font-semibold text-sm py-3.5 rounded-xl transition-colors disabled:opacity-50">
-            {loading ? '…' : isLogin ? 'Iniciar sesión' : 'Crear cuenta'}
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ flex: 1, height: 1, background: '#e5e5e5' }} />
+            <span style={{ fontSize: '13px', color: '#a3a3a3' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: '#e5e5e5' }} />
+          </div>
+
+          {/* Email / password form */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="Email" required style={inputStyle}
+              onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
+              onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
+            />
+            {(isLogin || signupStep === 'password') && (
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="Password" required minLength={6} autoFocus={signupStep === 'password'}
+                style={inputStyle}
+                onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
+                onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
+              />
+            )}
+            {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>{error}</p>}
+            <button type="submit" disabled={loading} style={{
+              width: '100%', padding: '14px',
+              background: '#101010', color: '#fff',
+              border: 'none', borderRadius: '12px',
+              fontSize: '15px', fontWeight: 600,
+              cursor: loading ? 'default' : 'pointer',
+              opacity: loading ? 0.65 : 1, marginTop: '4px',
+            }}>
+              {loading ? '…' : isLogin ? 'Login' : signupStep === 'email' ? 'Next' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Switch */}
+          <button onClick={onSwitch} style={{
+            marginTop: 'auto', background: 'none', border: 'none',
+            fontSize: '14px', color: '#737373',
+            cursor: 'pointer', textAlign: 'center',
+          }}>
+            {isLogin ? 'Create account' : 'I have an account'}
           </button>
-        </form>
-        <p className="text-center text-[12px] text-neutral-400 mt-6">
-          {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-          <button onClick={onSwitch} className="text-[#101010] font-semibold underline underline-offset-2">
-            {isLogin ? 'Regístrate' : 'Inicia sesión'}
-          </button>
-        </p>
+
+        </div>
       </div>
     </div>
   );
