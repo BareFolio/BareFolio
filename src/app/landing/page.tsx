@@ -174,8 +174,8 @@ function Block02() {
   const abajoRP  = eo(rng(p, 0.52, 0.70));
 
   return (
-    <div ref={containerRef} style={{ height: '400vh', background: '#fafafa' }}>
-      <div style={{ position: 'sticky', top: 0, height: '100vh', background: '#fafafa' }}>
+    <div ref={containerRef} style={{ height: '400vh', background: '#fafafa', overflowX: 'hidden' }}>
+      <div style={{ position: 'sticky', top: 0, height: '100vh', background: '#fafafa', overflow: 'hidden' }}>
 
         {/* Headline */}
         <div style={{
@@ -389,8 +389,8 @@ function Block03() {
               a slightly different version of you, and none of them were designed with
               your process in mind.
             </p>
-            {/* Phones at bottom, in normal flow */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
+            {/* Phones at bottom — use negative margin to span full card width for proper centering */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', margin: '0 -24px' }}>
               <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
                 style={{ height: '270px', width: 'auto', display: 'block', position: 'relative', zIndex: 2 }} />
               <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
@@ -549,7 +549,7 @@ function Block04() {
           position: 'sticky', top: 0, height: '100vh',
           background: '#fafafa', overflow: 'hidden',
           display: 'flex', flexDirection: 'row', alignItems: 'center',
-          padding: '32px 20px',
+          padding: '20px 20px 108px',
           gap: '14px',
         }}>
           {/* Left: vertical progress pills — stretches to match content column height, pills centred within */}
