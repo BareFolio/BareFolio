@@ -58,17 +58,17 @@ function MarqueeRow() {
 }
 
 /* ── Avatar stack ─────────────────────────────────── */
-function AvatarStack() {
+function AvatarStack({ size = 24 }: { size?: number }) {
   const srcs = ['/waitlist/avatar-1.jpg', '/waitlist/avatar-2.jpg', '/waitlist/avatar-3.jpg'];
   return (
     <div style={{ display: 'flex', alignItems: 'center' }}>
       {srcs.map((src, i) => (
         <div key={i} style={{
-          width: 24, height: 24, borderRadius: '50%',
-          border: '1.5px solid #fafafa', overflow: 'hidden',
-          marginLeft: i === 0 ? 0 : -6,
+          width: size, height: size, borderRadius: '50%',
+          border: '1px solid #fafafa', overflow: 'hidden',
+          marginLeft: i === 0 ? 0 : -(size * 0.25),
           position: 'relative', zIndex: 3 - i,
-          boxShadow: '0 1px 3px rgba(12,12,13,0.12)',
+          boxShadow: '0 1px 2.4px rgba(12,12,13,0.1)',
           flexShrink: 0, background: '#e7e7e7',
         }}>
           <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -397,7 +397,15 @@ export default function WaitlistPage() {
     <div style={{ minHeight: '100vh', background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Above-fold section — exactly 100vh, footer below ── */}
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+
+        {/* Diagonal gradient stripes — mobile only */}
+        {isMobile && <>
+          <div style={{ position: 'absolute', left: 18, top: -143, width: 721, height: 178, background: 'linear-gradient(2.6deg, #fafafa 30%, #f4f4f4 92%)', transform: 'rotate(25deg)', pointerEvents: 'none', zIndex: 0 }} />
+          <div style={{ position: 'absolute', left: -309, top: -172, width: 1066, height: 178, background: 'linear-gradient(1.7deg, #fafafa 30%, #f4f4f4 92%)', transform: 'rotate(25deg)', pointerEvents: 'none', zIndex: 0 }} />
+          <div style={{ position: 'absolute', left: -182, top: 637, width: 615, height: 178, background: 'linear-gradient(3deg, #fafafa 30%, #f4f4f4 92%)', transform: 'rotate(25deg)', pointerEvents: 'none', zIndex: 0 }} />
+          <div style={{ position: 'absolute', left: -192, top: 747, width: 333, height: 178, background: 'linear-gradient(5.6deg, #fafafa 30%, #f4f4f4 92%)', transform: 'rotate(25deg)', pointerEvents: 'none', zIndex: 0 }} />
+        </>}
 
         {/* BareFolio text logotype — top-left */}
         <img
@@ -417,7 +425,8 @@ export default function WaitlistPage() {
         maxWidth: isMobile ? '100%' : 820,
         margin: '0 auto',
         padding: isMobile ? '64px 20px 40px' : '80px 40px 48px',
-        gap: 28,
+        gap: isMobile ? 29 : 28,
+        position: 'relative', zIndex: 1,
       }}>
 
         {/* Logo + badge */}
@@ -433,10 +442,10 @@ export default function WaitlistPage() {
             borderRadius: 6,
             padding: '6px 14px 6px 8px',
           }}>
-            <img src="/waitlist/post-icon.svg" alt="" style={{ width: 13, height: 13 }} />
+            <img src="/waitlist/post-icon.svg" alt="" style={{ width: isMobile ? 10 : 13, height: isMobile ? 10 : 13 }} />
             <span style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 13,
+              fontSize: isMobile ? 10.3 : 13,
               fontWeight: 500,
               color: '#fafafa',
               letterSpacing: '0.07px',
@@ -453,8 +462,8 @@ export default function WaitlistPage() {
         }}>
           <h1 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: isMobile ? '36px' : 'clamp(36px, 5.5vw, 50px)',
-            fontWeight: 400, lineHeight: 1.02, letterSpacing: '-1px',
+            fontSize: isMobile ? '28px' : 'clamp(36px, 5.5vw, 50px)',
+            fontWeight: 400, lineHeight: isMobile ? '30px' : 1.02, letterSpacing: '-1px',
             color: '#101010', margin: 0, textAlign: 'left',
           }}>
             One place for your{' '}
@@ -462,9 +471,9 @@ export default function WaitlistPage() {
           </h1>
 
           <div style={{
-            fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 400,
-            lineHeight: '19px', letterSpacing: '0.16px', color: '#101010',
-            textAlign: 'center', maxWidth: 685,
+            fontFamily: 'var(--font-sans)', fontSize: isMobile ? 12 : 16, fontWeight: 400,
+            lineHeight: isMobile ? '14px' : '19px', letterSpacing: isMobile ? '0.12px' : '0.16px', color: '#101010',
+            textAlign: 'center', maxWidth: isMobile ? 355 : 685,
           }}>
             <p style={{ margin: 0 }}>
               Your work lives scattered across platforms built for visibility, not for you.
@@ -488,7 +497,7 @@ export default function WaitlistPage() {
           <div style={{
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
-            gap: 9, alignItems: 'stretch',
+            gap: isMobile ? 7 : 9, alignItems: 'stretch',
             width: SECTION_W,
           }}>
             {ROLES.map(r => {
@@ -506,11 +515,11 @@ export default function WaitlistPage() {
                   style={{
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
-                    gap: 4,
-                    height: isMobile ? 72 : 53,
+                    gap: isMobile ? 2 : 4,
+                    height: isMobile ? 49 : 53,
                     width: isMobile ? '100%' : ROLE_BTN_W,
-                    borderRadius: isMobile ? 10 : 6,
-                    border: `1px solid ${borderColor}`,
+                    borderRadius: isMobile ? 5 : 6,
+                    border: `${isMobile ? 0.812 : 1}px solid ${borderColor}`,
                     background: active ? '#181818' : 'transparent',
                     color: textColor,
                     cursor: 'pointer',
@@ -520,15 +529,15 @@ export default function WaitlistPage() {
                 >
                   <span style={{
                     fontFamily: 'var(--font-sans)',
-                    fontSize: isMobile ? 16 : 16,
-                    fontWeight: 400, letterSpacing: '0.16px', lineHeight: '18px',
+                    fontSize: isMobile ? 14 : 16,
+                    fontWeight: 400, letterSpacing: '0px', lineHeight: '16px',
                   }}>
                     {r.label}
                   </span>
                   <span style={{
                     fontFamily: 'var(--font-sans)',
-                    fontSize: isMobile ? 12 : 10, fontWeight: 400,
-                    letterSpacing: '0.1px', lineHeight: '12px',
+                    fontSize: 10, fontWeight: 400,
+                    letterSpacing: '0.1px', lineHeight: '10px',
                   }}>
                     {r.sub}
                   </span>
@@ -568,13 +577,13 @@ export default function WaitlistPage() {
                   type="text" placeholder="Name"
                   value={name} onChange={e => setName(e.target.value)}
                   className="waitlist-input"
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 52 : 46 }}
+                  style={{ ...inputBase, flex: 1, height: isMobile ? 37 : 46, fontSize: isMobile ? 13 : 16 }}
                 />
                 <input
                   type="text" placeholder="Surname"
                   value={surname} onChange={e => setSurname(e.target.value)}
                   className="waitlist-input"
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 52 : 46 }}
+                  style={{ ...inputBase, flex: 1, height: isMobile ? 37 : 46, fontSize: isMobile ? 13 : 16 }}
                 />
               </div>
 
@@ -585,17 +594,17 @@ export default function WaitlistPage() {
                   value={email} onChange={e => setEmail(e.target.value)}
                   className="waitlist-input"
                   required
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 52 : 44 }}
+                  style={{ ...inputBase, flex: 1, height: isMobile ? 36 : 44, fontSize: isMobile ? 13 : 16 }}
                 />
                 <button
                   type="submit"
                   style={{
-                    width: isMobile ? 130 : 120,
-                    height: isMobile ? 52 : 44,
+                    width: isMobile ? 97 : 120,
+                    height: isMobile ? 36 : 44,
                     flexShrink: 0,
                     background: '#101010', border: 'none', borderRadius: 10,
-                    fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 500,
-                    color: '#fafafa', letterSpacing: '-0.32px',
+                    fontFamily: 'var(--font-sans)', fontSize: isMobile ? 13 : 16, fontWeight: 500,
+                    color: '#fafafa', letterSpacing: '-0.26px',
                     cursor: 'pointer', whiteSpace: 'nowrap',
                     transition: 'background 0.15s',
                   }}
@@ -609,10 +618,10 @@ export default function WaitlistPage() {
           )}
 
           {/* Social proof */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AvatarStack />
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8 }}>
+            <AvatarStack size={isMobile ? 19 : 24} />
             <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: 11.5,
+              fontFamily: 'var(--font-sans)', fontSize: isMobile ? 9.5 : 11.5,
               fontWeight: 600, color: '#adadad',
             }}>
               Join 2,000+ others who signed up
