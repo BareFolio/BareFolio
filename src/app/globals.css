@@ -58,11 +58,16 @@
   --color-text-secondary:  var(--text-secondary);
 }
 
+html {
+  /* clip horizontal overflow at the viewport without creating a scroll container
+     (unlike overflow-x:hidden, clip does not break position:sticky) */
+  overflow-x: clip;
+}
+
 body {
   background-color: var(--bare-white);
   color: var(--bare-black);
   font-family: var(--font-sans);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 

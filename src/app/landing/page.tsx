@@ -389,12 +389,19 @@ function Block03() {
               a slightly different version of you, and none of them were designed with
               your process in mind.
             </p>
-            {/* Phones at bottom — use negative margin to span full card width for proper centering */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', margin: '0 -24px' }}>
-              <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
-                style={{ height: '270px', width: 'auto', display: 'block', position: 'relative', zIndex: 2 }} />
-              <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
-                style={{ height: '300px', width: 'auto', display: 'block', position: 'relative', zIndex: 1, marginLeft: '-50px' }} />
+            {/* Phones at bottom — absolute centering: left:50%+translateX(-50%) is
+                pixel-perfect regardless of actual image widths */}
+            <div style={{ position: 'relative', height: '310px', margin: '0 -24px' }}>
+              <div style={{
+                position: 'absolute', bottom: 0, left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex', alignItems: 'flex-end',
+              }}>
+                <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
+                  style={{ height: '270px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
+                <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
+                  style={{ height: '300px', width: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-50px' }} />
+              </div>
             </div>
           </div>
         ) : (
