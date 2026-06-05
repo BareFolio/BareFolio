@@ -1,250 +1,461 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import Link from 'next/link';
 
-/* ─── Types ─────────────────────────────────── */
-type Billing = 'monthly' | 'yearly';
-type ActivePlan = 'free' | 'pro' | 'scout';
+/* ── palette (inverted — #FAFAFA background, #101010 text) ─────── */
+const ink       = '#101010';
+const bg        = '#FAFAFA';
+const brand     = '#4E4BB9';
+const brandSoft = '#7572e0';
+const line      = 'rgba(16,16,16,.10)';
+const lineStrong= 'rgba(16,16,16,.20)';
+const muted     = 'rgba(16,16,16,.55)';
+const muted2    = 'rgba(16,16,16,.38)';
+const D = 'var(--font-display), -apple-system, sans-serif';  // Switzer
+const B = 'var(--font-sans),    -apple-system, sans-serif';  // Geist
 
-/* ─── useIsMobile ───────────────────────────── */
-function useIsMobile() {
-  const [m, setM] = useState(false);
+/* ── scroll-reveal hook ─────────────────────────────────────────── */
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [vis, setVis] = useState(false);
   useEffect(() => {
-    const check = () => setM(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVis(true); io.disconnect(); } },
+      { threshold: 0.08 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
-  return m;
+  return { ref, vis };
 }
 
-/* ─── Static data ───────────────────────────── */
-const FREE_FEATURES = [
-  { icon: '✦', title: 'Full app access',           sub: 'The whole app, no usage restrictions.' },
-  { icon: '⊞', title: 'Up to 10 blocks / project', sub: 'Upgrade to Pro for unlimited blocks.' },
-  { icon: '◎', title: 'Public profile',             sub: 'Your work visible in the community.' },
-];
-
-const PRO_FEATURES = [
-  { icon: '≡', title: 'Unlimited blocks',       sub: 'No ceiling. Document the full process.',  badge: null },
-  { icon: '⊞', title: 'Custom profile grid',    sub: 'Choose how your profile previews.',        badge: 'NEW' },
-  { icon: '↗', title: 'Profile analytics',      sub: 'Who sees your work and when.',             badge: null },
-  { icon: '✓', title: 'Verified badge',          sub: 'Trust signal in talent searches.',         badge: null },
-  { icon: '⊕', title: 'Priority in search',     sub: 'Appear first in talent searches.',         badge: null },
-  { icon: '◎', title: 'Available for projects', sub: "Signal that you're open to work.",         badge: 'NEW' },
-];
-
-const SCOUT_EXTRAS = [
-  { icon: '◈', title: 'Community space',  sub: 'Your own creative community.' },
-  { icon: '✉', title: 'Direct contact',   sub: 'Reach out to creators directly.' },
-  { icon: '◷', title: 'Market analytics', sub: 'Creative market trends.' },
-];
-
-/* ─── FeatureRow ────────────────────────────── */
-function FeatureRow({ icon, title, sub, badge, exclusive }: {
-  icon: string;
-  title: string;
-  sub: string;
-  badge?: string | null;
-  exclusive?: boolean;
-}) {
+/* ── tiny components ────────────────────────────────────────────── */
+function FeatItem({ children }: { children: ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: '9px', alignItems: 'flex-start' }}>
-      <div style={{ width: '18px', height: '18px', background: '#fff', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '10px' }}>
-        {icon}
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#101010', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-          {title}
-          {badge && !exclusive && (
-            <span style={{ background: '#e8e6ff', color: '#4E4BB9', fontSize: '8px', fontWeight: 700, padding: '1px 5px', borderRadius: '5px' }}>{badge}</span>
-          )}
-          {exclusive && (
-            <span style={{ background: '#e8e6ff', color: '#4E4BB9', fontSize: '8px', fontWeight: 700, padding: '1px 5px', borderRadius: '5px', border: '1px solid rgba(78,75,185,0.2)' }}>EXCLUSIVE</span>
-          )}
-        </div>
-        <div style={{ fontSize: '10px', color: '#a3a3a3' }}>{sub}</div>
-      </div>
+    <li style={{ display: 'flex', gap: '11px', fontSize: '13.5px', color: muted,
+      lineHeight: 1.4, alignItems: 'flex-start', listStyle: 'none' }}>
+      <span style={{ flexShrink: 0, width: '15px', height: '15px', marginTop: '2px',
+        borderRadius: '4px', background: 'rgba(123,120,224,.13)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M3.5 7.8l2.4 2.4 5-5.6"
+            stroke="#7572e0" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      {children}
+    </li>
+  );
+}
+
+function Pill({ children }: { children: ReactNode }) {
+  return (
+    <span style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase',
+      color: brand, border: '1px solid rgba(123,120,224,.38)',
+      padding: '4px 9px', borderRadius: '99px', whiteSpace: 'nowrap' }}>
+      {children}
+    </span>
+  );
+}
+
+function CardName({ children }: { children: ReactNode }) {
+  return <span style={{ fontFamily: D, fontWeight: 600, fontSize: '21px', letterSpacing: '-.01em', color: ink }}>{children}</span>;
+}
+
+function CardPrice({ main, unit }: { main: string; unit: string }) {
+  return (
+    <div style={{ fontFamily: D, fontWeight: 700, fontSize: '38px', letterSpacing: '-.03em', margin: '14px 0 2px', color: ink }}>
+      {main}
+      <span style={{ fontFamily: B, fontWeight: 300, fontSize: '15px', color: muted }}>{unit}</span>
     </div>
   );
 }
 
-/* ─── Card components (hoisted outside PricingPage to prevent remounts) ── */
+function CardSub({ children }: { children: ReactNode }) {
+  return <div style={{ fontSize: '12.5px', color: brand, minHeight: '17px', marginBottom: '16px' }}>{children}</div>;
+}
 
-function FreeCard() {
+function CardTag({ children }: { children: ReactNode }) {
+  return <p style={{ fontSize: '13.5px', color: muted, lineHeight: 1.5, marginBottom: '22px' }}>{children}</p>;
+}
+
+function PlaneHead({ idx, title, note }: { idx: string; title: string; note: ReactNode }) {
   return (
-    <div style={{ background: '#f4f4f4', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '10px', fontWeight: 700, color: '#a3a3a3', letterSpacing: '2px', marginBottom: '14px' }}>FREE</div>
-        <div style={{ fontSize: '13px', color: '#737373', lineHeight: 1.4, marginBottom: '16px' }}>To start.<br />Full access, no time limit.</div>
-        <div style={{ fontSize: '40px', fontWeight: 700, letterSpacing: '-2px', color: '#101010', lineHeight: 1 }}>0€</div>
-        <div style={{ fontSize: '11px', color: '#a3a3a3', marginTop: '4px' }}>forever</div>
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+      gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+        <span style={{ fontFamily: D, fontWeight: 700, fontSize: '13px', color: brand }}>{idx}</span>
+        <h2 style={{ fontFamily: D, fontWeight: 600, fontSize: 'clamp(22px,3vw,30px)',
+          letterSpacing: '-.02em', color: ink }}>{title}</h2>
       </div>
-      <button style={{ width: '100%', background: '#fff', color: '#101010', border: '1.5px solid #e7e7e7', borderRadius: '10px', padding: '11px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '22px' }}>
-        Get access
-      </button>
-      <div style={{ fontSize: '9px', fontWeight: 700, color: '#a3a3a3', letterSpacing: '1.5px', marginBottom: '12px' }}>INCLUDES</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {FREE_FEATURES.map(f => <FeatureRow key={f.title} {...f} />)}
-      </div>
+      <p style={{ fontSize: '13px', color: muted2, maxWidth: '360px', textAlign: 'right' }}>{note}</p>
     </div>
   );
 }
 
-function ProCard({ billing }: { billing: Billing }) {
-  const proPrice = billing === 'monthly' ? '12€' : '8€';
-  return (
-    <div style={{ background: '#f4f4f4', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', position: 'relative', outline: '2px solid #4E4BB9' }}>
-      <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#4E4BB9', color: '#fff', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', padding: '4px 14px', borderRadius: '0 0 10px 10px', whiteSpace: 'nowrap' }}>
-        FOR CREATORS
-      </div>
-      <div style={{ marginTop: '14px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
-          <span style={{ width: '7px', height: '7px', background: '#4E4BB9', borderRadius: '50%', display: 'inline-block' }} />
-          <span style={{ fontSize: '10px', fontWeight: 700, color: '#4E4BB9', letterSpacing: '2px' }}>PRO</span>
-        </div>
-        <div style={{ fontSize: '13px', color: '#737373', lineHeight: 1.4, marginBottom: '16px' }}>Your work,<br />completely presented.</div>
-        <div style={{ fontSize: '40px', fontWeight: 700, letterSpacing: '-2px', color: '#101010', lineHeight: 1 }}>
-          {proPrice}<span style={{ fontSize: '14px', fontWeight: 400, color: '#a3a3a3' }}>/mo</span>
-        </div>
-        <div style={{ fontSize: '11px', color: '#4E4BB9', marginTop: '4px' }}>
-          {billing === 'monthly' ? 'or billed yearly · save 48€' : 'billed yearly (96€/yr)'}
-        </div>
-      </div>
-      <button style={{ width: '100%', background: '#4E4BB9', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '22px' }}>
-        Get early access →
-      </button>
-      <div style={{ fontSize: '9px', fontWeight: 700, color: '#a3a3a3', letterSpacing: '1.5px', marginBottom: '12px' }}>INCLUDES</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {PRO_FEATURES.map(f => <FeatureRow key={f.title} {...f} />)}
-      </div>
-      <p style={{ textAlign: 'center', fontSize: '9px', color: '#a3a3a3', margin: '14px 0 0' }}>Cancel anytime · Terms apply</p>
-    </div>
-  );
-}
+/* ── card wrapper styles ────────────────────────────────────────── */
+const cardBase: React.CSSProperties = {
+  border: `1px solid ${line}`,
+  borderRadius: '18px',
+  padding: '32px',
+  background: 'rgba(16,16,16,.018)',
+  display: 'flex',
+  flexDirection: 'column',
+};
 
-function ScoutCard({ billing }: { billing: Billing }) {
-  const scoutPrice = billing === 'monthly' ? '32€' : '22€';
-  return (
-    <div style={{ background: '#f4f4f4', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: '#e7e7e7', color: '#737373', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', padding: '4px 10px', borderRadius: '8px', display: 'inline-block', marginBottom: '14px', alignSelf: 'flex-start' }}>
-        FOR STUDIOS & BRANDS
-      </div>
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
-          <span style={{ width: '7px', height: '7px', background: '#101010', borderRadius: '50%', display: 'inline-block' }} />
-          <span style={{ fontSize: '10px', fontWeight: 700, color: '#101010', letterSpacing: '2px' }}>SCOUT</span>
-        </div>
-        <div style={{ fontSize: '13px', color: '#737373', lineHeight: 1.4, marginBottom: '16px' }}>Your studio or brand,<br />inside BareFolio.</div>
-        <div style={{ fontSize: '40px', fontWeight: 700, letterSpacing: '-2px', color: '#101010', lineHeight: 1 }}>
-          {scoutPrice}<span style={{ fontSize: '14px', fontWeight: 400, color: '#a3a3a3' }}>/mo</span>
-        </div>
-        <div style={{ fontSize: '11px', color: '#737373', marginTop: '4px' }}>
-          {billing === 'monthly' ? 'or billed yearly · save 120€' : 'billed yearly (264€/yr)'}
-        </div>
-      </div>
-      <button style={{ width: '100%', background: '#101010', color: '#fafafa', border: 'none', borderRadius: '10px', padding: '11px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '16px' }}>
-        Get early access →
-      </button>
-      {/* Seats selector — visual only */}
-      <div style={{ background: '#fff', border: '1px solid #e7e7e7', borderRadius: '10px', padding: '10px 12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: '#101010' }}>Seats</div>
-          <div style={{ fontSize: '10px', color: '#a3a3a3' }}>Team members</div>
-        </div>
-        <div style={{ background: '#f4f4f4', border: '1px solid #e7e7e7', borderRadius: '7px', padding: '4px 10px', fontSize: '11px', color: '#101010', fontWeight: 600 }}>2 seats ▾</div>
-      </div>
-      <div style={{ fontSize: '9px', fontWeight: 700, color: '#a3a3a3', letterSpacing: '1.5px', marginBottom: '12px' }}>INCLUDES EVERYTHING IN PRO, PLUS:</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {SCOUT_EXTRAS.map(f => <FeatureRow key={f.title} {...f} exclusive />)}
-      </div>
-      <p style={{ textAlign: 'center', fontSize: '9px', color: '#a3a3a3', margin: '14px 0 0' }}>Cancel anytime · Terms apply</p>
-    </div>
-  );
-}
+const cardFlag: React.CSSProperties = {
+  ...cardBase,
+  borderColor: 'rgba(123,120,224,.48)',
+  background: 'rgba(78,75,185,.045)',
+  boxShadow: '0 0 60px rgba(78,75,185,.07)',
+};
 
-/* ─── Main component ────────────────────────── */
+/* ── button base styles (hover handled via CSS class) ───────────── */
+const btnOutline: React.CSSProperties = {
+  fontFamily: D, fontWeight: 600, fontSize: '14.5px',
+  padding: '13px', borderRadius: '11px', textAlign: 'center',
+  cursor: 'pointer', textDecoration: 'none', display: 'block',
+  border: `1px solid ${lineStrong}`, background: 'transparent', color: ink,
+  transition: 'all .2s',
+};
+
+const btnSolid: React.CSSProperties = {
+  fontFamily: D, fontWeight: 600, fontSize: '14.5px',
+  padding: '13px', borderRadius: '11px', textAlign: 'center',
+  cursor: 'pointer', textDecoration: 'none', display: 'block',
+  background: ink, color: bg, border: `1px solid ${ink}`,
+  transition: 'all .2s',
+};
+
+/* ════════════════════════════════════════════════════════════════ */
 export default function PricingPage() {
-  const [billing, setBilling] = useState<Billing>('monthly');
-  const [activePlan, setActivePlan] = useState<ActivePlan>('free');
-  const isMobile = useIsMobile();
+  type Billing = 'mo' | 'yr';
+  const [billing, setBilling] = useState<Billing>('mo');
+  const [stuck, setStuck]     = useState(false);
+  const p1   = useReveal();
+  const p2   = useReveal();
+  const band = useReveal();
+
+  useEffect(() => {
+    const fn = () => setStuck(window.scrollY > 20);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
 
   return (
-    <div style={{ fontFamily: "'Helvetica Neue', system-ui, sans-serif", background: '#fff', color: '#101010', overflowX: 'hidden', minHeight: '100vh', padding: '64px 24px' }}>
+    <div style={{ background: bg, color: ink, fontFamily: B, fontWeight: 300,
+      lineHeight: 1.55, minHeight: '100vh', overflowX: 'hidden', position: 'relative' }}>
 
-      {/* ── Hero ── */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#4E4BB9', letterSpacing: '2px', marginBottom: '10px' }}>PRICING</div>
-        <h1 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 400, letterSpacing: '-1.5px', color: '#101010', margin: '0 0 10px', lineHeight: 1.05 }}>
-          One place for your work.<br />
-          <em style={{ fontStyle: 'italic', color: '#737373' }}>Choose how far you go.</em>
-        </h1>
-        <p style={{ fontSize: '14px', color: '#737373', margin: '0 0 24px' }}>Start free. No credit card needed. Upgrade when you&apos;re ready.</p>
+      {/* subtle purple radial backdrop */}
+      <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background:
+          'radial-gradient(48vw 48vw at 84% -8%, rgba(78,75,185,.09), transparent 60%),' +
+          'radial-gradient(42vw 42vw at 4% 104%, rgba(78,75,185,.05), transparent 62%)' }} />
 
-        {/* Billing toggle */}
-        <div style={{ display: 'inline-flex', background: '#f4f4f4', borderRadius: '30px', padding: '4px', gap: 0 }}>
-          {(['monthly', 'yearly'] as Billing[]).map(b => (
-            <button
-              key={b}
-              onClick={() => setBilling(b)}
-              style={{
-                background: billing === b ? '#101010' : 'transparent',
-                color: billing === b ? '#fafafa' : '#737373',
-                borderRadius: '26px', padding: '7px 20px',
-                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                border: 'none', display: 'flex', alignItems: 'center', gap: '6px',
-                transition: 'background 0.2s, color 0.2s',
-              }}
-            >
-              {b.charAt(0).toUpperCase() + b.slice(1)}
-              {b === 'yearly' && (
-                <span style={{ background: '#e8e6ff', color: '#4E4BB9', fontSize: '9px', fontWeight: 700, padding: '2px 7px', borderRadius: '8px' }}>−31%</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ── responsive + hover overrides ── */}
+      <style>{`
+        .pr-wrap  { padding: 0 32px; }
+        .pr-three { grid-template-columns: repeat(3,1fr); }
+        .pr-two   { grid-template-columns: 1fr 1fr; }
+        @media(max-width:900px){ .pr-three{ grid-template-columns:1fr; } }
+        @media(max-width:680px){
+          .pr-two { grid-template-columns:1fr; }
+          .pr-plane-note { text-align:left !important; }
+        }
+        @media(max-width:580px){ .pr-wrap{ padding:0 20px; } }
+        .pr-btn-outline:hover{ border-color:${brand} !important; background:rgba(78,75,185,.07) !important; }
+        .pr-btn-solid:hover  { background:${brand} !important; border-color:${brand} !important; box-shadow:0 0 26px rgba(78,75,185,.32); }
+        .pr-cta:hover        { background:${brandSoft} !important; box-shadow:0 0 28px rgba(78,75,185,.42); transform:translateY(-1px); }
+        .pr-band-cta:hover   { background:${ink} !important; color:#fff !important; box-shadow:0 0 32px rgba(0,0,0,.22); }
+        .pr-footer-link:hover{ color:${ink} !important; }
+      `}</style>
 
-      {/* ── Desktop: 3 columns ── */}
-      {!isMobile && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', maxWidth: '960px', margin: '0 auto', alignItems: 'start' }}>
-          <FreeCard />
-          <ProCard billing={billing} />
-          <ScoutCard billing={billing} />
-        </div>
-      )}
+      <div className="pr-wrap" style={{ position: 'relative', zIndex: 2, maxWidth: '1180px', margin: '0 auto' }}>
 
-      {/* ── Mobile: 3-tab switcher ── */}
-      {isMobile && (
-        <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-          {/* Tab selector */}
-          <div style={{ display: 'flex', background: '#f4f4f4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '20px' }}>
-            {(['free', 'pro', 'scout'] as ActivePlan[]).map(plan => (
-              <button
-                key={plan}
-                onClick={() => setActivePlan(plan)}
-                style={{
-                  flex: 1, padding: '8px 4px', textAlign: 'center',
-                  fontSize: '11px', fontWeight: 600, cursor: 'pointer', border: 'none',
-                  background: activePlan === plan ? '#fff' : 'transparent',
-                  color: activePlan === plan ? '#101010' : '#737373',
-                  borderRadius: '8px',
-                  boxShadow: activePlan === plan ? '0 1px 3px rgba(0,0,0,0.07)' : 'none',
-                  transition: 'background 0.2s, color 0.2s',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {plan.charAt(0).toUpperCase() + plan.slice(1)}
+        {/* ──────────── HEADER ──────────── */}
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 50, padding: '22px 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: stuck ? `1px solid ${line}` : '1px solid transparent',
+          background: stuck ? 'rgba(250,250,250,.88)' : 'transparent',
+          backdropFilter: stuck ? 'blur(14px)' : 'none',
+          transition: 'background .3s, border-color .3s',
+        }}>
+          <Link href="/" style={{ fontFamily: D, fontWeight: 700, fontSize: '23px',
+            letterSpacing: '-.03em', color: ink, textDecoration: 'none' }}>
+            bare<span style={{ color: brand }}>.</span>
+          </Link>
+          <Link href="/waitlist" className="pr-cta" style={{
+            fontFamily: D, fontWeight: 600, fontSize: '14px',
+            padding: '10px 20px', borderRadius: '99px',
+            background: brand, color: '#fff',
+            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
+            transition: 'background .2s, box-shadow .2s, transform .15s',
+          }}>
+            Join the waitlist <span>→</span>
+          </Link>
+        </header>
+
+        {/* ──────────── HERO ──────────── */}
+        <section style={{ padding: 'clamp(54px,9vh,104px) 0 56px', maxWidth: '780px' }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '10px',
+            fontSize: '12px', letterSpacing: '.18em', textTransform: 'uppercase',
+            color: brand, marginBottom: '28px', fontWeight: 400,
+            padding: '7px 14px', border: '1px solid rgba(78,75,185,.22)',
+            borderRadius: '99px', background: 'rgba(78,75,185,.05)',
+          }}>
+            Pricing · One principle
+          </span>
+
+          <h1 style={{ fontFamily: D, fontWeight: 700,
+            fontSize: 'clamp(38px,6vw,76px)', lineHeight: .98,
+            letterSpacing: '-.04em', marginBottom: '26px', color: ink }}>
+            Each pays its<br />own way.
+          </h1>
+
+          <p style={{ fontSize: 'clamp(16px,1.8vw,20px)', lineHeight: 1.6, color: muted, maxWidth: '620px' }}>
+            Creators, studios, communities — three separate grounds, each with its own
+            people and its own pace. None is ever billed against another, and no one pays a toll
+            simply to be found.{' '}
+            <strong style={{ fontWeight: 500, color: ink }}>You pay only for the room you stand in.</strong>
+          </p>
+
+          {/* billing toggle */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '4px',
+            marginTop: '34px', padding: '5px',
+            border: `1px solid ${line}`, borderRadius: '99px',
+            background: 'rgba(16,16,16,.025)',
+          }}>
+            {(['mo', 'yr'] as Billing[]).map(c => (
+              <button key={c} onClick={() => setBilling(c)} style={{
+                fontFamily: B, fontSize: '13.5px',
+                background: billing === c ? ink : 'transparent',
+                color: billing === c ? bg : muted,
+                border: 'none', padding: '9px 18px', borderRadius: '99px',
+                cursor: 'pointer', transition: 'all .2s',
+                display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                {c === 'mo' ? 'Monthly' : 'Yearly'}
+                {c === 'yr' && (
+                  <span style={{ fontSize: '11px', color: billing === 'yr' ? 'rgba(180,178,255,.85)' : brand }}>
+                    save 33%
+                  </span>
+                )}
               </button>
             ))}
           </div>
-          {/* Active plan card */}
-          {activePlan === 'free'  && <FreeCard />}
-          {activePlan === 'pro'   && <ProCard billing={billing} />}
-          {activePlan === 'scout' && <ScoutCard billing={billing} />}
-        </div>
-      )}
+        </section>
 
+        {/* ──────────── PLANE 01 — PLANS ──────────── */}
+        <div ref={p1.ref} style={{
+          padding: '56px 0', borderTop: `1px solid ${line}`,
+          opacity: p1.vis ? 1 : 0,
+          transform: p1.vis ? 'none' : 'translateY(26px)',
+          transition: 'opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)',
+        }}>
+          <PlaneHead idx="01" title="Plans" note="From the open door to a full studio presence." />
+
+          <div className="pr-three" style={{ display: 'grid', gap: '18px' }}>
+
+            {/* ── Free ── */}
+            <div style={cardBase}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <CardName>Free</CardName>
+              </div>
+              <CardPrice main="Free" unit=" forever" />
+              <CardSub>No card, no limits on the essentials</CardSub>
+              <CardTag>The door, wide open — the whole core, free to anyone.</CardTag>
+              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
+                <FeatItem>Unlimited projects (basic blocks)</FeatItem>
+                <FeatItem>Curated public profile</FeatItem>
+                <FeatItem>Full explore &amp; search</FeatItem>
+                <FeatItem>Communities up to 5 members, 2 channels</FeatItem>
+                <FeatItem>Access to briefs posted by Scouts</FeatItem>
+              </ul>
+              <div style={{ flex: 1 }} />
+              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Start free</a>
+            </div>
+
+            {/* ── Pro (flagged) ── */}
+            <div style={cardFlag}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <CardName>Pro</CardName>
+                <Pill>For professionals</Pill>
+              </div>
+              <CardPrice main={billing === 'mo' ? '12€' : '8€'} unit="/mo" />
+              <CardSub>{billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 96€/yr'}</CardSub>
+              <CardTag>For when the work becomes the career. Total command over how it&apos;s seen.</CardTag>
+              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
+                <FeatItem>Everything in Free</FeatItem>
+                <FeatItem>Unlimited project blocks</FeatItem>
+                <FeatItem>Customisable profile grid</FeatItem>
+                <FeatItem>Profile analytics</FeatItem>
+                <FeatItem>Verified badge</FeatItem>
+                <FeatItem>Priority in talent search</FeatItem>
+                <FeatItem>&ldquo;Available for projects&rdquo; signal</FeatItem>
+              </ul>
+              <div style={{ flex: 1 }} />
+              <a href="/waitlist" className="pr-btn-solid" style={btnSolid}>Go Pro</a>
+            </div>
+
+            {/* ── Scout ── */}
+            <div style={cardBase}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <CardName>Scout</CardName>
+                <Pill>Studios &amp; brands</Pill>
+              </div>
+              <CardPrice main="32€" unit="/mo" />
+              <CardSub>From 2 seats · +6€/mo per extra seat</CardSub>
+              <CardTag>For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves.</CardTag>
+              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
+                <FeatItem>Each seat is a full Pro plan for a team member</FeatItem>
+                <FeatItem>Verified corporate profile</FeatItem>
+                <FeatItem>Unlimited project blocks</FeatItem>
+                <FeatItem>Your own private community</FeatItem>
+                <FeatItem>Customisable profile grid</FeatItem>
+                <FeatItem>Priority in search</FeatItem>
+                <FeatItem>Corporate verified badge</FeatItem>
+                <FeatItem>Direct contact with creators</FeatItem>
+                <FeatItem>Market analytics by category</FeatItem>
+                <FeatItem>Corporate profile analytics</FeatItem>
+              </ul>
+              <div style={{ flex: 1 }} />
+              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Become a Scout</a>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ──────────── PLANE 02 — COMMUNITIES ──────────── */}
+        <div ref={p2.ref} style={{
+          padding: '56px 0', borderTop: `1px solid ${line}`,
+          opacity: p2.vis ? 1 : 0,
+          transform: p2.vis ? 'none' : 'translateY(26px)',
+          transition: 'opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)',
+        }}>
+          <PlaneHead
+            idx="02"
+            title="For communities"
+            note={<>A ground of its own. One fee for <em>each</em> community you open — not a key to unlimited ones.</>}
+          />
+
+          <div className="pr-two" style={{ display: 'grid', gap: '18px' }}>
+
+            {/* ── Plus ── */}
+            <div style={cardBase}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <CardName>Plus</CardName>
+              </div>
+              <CardPrice main="3,99€" unit="/mo per community" />
+              <CardSub>One fee for each community you run</CardSub>
+              <CardTag>A space still finding its shape, and the tools to keep it gathered.</CardTag>
+              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
+                <FeatItem>Up to 250 members</FeatItem>
+                <FeatItem>5 themed channels</FeatItem>
+                <FeatItem>Private + invite-only visibility</FeatItem>
+                <FeatItem>Share Projects</FeatItem>
+                <FeatItem>Internal briefs</FeatItem>
+                <FeatItem>Resources channel</FeatItem>
+              </ul>
+              <div style={{ flex: 1 }} />
+              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Start a Plus</a>
+            </div>
+
+            {/* ── Max ── */}
+            <div style={cardBase}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <CardName>Max</CardName>
+              </div>
+              <CardPrice main="7,99€" unit="/mo per community" />
+              <CardSub>One fee for each community you run</CardSub>
+              <CardTag>No ceilings — open it to everyone and run it your way.</CardTag>
+              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
+                <FeatItem>Unlimited members</FeatItem>
+                <FeatItem>Unlimited channels</FeatItem>
+                <FeatItem>Full visibility (All)</FeatItem>
+                <FeatItem>Share Projects</FeatItem>
+                <FeatItem>Internal briefs</FeatItem>
+                <FeatItem>Resources channel</FeatItem>
+                <FeatItem>Advanced admin roles</FeatItem>
+              </ul>
+              <div style={{ flex: 1 }} />
+              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Start a Max</a>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ──────────── PRINCIPLE BAND ──────────── */}
+        <div ref={band.ref} style={{
+          margin: '20px 0 0',
+          borderRadius: '24px',
+          padding: 'clamp(40px,6vw,72px)',
+          background: 'linear-gradient(135deg,#4E4BB9 0%,#3a37a0 100%)',
+          position: 'relative', overflow: 'hidden',
+          opacity: band.vis ? 1 : 0,
+          transform: band.vis ? 'none' : 'translateY(26px)',
+          transition: 'opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)',
+        }}>
+          <div aria-hidden style={{ position: 'absolute', inset: 0, opacity: .5, pointerEvents: 'none',
+            background: 'radial-gradient(40% 60% at 90% 10%, rgba(255,255,255,.18), transparent 60%)' }} />
+          <div style={{ position: 'relative', zIndex: 2, maxWidth: '620px' }}>
+            <h2 style={{ fontFamily: D, fontWeight: 700,
+              fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1,
+              letterSpacing: '-.035em', marginBottom: '18px', color: '#fff' }}>
+              Three grounds,<br />never crossed.
+            </h2>
+            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,.84)', maxWidth: '500px', marginBottom: '30px' }}>
+              Creators, studios and communities each stand on their own. No one carries another&apos;s weight,
+              and no one pays just to be seen — you pay for what is yours, and only that.
+            </p>
+            <a href="/waitlist" className="pr-band-cta" style={{
+              fontFamily: D, fontWeight: 700, fontSize: '16px',
+              padding: '15px 28px', borderRadius: '99px',
+              background: '#fff', color: brand,
+              textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '9px',
+              transition: 'background .2s, color .2s, box-shadow .2s',
+            }}>
+              Join the waitlist →
+            </a>
+          </div>
+        </div>
+
+        {/* ──────────── FOOTER ──────────── */}
+        <footer style={{ padding: '80px 0 52px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+          flexWrap: 'wrap', gap: '24px' }}>
+          <div style={{ maxWidth: '340px' }}>
+            <div style={{ fontFamily: D, fontWeight: 700, fontSize: '20px',
+              letterSpacing: '-.03em', marginBottom: '10px', color: ink }}>
+              bare<span style={{ color: brand }}>.</span>
+            </div>
+            <p style={{ fontSize: '13px', color: muted2, lineHeight: 1.55 }}>
+              A quieter place to create — built for the whole creator.
+            </p>
+          </div>
+          <nav style={{ display: 'flex', gap: '26px', fontSize: '13px' }}>
+            {[
+              { label: 'Manifesto', href: '/about' },
+              { label: 'About',     href: '/about' },
+              { label: 'Contact',   href: '/waitlist' },
+            ].map(({ label, href }) => (
+              <a key={label} href={href} className="pr-footer-link"
+                style={{ color: muted, textDecoration: 'none', transition: 'color .18s' }}>
+                {label}
+              </a>
+            ))}
+          </nav>
+          <div style={{ width: '100%', fontSize: '12px', color: muted2,
+            paddingTop: '28px', borderTop: `1px solid ${line}`, marginTop: '12px' }}>
+            © 2026 bare. — Building deliberately.
+          </div>
+        </footer>
+
+      </div>
     </div>
   );
 }
