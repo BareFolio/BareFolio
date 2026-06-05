@@ -69,17 +69,10 @@ function FeatureRow({ icon, title, sub, badge, exclusive }: {
   );
 }
 
-/* ─── Main component ────────────────────────── */
-export default function PricingPage() {
-  const [billing, setBilling] = useState<Billing>('monthly');
-  const [activePlan, setActivePlan] = useState<ActivePlan>('free');
-  const isMobile = useIsMobile();
+/* ─── Card components (hoisted outside PricingPage to prevent remounts) ── */
 
-  const proPrice   = billing === 'monthly' ? '12€' : '8€';
-  const scoutPrice = billing === 'monthly' ? '32€' : '22€';
-
-  /* ── Free card ── */
-  const FreeCard = () => (
+function FreeCard() {
+  return (
     <div style={{ background: '#f4f4f4', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: '20px' }}>
         <div style={{ fontSize: '10px', fontWeight: 700, color: '#a3a3a3', letterSpacing: '2px', marginBottom: '14px' }}>FREE</div>
@@ -96,9 +89,11 @@ export default function PricingPage() {
       </div>
     </div>
   );
+}
 
-  /* ── Pro card ── */
-  const ProCard = () => (
+function ProCard({ billing }: { billing: Billing }) {
+  const proPrice = billing === 'monthly' ? '12€' : '8€';
+  return (
     <div style={{ background: '#f4f4f4', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', position: 'relative', outline: '2px solid #4E4BB9' }}>
       <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', background: '#4E4BB9', color: '#fff', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', padding: '4px 14px', borderRadius: '0 0 10px 10px', whiteSpace: 'nowrap' }}>
         FOR CREATORS
@@ -126,9 +121,11 @@ export default function PricingPage() {
       <p style={{ textAlign: 'center', fontSize: '9px', color: '#a3a3a3', margin: '14px 0 0' }}>Cancel anytime · Terms apply</p>
     </div>
   );
+}
 
-  /* ── Scout card ── */
-  const ScoutCard = () => (
+function ScoutCard({ billing }: { billing: Billing }) {
+  const scoutPrice = billing === 'monthly' ? '32€' : '22€';
+  return (
     <div style={{ background: '#f4f4f4', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: '#e7e7e7', color: '#737373', fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', padding: '4px 10px', borderRadius: '8px', display: 'inline-block', marginBottom: '14px', alignSelf: 'flex-start' }}>
         FOR STUDIOS & BRANDS
@@ -143,7 +140,7 @@ export default function PricingPage() {
           {scoutPrice}<span style={{ fontSize: '14px', fontWeight: 400, color: '#a3a3a3' }}>/mo</span>
         </div>
         <div style={{ fontSize: '11px', color: '#737373', marginTop: '4px' }}>
-          {billing === 'monthly' ? 'or billed yearly · save 121€' : 'billed yearly (263€/yr)'}
+          {billing === 'monthly' ? 'or billed yearly · save 120€' : 'billed yearly (264€/yr)'}
         </div>
       </div>
       <button style={{ width: '100%', background: '#101010', color: '#fafafa', border: 'none', borderRadius: '10px', padding: '11px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '16px' }}>
@@ -164,6 +161,13 @@ export default function PricingPage() {
       <p style={{ textAlign: 'center', fontSize: '9px', color: '#a3a3a3', margin: '14px 0 0' }}>Cancel anytime · Terms apply</p>
     </div>
   );
+}
+
+/* ─── Main component ────────────────────────── */
+export default function PricingPage() {
+  const [billing, setBilling] = useState<Billing>('monthly');
+  const [activePlan, setActivePlan] = useState<ActivePlan>('free');
+  const isMobile = useIsMobile();
 
   return (
     <div style={{ fontFamily: "'Helvetica Neue', system-ui, sans-serif", background: '#fff', color: '#101010', overflowX: 'hidden', minHeight: '100vh', padding: '64px 24px' }}>
@@ -205,8 +209,8 @@ export default function PricingPage() {
       {!isMobile && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', maxWidth: '960px', margin: '0 auto', alignItems: 'start' }}>
           <FreeCard />
-          <ProCard />
-          <ScoutCard />
+          <ProCard billing={billing} />
+          <ScoutCard billing={billing} />
         </div>
       )}
 
@@ -236,8 +240,8 @@ export default function PricingPage() {
           </div>
           {/* Active plan card */}
           {activePlan === 'free'  && <FreeCard />}
-          {activePlan === 'pro'   && <ProCard />}
-          {activePlan === 'scout' && <ScoutCard />}
+          {activePlan === 'pro'   && <ProCard billing={billing} />}
+          {activePlan === 'scout' && <ScoutCard billing={billing} />}
         </div>
       )}
 
