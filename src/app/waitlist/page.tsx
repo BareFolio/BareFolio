@@ -224,8 +224,12 @@ function WaitlistFooter({ onGetAccess }: { onGetAccess: () => void }) {
 
           <div style={{ display: 'flex', gap: '48px', marginBottom: '28px' }}>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Pricing', 'Curated access', 'About'].map(link => (
-                <a key={link} href="#" style={navLink}>{link}</a>
+              {[
+                { label: 'Pricing',        href: '/pricing' },
+                { label: 'Curated access', href: '/curated-access' },
+                { label: 'About',          href: '/about' },
+              ].map(({ label, href }) => (
+                <a key={label} href={href} style={navLink}>{label}</a>
               ))}
             </nav>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -281,11 +285,15 @@ function WaitlistFooter({ onGetAccess }: { onGetAccess: () => void }) {
           {/* Centre */}
           <div style={{ display: 'flex', gap: '64px', flex: 1, justifyContent: 'center' }}>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Pricing', 'Curated access', 'About'].map(link => (
-                <a key={link} href="#" style={navLink}
+              {[
+                { label: 'Pricing',        href: '/pricing' },
+                { label: 'Curated access', href: '/curated-access' },
+                { label: 'About',          href: '/about' },
+              ].map(({ label, href }) => (
+                <a key={label} href={href} style={navLink}
                   onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
                   onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
-                  {link}
+                  {label}
                 </a>
               ))}
             </nav>
