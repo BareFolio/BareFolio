@@ -396,8 +396,8 @@ export default function WaitlistPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── Above-fold section — exactly 100vh, footer below ── */}
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+      {/* ── Above-fold section — exactly one viewport tall, footer below ── */}
+      <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
 
         {/* Diagonal gradient stripes — mobile only */}
         {isMobile && <>
@@ -652,6 +652,9 @@ export default function WaitlistPage() {
 
 
       </div>{/* end above-fold */}
+
+      {/* Extra breathing room on mobile so footer stays well below the fold */}
+      {isMobile && <div style={{ height: 120, background: '#fafafa' }} />}
 
       {/* ── Footer — below the fold ── */}
       <WaitlistFooter onGetAccess={scrollToForm} />
