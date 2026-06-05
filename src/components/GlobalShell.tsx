@@ -15,7 +15,7 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
 
-  const PUBLIC_PATHS = ['/', '/landing', '/login', '/onboarding', '/waitlist'];
+  const PUBLIC_PATHS = ['/', '/landing', '/login', '/onboarding', '/waitlist', '/pricing', '/curated-access', '/about'];
 
   useEffect(() => {
     if (!loading) {
