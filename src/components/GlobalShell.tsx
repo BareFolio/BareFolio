@@ -23,11 +23,11 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
       if (!currentUser && !PUBLIC_PATHS.includes(pathname)) {
         router.push('/login');
       }
-      // Authenticated users visiting root → send to the app
-      if (currentUser && pathname === '/') {
+      // Authenticated users on the landing page → send to the app
+      if (currentUser && pathname === '/landing') {
         router.push('/explore');
       }
-      // /landing is always accessible (for preview even when logged in)
+      // "/" handles its own redirect in page.tsx (→ /landing or /explore)
     }
   }, [currentUser, loading, pathname, router]);
 
