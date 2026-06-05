@@ -92,6 +92,7 @@ function PlanCard({
   priceAmount,
   priceUnit,
   priceSub,
+  priceSub2,
   desc,
   dotColor,
   features,
@@ -104,6 +105,7 @@ function PlanCard({
   priceAmount: string;
   priceUnit: string;
   priceSub: string;
+  priceSub2?: string;
   desc: string;
   dotColor: string;
   features: string[];
@@ -136,9 +138,14 @@ function PlanCard({
       }}>
         {badge && <Badge>{badge}</Badge>}
         <Price amount={priceAmount} unit={priceUnit} />
-        <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 14px' }}>
+        <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: priceSub2 ? '0 0 4px' : '0 0 14px' }}>
           {priceSub}
         </p>
+        {priceSub2 && (
+          <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 14px' }}>
+            {priceSub2}
+          </p>
+        )}
         <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 22px' }}>
           {desc}
         </p>
@@ -162,7 +169,6 @@ function CommCard({
   desc,
   dotColor,
   features,
-  btnLabel,
 }: {
   outerBg: string;
   nameText: string;
@@ -173,7 +179,6 @@ function CommCard({
   desc: string;
   dotColor: string;
   features: string[];
-  btnLabel: string;
 }) {
   return (
     <div style={{
@@ -207,10 +212,9 @@ function CommCard({
         <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 22px' }}>
           {desc}
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {features.map(f => <Feat key={f} dot={dotColor}>{f}</Feat>)}
         </div>
-        <Btn href="/waitlist" label={btnLabel} />
       </div>
     </div>
   );
@@ -223,8 +227,10 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<'mo' | 'yr'>('mo');
   const isMobile = useIsMobile();
 
-  const proPrice = billing === 'mo' ? '12€' : '8€';
-  const proSub   = billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 96€/yr';
+  const proPrice   = billing === 'mo' ? '12€' : '8€';
+  const proSub     = billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 96€/yr';
+  const scoutPrice = billing === 'mo' ? '32€' : '21€';
+  const scoutSub   = billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 252€/yr';
 
   const px = isMobile ? 20 : 32;
 
@@ -367,9 +373,10 @@ export default function PricingPage() {
               outerBg="linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)"
               nameText="Scout Plan"
               badge="Studios & Brands"
-              priceAmount="32€"
+              priceAmount={scoutPrice}
               priceUnit="/month"
-              priceSub="From 2 seats · +6€/mo per extra seat"
+              priceSub={scoutSub}
+              priceSub2="From 2 seats · +6€/mo per extra seat"
               desc="For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves."
               dotColor="#c4c3ff"
               features={[
@@ -420,7 +427,6 @@ export default function PricingPage() {
                 'Internal briefs',
                 'Resources channel',
               ]}
-              btnLabel="Start a Plus"
             />
 
             <CommCard
@@ -441,7 +447,6 @@ export default function PricingPage() {
                 'Resources channel',
                 'Advanced admin roles',
               ]}
-              btnLabel="Start a Max"
             />
 
           </div>
