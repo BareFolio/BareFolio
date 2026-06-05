@@ -128,16 +128,16 @@ export default function AboutPage() {
 
         {/* ── Origin Quote ── */}
         <div className="about-a4" style={{ padding: '40px 24px 56px', maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#555', marginBottom: '24px' }}>WHERE IT COMES FROM</p>
+          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#737373', marginBottom: '24px' }}>WHERE IT COMES FROM</p>
           <div style={{ background: '#101010', borderRadius: '18px', padding: '44px 40px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)', width: '260px', height: '260px', background: 'radial-gradient(circle, rgba(160,160,160,0.12) 0%, transparent 65%)', pointerEvents: 'none', animation: 'about-breathe 6s ease-in-out infinite' }} />
             <p style={{ fontSize: '20px', fontWeight: 400, fontStyle: 'italic', color: '#fafafa', lineHeight: 1.5, letterSpacing: '-0.5px', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
               &ldquo;Not everyone needed another platform.<br />They needed a different one.&rdquo;
             </p>
-            <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.8, maxWidth: '440px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+            <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.8, maxWidth: '440px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
               BareFolio was born during design studies in Barcelona — from a recurring conversation about the difficulty of existing professionally without fragmenting across tools that don&apos;t speak to each other.
             </p>
-            <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.8, maxWidth: '440px', margin: '10px auto 0', position: 'relative', zIndex: 1 }}>
+            <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.8, maxWidth: '440px', margin: '10px auto 0', position: 'relative', zIndex: 1 }}>
               It started as a final degree research project. It became something with real intention to exist.
             </p>
           </div>
