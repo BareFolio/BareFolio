@@ -1,459 +1,500 @@
 'use client';
 
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-/* ── palette (inverted — #FAFAFA background, #101010 text) ─────── */
-const ink       = '#101010';
-const bg        = '#FAFAFA';
-const brand     = '#4E4BB9';
-const brandSoft = '#7572e0';
-const line      = 'rgba(16,16,16,.10)';
-const lineStrong= 'rgba(16,16,16,.20)';
-const muted     = 'rgba(16,16,16,.55)';
-const muted2    = 'rgba(16,16,16,.38)';
-const D = 'var(--font-display), -apple-system, sans-serif';  // Switzer
-const B = 'var(--font-sans),    -apple-system, sans-serif';  // Geist
-
-/* ── scroll-reveal hook ─────────────────────────────────────────── */
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [vis, setVis] = useState(false);
+/* ── helpers ──────────────────────────────────────────────────── */
+function useIsMobile() {
+  const [m, setM] = useState(false);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVis(true); io.disconnect(); } },
-      { threshold: 0.08 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const check = () => setM(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
-  return { ref, vis };
+  return m;
 }
 
-/* ── tiny components ────────────────────────────────────────────── */
-function FeatItem({ children }: { children: ReactNode }) {
+const D = 'var(--font-display), -apple-system, sans-serif'; // Switzer
+const B = 'var(--font-sans), -apple-system, sans-serif';    // Geist
+
+/* ── Feature list item ────────────────────────────────────────── */
+function Feat({ dot, children, light }: { dot: string; children: React.ReactNode; light?: boolean }) {
   return (
-    <li style={{ display: 'flex', gap: '11px', fontSize: '13.5px', color: muted,
-      lineHeight: 1.4, alignItems: 'flex-start', listStyle: 'none' }}>
-      <span style={{ flexShrink: 0, width: '15px', height: '15px', marginTop: '2px',
-        borderRadius: '4px', background: 'rgba(123,120,224,.13)',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-          <path d="M3.5 7.8l2.4 2.4 5-5.6"
-            stroke="#7572e0" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minHeight: '30px' }}>
+      <span style={{ flexShrink: 0, width: 8, height: 8, borderRadius: 2, background: dot }} />
+      <span style={{ fontSize: 14, fontFamily: B, fontWeight: 400, color: light ? '#fafafa' : '#101010', lineHeight: '19px' }}>
+        {children}
       </span>
-      {children}
-    </li>
-  );
-}
-
-function Pill({ children }: { children: ReactNode }) {
-  return (
-    <span style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase',
-      color: brand, border: '1px solid rgba(123,120,224,.38)',
-      padding: '4px 9px', borderRadius: '99px', whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
-}
-
-function CardName({ children }: { children: ReactNode }) {
-  return <span style={{ fontFamily: D, fontWeight: 600, fontSize: '21px', letterSpacing: '-.01em', color: ink }}>{children}</span>;
-}
-
-function CardPrice({ main, unit }: { main: string; unit: string }) {
-  return (
-    <div style={{ fontFamily: D, fontWeight: 700, fontSize: '38px', letterSpacing: '-.03em', margin: '14px 0 2px', color: ink }}>
-      {main}
-      <span style={{ fontFamily: B, fontWeight: 300, fontSize: '15px', color: muted }}>{unit}</span>
     </div>
   );
 }
 
-function CardSub({ children }: { children: ReactNode }) {
-  return <div style={{ fontSize: '12.5px', color: brand, minHeight: '17px', marginBottom: '16px' }}>{children}</div>;
-}
-
-function CardTag({ children }: { children: ReactNode }) {
-  return <p style={{ fontSize: '13.5px', color: muted, lineHeight: 1.5, marginBottom: '22px' }}>{children}</p>;
-}
-
-function PlaneHead({ idx, title, note }: { idx: string; title: string; note: ReactNode }) {
+/* ── Plan card shell ─────────────────────────────────────────── */
+function PlanCard({
+  bg, inner, children, style,
+}: { bg: string; inner?: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-      gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-        <span style={{ fontFamily: D, fontWeight: 700, fontSize: '13px', color: brand }}>{idx}</span>
-        <h2 style={{ fontFamily: D, fontWeight: 600, fontSize: 'clamp(22px,3vw,30px)',
-          letterSpacing: '-.02em', color: ink }}>{title}</h2>
+    <div style={{
+      background: bg,
+      borderRadius: 20,
+      boxShadow: '0px 10.7px 18.7px -4px rgba(113,113,113,0.14)',
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      ...style,
+    }}>
+      {inner && (
+        <div style={{
+          position: 'absolute', top: 48, left: 2, right: 2, bottom: 2,
+          background: inner, borderRadius: 18,
+        }} />
+      )}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '28px 30px 28px' }}>
+        {children}
       </div>
-      <p style={{ fontSize: '13px', color: muted2, maxWidth: '360px', textAlign: 'right' }}>{note}</p>
     </div>
   );
 }
 
-/* ── card wrapper styles ────────────────────────────────────────── */
-const cardBase: React.CSSProperties = {
-  border: `1px solid ${line}`,
-  borderRadius: '18px',
-  padding: '32px',
-  background: 'rgba(16,16,16,.018)',
-  display: 'flex',
-  flexDirection: 'column',
-};
+/* ── Badge pill ───────────────────────────────────────────────── */
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      padding: '5px 10px', borderRadius: 100,
+      background: '#efefff', border: '1px solid #8a88e7',
+    }}>
+      <span style={{
+        fontFamily: B, fontWeight: 600, fontSize: 10, lineHeight: '12px',
+        letterSpacing: '1px', textTransform: 'uppercase', color: '#8a88e7',
+        whiteSpace: 'nowrap',
+      }}>
+        {children}
+      </span>
+    </div>
+  );
+}
 
-const cardFlag: React.CSSProperties = {
-  ...cardBase,
-  borderColor: 'rgba(123,120,224,.48)',
-  background: 'rgba(78,75,185,.045)',
-  boxShadow: '0 0 60px rgba(78,75,185,.07)',
-};
+/* ── CTA button ───────────────────────────────────────────────── */
+function Btn({ href, light }: { href: string; light?: boolean }) {
+  return (
+    <Link href={href} className="pricing-cta-btn" style={{
+      display: 'block', width: '100%', textAlign: 'center',
+      padding: '12px 10px', borderRadius: 10, marginTop: 'auto',
+      background: light ? '#fafafa' : '#101010',
+      color: light ? '#101010' : '#fafafa',
+      fontFamily: B, fontWeight: 500, fontSize: 16, lineHeight: '16px',
+      letterSpacing: '-0.32px', textDecoration: 'none',
+    }}>
+      Join the waitlist
+    </Link>
+  );
+}
 
-/* ── button base styles (hover handled via CSS class) ───────────── */
-const btnOutline: React.CSSProperties = {
-  fontFamily: D, fontWeight: 600, fontSize: '14.5px',
-  padding: '13px', borderRadius: '11px', textAlign: 'center',
-  cursor: 'pointer', textDecoration: 'none', display: 'block',
-  border: `1px solid ${lineStrong}`, background: 'transparent', color: ink,
-  transition: 'all .2s',
-};
+/* ── Price display ────────────────────────────────────────────── */
+function Price({ amount, unit, light }: { amount: string; unit: string; light?: boolean }) {
+  return (
+    <p style={{ margin: 0, padding: 0, lineHeight: 0, letterSpacing: '-1px' }}>
+      <span style={{ fontFamily: D, fontWeight: 400, fontSize: 50, lineHeight: '51px', color: light ? '#fafafa' : '#101010' }}>
+        {amount}
+      </span>
+      <span style={{ fontFamily: B, fontWeight: 400, fontSize: 16, lineHeight: '19px', letterSpacing: '0.16px', color: '#a3a3a3' }}>
+        {unit}
+      </span>
+    </p>
+  );
+}
 
-const btnSolid: React.CSSProperties = {
-  fontFamily: D, fontWeight: 600, fontSize: '14.5px',
-  padding: '13px', borderRadius: '11px', textAlign: 'center',
-  cursor: 'pointer', textDecoration: 'none', display: 'block',
-  background: ink, color: bg, border: `1px solid ${ink}`,
-  transition: 'all .2s',
-};
-
-/* ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   PAGE
+   ════════════════════════════════════════════════════════════════ */
 export default function PricingPage() {
-  type Billing = 'mo' | 'yr';
-  const [billing, setBilling] = useState<Billing>('mo');
-  const [stuck, setStuck]     = useState(false);
-  const p1   = useReveal();
-  const p2   = useReveal();
-  const band = useReveal();
+  const [billing, setBilling] = useState<'mo' | 'yr'>('mo');
+  const isMobile = useIsMobile();
 
-  useEffect(() => {
-    const fn = () => setStuck(window.scrollY > 20);
-    window.addEventListener('scroll', fn, { passive: true });
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
+  const proPrice  = billing === 'mo' ? '12€' : '8€';
+  const proNote   = billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 96€/yr';
+
+  const maxW = 1200;
+  const px   = isMobile ? 20 : 32;
 
   return (
-    <div style={{ background: bg, color: ink, fontFamily: B, fontWeight: 300,
-      lineHeight: 1.55, minHeight: '100vh', overflowX: 'hidden', position: 'relative' }}>
+    <div style={{ background: '#fafafa', color: '#101010', minHeight: '100vh', fontFamily: B }}>
 
-      {/* subtle purple radial backdrop */}
-      <div aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-        background:
-          'radial-gradient(48vw 48vw at 84% -8%, rgba(78,75,185,.09), transparent 60%),' +
-          'radial-gradient(42vw 42vw at 4% 104%, rgba(78,75,185,.05), transparent 62%)' }} />
-
-      {/* ── responsive + hover overrides ── */}
+      {/* ── hover / responsive ── */}
       <style>{`
-        .pr-wrap  { padding: 0 32px; }
-        .pr-three { grid-template-columns: repeat(3,1fr); }
-        .pr-two   { grid-template-columns: 1fr 1fr; }
-        @media(max-width:900px){ .pr-three{ grid-template-columns:1fr; } }
-        @media(max-width:680px){
-          .pr-two { grid-template-columns:1fr; }
-          .pr-plane-note { text-align:left !important; }
+        .pricing-cta-btn:hover { opacity: 0.85; }
+        .pricing-waitlist-btn:hover { background: #333 !important; }
+        @media(max-width:900px){
+          .pricing-cards-3 { grid-template-columns: 1fr !important; }
+          .pricing-cards-2 { grid-template-columns: 1fr !important; }
+          .pricing-section-head { flex-direction: column !important; gap: 12px !important; }
         }
-        @media(max-width:580px){ .pr-wrap{ padding:0 20px; } }
-        .pr-btn-outline:hover{ border-color:${brand} !important; background:rgba(78,75,185,.07) !important; }
-        .pr-btn-solid:hover  { background:${brand} !important; border-color:${brand} !important; box-shadow:0 0 26px rgba(78,75,185,.32); }
-        .pr-cta:hover        { background:${brandSoft} !important; box-shadow:0 0 28px rgba(78,75,185,.42); transform:translateY(-1px); }
-        .pr-band-cta:hover   { background:${ink} !important; color:#fff !important; box-shadow:0 0 32px rgba(0,0,0,.22); }
-        .pr-footer-link:hover{ color:${ink} !important; }
       `}</style>
 
-      <div className="pr-wrap" style={{ position: 'relative', zIndex: 2, maxWidth: '1180px', margin: '0 auto' }}>
+      <div style={{ maxWidth: maxW, margin: '0 auto', padding: `0 ${px}px` }}>
 
-        {/* ──────────── HEADER ──────────── */}
-        <header style={{
-          position: 'sticky', top: 0, zIndex: 50, padding: '22px 0',
+        {/* ─────────────────── NAV ─────────────────── */}
+        <nav style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: stuck ? `1px solid ${line}` : '1px solid transparent',
-          background: stuck ? 'rgba(250,250,250,.88)' : 'transparent',
-          backdropFilter: stuck ? 'blur(14px)' : 'none',
-          transition: 'background .3s, border-color .3s',
+          padding: '24px 0 20px',
         }}>
-          <Link href="/" style={{ fontFamily: D, fontWeight: 700, fontSize: '23px',
-            letterSpacing: '-.03em', color: ink, textDecoration: 'none' }}>
-            bare<span style={{ color: brand }}>.</span>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+            <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 28, width: 28 }} />
+            <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 17, width: 'auto' }} />
           </Link>
-          <Link href="/waitlist" className="pr-cta" style={{
-            fontFamily: D, fontWeight: 600, fontSize: '14px',
-            padding: '10px 20px', borderRadius: '99px',
-            background: brand, color: '#fff',
-            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
-            transition: 'background .2s, box-shadow .2s, transform .15s',
+          <Link href="/waitlist" className="pricing-waitlist-btn" style={{
+            fontFamily: B, fontWeight: 500, fontSize: 14, lineHeight: '14px',
+            letterSpacing: '-0.28px', padding: '12px 20px', borderRadius: 100,
+            background: '#101010', color: '#fafafa', textDecoration: 'none',
+            transition: 'background .2s',
           }}>
-            Join the waitlist <span>→</span>
+            Join the waitlist
           </Link>
-        </header>
+        </nav>
 
-        {/* ──────────── HERO ──────────── */}
-        <section style={{ padding: 'clamp(54px,9vh,104px) 0 56px', maxWidth: '780px' }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: '10px',
-            fontSize: '12px', letterSpacing: '.18em', textTransform: 'uppercase',
-            color: brand, marginBottom: '28px', fontWeight: 400,
-            padding: '7px 14px', border: '1px solid rgba(78,75,185,.22)',
-            borderRadius: '99px', background: 'rgba(78,75,185,.05)',
+        {/* ─────────────────── HERO ─────────────────── */}
+        <section style={{ paddingTop: isMobile ? 32 : 52, paddingBottom: 0 }}>
+          <p style={{
+            fontFamily: B, fontWeight: 600, fontSize: 12, lineHeight: '12px',
+            letterSpacing: '1px', textTransform: 'uppercase', color: '#101010',
+            marginBottom: 18,
           }}>
-            Pricing · One principle
-          </span>
-
-          <h1 style={{ fontFamily: D, fontWeight: 700,
-            fontSize: 'clamp(38px,6vw,76px)', lineHeight: .98,
-            letterSpacing: '-.04em', marginBottom: '26px', color: ink }}>
-            Each pays its<br />own way.
-          </h1>
-
-          <p style={{ fontSize: 'clamp(16px,1.8vw,20px)', lineHeight: 1.6, color: muted, maxWidth: '620px' }}>
-            Creators, studios, communities — three separate grounds, each with its own
-            people and its own pace. None is ever billed against another, and no one pays a toll
-            simply to be found.{' '}
-            <strong style={{ fontWeight: 500, color: ink }}>You pay only for the room you stand in.</strong>
+            PRICING
           </p>
-
-          {/* billing toggle */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '4px',
-            marginTop: '34px', padding: '5px',
-            border: `1px solid ${line}`, borderRadius: '99px',
-            background: 'rgba(16,16,16,.025)',
+          <div style={{ marginBottom: 18 }}>
+            <p style={{
+              fontFamily: D, fontWeight: 400,
+              fontSize: isMobile ? 36 : 50, lineHeight: isMobile ? '38px' : '51px',
+              letterSpacing: '-1px', margin: 0,
+            }}>
+              <span style={{ color: '#101010' }}>One place for your work.<br /></span>
+              <span style={{ color: '#a3a3a3' }}>Choose how far you go.</span>
+            </p>
+          </div>
+          <p style={{
+            fontFamily: B, fontWeight: 400, fontSize: 16, lineHeight: '19px',
+            letterSpacing: '0.16px', color: '#101010',
+            maxWidth: 623, marginBottom: 0,
           }}>
-            {(['mo', 'yr'] as Billing[]).map(c => (
-              <button key={c} onClick={() => setBilling(c)} style={{
-                fontFamily: B, fontSize: '13.5px',
-                background: billing === c ? ink : 'transparent',
-                color: billing === c ? bg : muted,
-                border: 'none', padding: '9px 18px', borderRadius: '99px',
-                cursor: 'pointer', transition: 'all .2s',
-                display: 'flex', alignItems: 'center', gap: '5px',
+            Creators, studios, communities — three separate grounds, each with its own people and its own
+            pace. None is ever billed against another, and no one pays a toll simply to be found.
+            You pay only for the room you stand in.
+          </p>
+        </section>
+
+        {/* ─────────────────── PLANS ─────────────────── */}
+        <section style={{ marginTop: isMobile ? 40 : 64 }}>
+          {/* separator */}
+          <div style={{ height: 1, background: '#e5e5e5', marginBottom: 24 }} />
+
+          {/* section head */}
+          <div className="pricing-section-head" style={{
+            display: 'flex', alignItems: isMobile ? 'flex-start' : 'center',
+            justifyContent: 'space-between', gap: 16, marginBottom: 28,
+          }}>
+            <div>
+              <p style={{ fontFamily: D, fontWeight: 400, fontSize: 24, lineHeight: '26px', letterSpacing: '-1px', color: '#101010', margin: '0 0 6px' }}>
+                Plans
+              </p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: 0 }}>
+                From the open door to a full studio presence.
+              </p>
+            </div>
+
+            {/* billing toggle */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center',
+              background: '#f4f4f4', border: '1px solid #e5e5e5',
+              borderRadius: 100, height: 42, padding: '4px 4px 4px 5px',
+              flexShrink: 0,
+            }}>
+              <button onClick={() => setBilling('mo')} style={{
+                height: 34, padding: '0 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
+                background: billing === 'mo' ? '#101010' : 'transparent',
+                color: billing === 'mo' ? '#e5e5e5' : '#525252',
+                fontFamily: B, fontWeight: 500, fontSize: 14, lineHeight: '14px', letterSpacing: '-0.28px',
+                transition: 'background .2s',
+              }}>Monthly</button>
+              <button onClick={() => setBilling('yr')} style={{
+                height: 34, padding: '0 12px', borderRadius: 100, border: 'none', cursor: 'pointer',
+                background: billing === 'yr' ? '#101010' : 'transparent',
+                color: billing === 'yr' ? '#e5e5e5' : '#525252',
+                fontFamily: B, fontWeight: 500, fontSize: 14, lineHeight: '14px', letterSpacing: '-0.28px',
+                display: 'flex', alignItems: 'center', gap: 5, transition: 'background .2s',
               }}>
-                {c === 'mo' ? 'Monthly' : 'Yearly'}
-                {c === 'yr' && (
-                  <span style={{ fontSize: '11px', color: billing === 'yr' ? 'rgba(180,178,255,.85)' : brand }}>
-                    save 33%
-                  </span>
-                )}
+                Yearly
+                <span style={{
+                  background: '#e1e1ff', border: '1px solid #8a88e7',
+                  borderRadius: 100, padding: '3px 8px',
+                  fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '12px',
+                  letterSpacing: '0.12px', color: '#4e4bb9',
+                }}>Save 33%</span>
               </button>
-            ))}
+            </div>
+          </div>
+
+          {/* 3-col cards */}
+          <div className="pricing-cards-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, alignItems: 'stretch' }}>
+
+            {/* ── Free Plan ── */}
+            <PlanCard bg="#fafafa">
+              <p style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: '#101010', margin: '0 0 22px' }}>
+                Free Plan
+              </p>
+              <div style={{ marginBottom: 8 }}>
+                <Price amount="Free" unit="/forever" />
+              </div>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 16px' }}>
+                No card, no limits on the essentials
+              </p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 24px' }}>
+                The door, wide open, the whole core, free to anyone.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 32 }}>
+                <Feat dot="#e5e5e5">Unlimited projects (basic blocks)</Feat>
+                <Feat dot="#e5e5e5">Curated public profile</Feat>
+                <Feat dot="#e5e5e5">Full explore &amp; search</Feat>
+                <Feat dot="#e5e5e5">Communities up to 5 members, 2 channels</Feat>
+                <Feat dot="#e5e5e5">Access to briefs posted by Scouts</Feat>
+              </div>
+              <div style={{ flex: 1 }} />
+              <Btn href="/waitlist" />
+            </PlanCard>
+
+            {/* ── Pro Plan ── */}
+            <PlanCard bg="#efefff" style={{ background: 'linear-gradient(160deg, #efefff 0%, #e4e2ff 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+                <p style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: '#101010', margin: 0 }}>
+                  Pro Plan
+                </p>
+                <Badge>For professionals</Badge>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Price amount={proPrice} unit="/month" />
+              </div>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 16px' }}>
+                {proNote}
+              </p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 24px' }}>
+                For when the work becomes the career.{'\n'}Total command over how it's seen.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 32 }}>
+                <Feat dot="#c4c3ff">Everything in Free</Feat>
+                <Feat dot="#c4c3ff">Unlimited project blocks</Feat>
+                <Feat dot="#c4c3ff">Customisable profile grid</Feat>
+                <Feat dot="#c4c3ff">Profile analytics</Feat>
+                <Feat dot="#c4c3ff">Verified badge</Feat>
+                <Feat dot="#c4c3ff">Priority in talent search</Feat>
+                <Feat dot="#c4c3ff">&ldquo;Available for projects&rdquo; signal</Feat>
+              </div>
+              <div style={{ flex: 1 }} />
+              <Btn href="/waitlist" />
+            </PlanCard>
+
+            {/* ── Scout Plan ── */}
+            <PlanCard bg="#f9f9ff" style={{ background: 'linear-gradient(160deg, #f9f9ff 0%, #f0efff 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+                <p style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: '#101010', margin: 0 }}>
+                  Scout Plan
+                </p>
+                <Badge>Studios &amp; Brands</Badge>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <Price amount="32€" unit="/month" />
+              </div>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 16px' }}>
+                From 2 seats · +6€/mo per extra seat
+              </p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 24px' }}>
+                For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 32 }}>
+                <Feat dot="#c4c3ff">Each seat is a full Pro plan for a team member</Feat>
+                <Feat dot="#c4c3ff">Verified corporate profile</Feat>
+                <Feat dot="#c4c3ff">Unlimited project blocks</Feat>
+                <Feat dot="#c4c3ff">Your own private community</Feat>
+                <Feat dot="#c4c3ff">Customisable profile grid</Feat>
+                <Feat dot="#c4c3ff">Priority in search</Feat>
+                <Feat dot="#c4c3ff">Corporate verified badge</Feat>
+                <Feat dot="#c4c3ff">Direct contact with creators</Feat>
+                <Feat dot="#c4c3ff">Market analytics by category</Feat>
+                <Feat dot="#c4c3ff">Corporate profile analytics</Feat>
+              </div>
+              <div style={{ flex: 1 }} />
+              <Btn href="/waitlist" />
+            </PlanCard>
+
           </div>
         </section>
 
-        {/* ──────────── PLANE 01 — PLANS ──────────── */}
-        <div ref={p1.ref} style={{
-          padding: '56px 0', borderTop: `1px solid ${line}`,
-          opacity: p1.vis ? 1 : 0,
-          transform: p1.vis ? 'none' : 'translateY(26px)',
-          transition: 'opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)',
-        }}>
-          <PlaneHead idx="01" title="Plans" note="From the open door to a full studio presence." />
+        {/* ─────────────────── COMMUNITIES ─────────────────── */}
+        <section style={{ marginTop: isMobile ? 40 : 64 }}>
+          <div style={{ height: 1, background: '#e5e5e5', marginBottom: 24 }} />
 
-          <div className="pr-three" style={{ display: 'grid', gap: '18px' }}>
-
-            {/* ── Free ── */}
-            <div style={cardBase}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <CardName>Free</CardName>
-              </div>
-              <CardPrice main="Free" unit=" forever" />
-              <CardSub>No card, no limits on the essentials</CardSub>
-              <CardTag>The door, wide open — the whole core, free to anyone.</CardTag>
-              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                <FeatItem>Unlimited projects (basic blocks)</FeatItem>
-                <FeatItem>Curated public profile</FeatItem>
-                <FeatItem>Full explore &amp; search</FeatItem>
-                <FeatItem>Communities up to 5 members, 2 channels</FeatItem>
-                <FeatItem>Access to briefs posted by Scouts</FeatItem>
-              </ul>
-              <div style={{ flex: 1 }} />
-              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Start free</a>
-            </div>
-
-            {/* ── Pro (flagged) ── */}
-            <div style={cardFlag}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <CardName>Pro</CardName>
-                <Pill>For professionals</Pill>
-              </div>
-              <CardPrice main={billing === 'mo' ? '12€' : '8€'} unit="/mo" />
-              <CardSub>{billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 96€/yr'}</CardSub>
-              <CardTag>For when the work becomes the career. Total command over how it&apos;s seen.</CardTag>
-              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                <FeatItem>Everything in Free</FeatItem>
-                <FeatItem>Unlimited project blocks</FeatItem>
-                <FeatItem>Customisable profile grid</FeatItem>
-                <FeatItem>Profile analytics</FeatItem>
-                <FeatItem>Verified badge</FeatItem>
-                <FeatItem>Priority in talent search</FeatItem>
-                <FeatItem>&ldquo;Available for projects&rdquo; signal</FeatItem>
-              </ul>
-              <div style={{ flex: 1 }} />
-              <a href="/waitlist" className="pr-btn-solid" style={btnSolid}>Go Pro</a>
-            </div>
-
-            {/* ── Scout ── */}
-            <div style={cardBase}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <CardName>Scout</CardName>
-                <Pill>Studios &amp; brands</Pill>
-              </div>
-              <CardPrice main="32€" unit="/mo" />
-              <CardSub>From 2 seats · +6€/mo per extra seat</CardSub>
-              <CardTag>For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves.</CardTag>
-              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                <FeatItem>Each seat is a full Pro plan for a team member</FeatItem>
-                <FeatItem>Verified corporate profile</FeatItem>
-                <FeatItem>Unlimited project blocks</FeatItem>
-                <FeatItem>Your own private community</FeatItem>
-                <FeatItem>Customisable profile grid</FeatItem>
-                <FeatItem>Priority in search</FeatItem>
-                <FeatItem>Corporate verified badge</FeatItem>
-                <FeatItem>Direct contact with creators</FeatItem>
-                <FeatItem>Market analytics by category</FeatItem>
-                <FeatItem>Corporate profile analytics</FeatItem>
-              </ul>
-              <div style={{ flex: 1 }} />
-              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Become a Scout</a>
-            </div>
-
+          <div style={{ marginBottom: 28 }}>
+            <p style={{ fontFamily: D, fontWeight: 400, fontSize: 24, lineHeight: '26px', letterSpacing: '-1px', color: '#101010', margin: '0 0 6px' }}>
+              Communities
+            </p>
+            <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: 0, maxWidth: 274 }}>
+              A ground of its own. One fee for each community you open, not a key to unlimited ones.
+            </p>
           </div>
-        </div>
 
-        {/* ──────────── PLANE 02 — COMMUNITIES ──────────── */}
-        <div ref={p2.ref} style={{
-          padding: '56px 0', borderTop: `1px solid ${line}`,
-          opacity: p2.vis ? 1 : 0,
-          transform: p2.vis ? 'none' : 'translateY(26px)',
-          transition: 'opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)',
-        }}>
-          <PlaneHead
-            idx="02"
-            title="For communities"
-            note={<>A ground of its own. One fee for <em>each</em> community you open — not a key to unlimited ones.</>}
-          />
-
-          <div className="pr-two" style={{ display: 'grid', gap: '18px' }}>
+          {/* 2-col cards */}
+          <div className="pricing-cards-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
 
             {/* ── Plus ── */}
-            <div style={cardBase}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <CardName>Plus</CardName>
+            <PlanCard bg="#f4f4f4">
+              <p style={{ fontFamily: D, fontWeight: 400, fontSize: 20, lineHeight: '20px', letterSpacing: '-0.5px', color: '#101010', margin: '0 0 22px' }}>
+                Plus
+              </p>
+              <div style={{ marginBottom: 8 }}>
+                <Price amount="3,99€" unit="/month per community" />
               </div>
-              <CardPrice main="3,99€" unit="/mo per community" />
-              <CardSub>One fee for each community you run</CardSub>
-              <CardTag>A space still finding its shape, and the tools to keep it gathered.</CardTag>
-              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                <FeatItem>Up to 250 members</FeatItem>
-                <FeatItem>5 themed channels</FeatItem>
-                <FeatItem>Private + invite-only visibility</FeatItem>
-                <FeatItem>Share Projects</FeatItem>
-                <FeatItem>Internal briefs</FeatItem>
-                <FeatItem>Resources channel</FeatItem>
-              </ul>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 16px' }}>
+                One fee for each community you run
+              </p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 24px' }}>
+                A space still finding its shape, and the tools to keep it gathered.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 32 }}>
+                <Feat dot="#e5e5e5">Up to 250 members</Feat>
+                <Feat dot="#e5e5e5">5 themed channels</Feat>
+                <Feat dot="#e5e5e5">Private + invite-only visibility</Feat>
+                <Feat dot="#e5e5e5">Share Projects</Feat>
+                <Feat dot="#e5e5e5">Internal briefs</Feat>
+                <Feat dot="#e5e5e5">Resources channel</Feat>
+              </div>
               <div style={{ flex: 1 }} />
-              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Start a Plus</a>
-            </div>
+              <Btn href="/waitlist" />
+            </PlanCard>
 
             {/* ── Max ── */}
-            <div style={cardBase}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <CardName>Max</CardName>
+            <PlanCard bg="#101010">
+              <p style={{ fontFamily: D, fontWeight: 400, fontSize: 20, lineHeight: '20px', letterSpacing: '-0.5px', color: '#fafafa', margin: '0 0 22px' }}>
+                Max
+              </p>
+              <div style={{ marginBottom: 8 }}>
+                <Price amount="7,99€" unit="/month per community" light />
               </div>
-              <CardPrice main="7,99€" unit="/mo per community" />
-              <CardSub>One fee for each community you run</CardSub>
-              <CardTag>No ceilings — open it to everyone and run it your way.</CardTag>
-              <ul style={{ padding: 0, margin: '0 0 26px', display: 'flex', flexDirection: 'column', gap: '11px' }}>
-                <FeatItem>Unlimited members</FeatItem>
-                <FeatItem>Unlimited channels</FeatItem>
-                <FeatItem>Full visibility (All)</FeatItem>
-                <FeatItem>Share Projects</FeatItem>
-                <FeatItem>Internal briefs</FeatItem>
-                <FeatItem>Resources channel</FeatItem>
-                <FeatItem>Advanced admin roles</FeatItem>
-              </ul>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: 'rgba(250,250,250,0.55)', margin: '0 0 16px' }}>
+                One fee for each community you run
+              </p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: 'rgba(250,250,250,0.45)', margin: '0 0 24px' }}>
+                No ceilings, open it to everyone and run it your way.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 32 }}>
+                <Feat dot="#d4d4d4" light>Unlimited members</Feat>
+                <Feat dot="#d4d4d4" light>Unlimited channels</Feat>
+                <Feat dot="#d4d4d4" light>Full visibility (All)</Feat>
+                <Feat dot="#d4d4d4" light>Share Projects</Feat>
+                <Feat dot="#d4d4d4" light>Internal briefs</Feat>
+                <Feat dot="#d4d4d4" light>Resources channel</Feat>
+                <Feat dot="#d4d4d4" light>Advanced admin roles</Feat>
+              </div>
               <div style={{ flex: 1 }} />
-              <a href="/waitlist" className="pr-btn-outline" style={btnOutline}>Start a Max</a>
+              <Btn href="/waitlist" light />
+            </PlanCard>
+
+          </div>
+        </section>
+
+        {/* ─────────────────── FOOTER ─────────────────── */}
+        {isMobile ? (
+          <footer style={{ background: '#f4f4f4', margin: '48px -20px 0', padding: '32px 20px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 32, width: 32 }} />
+              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 20, width: 'auto' }} />
             </div>
-
-          </div>
-        </div>
-
-        {/* ──────────── PRINCIPLE BAND ──────────── */}
-        <div ref={band.ref} style={{
-          margin: '20px 0 0',
-          borderRadius: '24px',
-          padding: 'clamp(40px,6vw,72px)',
-          background: 'linear-gradient(135deg,#4E4BB9 0%,#3a37a0 100%)',
-          position: 'relative', overflow: 'hidden',
-          opacity: band.vis ? 1 : 0,
-          transform: band.vis ? 'none' : 'translateY(26px)',
-          transition: 'opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1)',
-        }}>
-          <div aria-hidden style={{ position: 'absolute', inset: 0, opacity: .5, pointerEvents: 'none',
-            background: 'radial-gradient(40% 60% at 90% 10%, rgba(255,255,255,.18), transparent 60%)' }} />
-          <div style={{ position: 'relative', zIndex: 2, maxWidth: '620px' }}>
-            <h2 style={{ fontFamily: D, fontWeight: 700,
-              fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1,
-              letterSpacing: '-.035em', marginBottom: '18px', color: '#fff' }}>
-              Three grounds,<br />never crossed.
-            </h2>
-            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,.84)', maxWidth: '500px', marginBottom: '30px' }}>
-              Creators, studios and communities each stand on their own. No one carries another&apos;s weight,
-              and no one pays just to be seen — you pay for what is yours, and only that.
-            </p>
-            <a href="/waitlist" className="pr-band-cta" style={{
-              fontFamily: D, fontWeight: 700, fontSize: '16px',
-              padding: '15px 28px', borderRadius: '99px',
-              background: '#fff', color: brand,
-              textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '9px',
-              transition: 'background .2s, color .2s, box-shadow .2s',
-            }}>
-              Join the waitlist →
-            </a>
-          </div>
-        </div>
-
-        {/* ──────────── FOOTER ──────────── */}
-        <footer style={{ padding: '80px 0 52px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-          flexWrap: 'wrap', gap: '24px' }}>
-          <div style={{ maxWidth: '340px' }}>
-            <div style={{ fontFamily: D, fontWeight: 700, fontSize: '20px',
-              letterSpacing: '-.03em', marginBottom: '10px', color: ink }}>
-              bare<span style={{ color: brand }}>.</span>
+            <p style={{ fontSize: 13, color: '#737373', margin: '0 0 20px' }}>All your creative world in one place</p>
+            <div style={{ display: 'flex', gap: 48, marginBottom: 24 }}>
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { label: 'Pricing',        href: '/pricing' },
+                  { label: 'Curated access', href: '/curated-access' },
+                  { label: 'About',          href: '/about' },
+                ].map(({ label, href }) => (
+                  <a key={label} href={href} style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{label}</a>
+                ))}
+              </nav>
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {["Contact", "FAQ's"].map(l => (
+                  <a key={l} href="#" style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{l}</a>
+                ))}
+              </nav>
             </div>
-            <p style={{ fontSize: '13px', color: muted2, lineHeight: 1.55 }}>
-              A quieter place to create — built for the whole creator.
-            </p>
-          </div>
-          <nav style={{ display: 'flex', gap: '26px', fontSize: '13px' }}>
-            {[
-              { label: 'Manifesto', href: '/about' },
-              { label: 'About',     href: '/about' },
-              { label: 'Contact',   href: '/waitlist' },
-            ].map(({ label, href }) => (
-              <a key={label} href={href} className="pr-footer-link"
-                style={{ color: muted, textDecoration: 'none', transition: 'color .18s' }}>
-                {label}
-              </a>
-            ))}
-          </nav>
-          <div style={{ width: '100%', fontSize: '12px', color: muted2,
-            paddingTop: '28px', borderTop: `1px solid ${line}`, marginTop: '12px' }}>
-            © 2026 bare. — Building deliberately.
-          </div>
-        </footer>
+            <div style={{ borderTop: '1px solid #e7e7e7', paddingTop: 16 }}>
+              <p style={{ fontSize: 12, color: '#a3a3a3', margin: '0 0 8px' }}>© 2026 BareFolio. All rights reserved.</p>
+              <div style={{ display: 'flex', gap: 16 }}>
+                {['Privacy', 'Terms', 'Cookies'].map(l => (
+                  <a key={l} href="#" style={{ fontSize: 12, color: '#a3a3a3', textDecoration: 'none' }}>{l}</a>
+                ))}
+              </div>
+            </div>
+          </footer>
+        ) : (
+          <footer style={{ background: '#f4f4f4', margin: '64px -32px 0', padding: '40px 32px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 32 }}>
+              {/* logo + tagline + social */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 36, width: 36 }} />
+                  <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 22, width: 'auto' }} />
+                </div>
+                <p style={{ fontSize: 13, color: '#737373', margin: 0, marginTop: 4 }}>All your creative world in one place</p>
+                <div style={{ display: 'flex', gap: 14, marginTop: 4 }}>
+                  {/* Instagram */}
+                  <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
+                      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
+                    </svg>
+                  </a>
+                  {/* TikTok */}
+                  <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.94a8.19 8.19 0 004.79 1.53V7.02a4.85 4.85 0 01-1.02-.33z"/>
+                    </svg>
+                  </a>
+                  {/* X */}
+                  <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.264 5.637 5.9-5.637zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+              {/* nav columns */}
+              <div style={{ display: 'flex', gap: 64, flex: 1, justifyContent: 'center' }}>
+                <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { label: 'Pricing',        href: '/pricing' },
+                    { label: 'Curated access', href: '/curated-access' },
+                    { label: 'About',          href: '/about' },
+                  ].map(({ label, href }) => (
+                    <a key={label} href={href} style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{label}</a>
+                  ))}
+                </nav>
+                <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {["Contact", "FAQ's"].map(l => (
+                    <a key={l} href="#" style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{l}</a>
+                  ))}
+                </nav>
+              </div>
+            </div>
+            <div style={{ borderTop: '1px solid #e7e7e7', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: 12, color: '#a3a3a3', margin: 0 }}>© 2026 BareFolio. All rights reserved.</p>
+              <div style={{ display: 'flex', gap: 16 }}>
+                {['Privacy', 'Terms', 'Cookies'].map(l => (
+                  <a key={l} href="#" style={{ fontSize: 12, color: '#a3a3a3', textDecoration: 'none' }}>{l}</a>
+                ))}
+              </div>
+            </div>
+          </footer>
+        )}
 
       </div>
     </div>
