@@ -25,7 +25,7 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
       }
       // Authenticated users on the landing page → send to the app
       if (currentUser && pathname === '/landing') {
-        router.push('/explore');
+        router.push('/home');
       }
       // "/" handles its own redirect in page.tsx (→ /landing or /explore)
     }

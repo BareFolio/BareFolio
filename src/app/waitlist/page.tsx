@@ -172,7 +172,7 @@ const XIcon = () => (
 function WaitlistFooter({ onGetAccess }: { onGetAccess: () => void }) {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const toLogin = () => router.push('/landing');
+  const toLogin = () => router.push('/');
 
   const navLink: React.CSSProperties = {
     fontSize: '14px', fontWeight: 500, color: '#101010',

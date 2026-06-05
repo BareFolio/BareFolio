@@ -17,7 +17,7 @@ export default function TabBar({ onCreateClick }: { onCreateClick: () => void })
   }
 
   const navItems = [
-    { label: 'Feed', href: '/', icon: Home },
+    { label: 'Feed', href: '/home', icon: Home },
     { label: 'Posts', href: '/posts', icon: Layers },
     { label: 'Explore', href: '/explore', icon: Search },
     { label: 'Inbox', href: '/inbox', icon: Inbox },

@@ -47,7 +47,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
     try {
       await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/explore` },
+        options: { redirectTo: `${window.location.origin}/home` },
       });
     } catch (err: any) { setError(err.message || 'Error.'); }
   }
@@ -65,7 +65,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
         const { error: err } = await supabase.auth.signUp({ email, password });
         if (err) throw err;
       }
-      router.push('/explore');
+      router.push('/home');
     } catch (err: any) {
       setError(err.message || 'Algo salió mal.');
     } finally { setLoading(false); }
