@@ -6,6 +6,16 @@ import { supabase } from '@/lib/supabase';
 import { Search, ImagePlus } from 'lucide-react';
 
 const MAX_CHARS = 500;
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+]);
+const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB
 
 export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { currentUser, profile } = useApp();
@@ -44,7 +54,12 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
 
   async function uploadImages(files: File[]): Promise<string[]> {
     const uploads = files.map(async (file) => {
-      const ext = file.name.split('.').pop();
+      const mimeToExt: Record<string, string> = {
+        'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+        'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm',
+        'video/quicktime': 'mov',
+      };
+      const ext = mimeToExt[file.type] ?? 'bin';
       const path = `${currentUser!.id}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage
         .from('project-images')
@@ -242,7 +257,25 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
             type="file"
             multiple
             accept="image/*,video/*"
-            onChange={(e) => setSelectedFiles(prev => [...prev, ...Array.from(e.target.files ?? [])])}
+            onChange={(e) => {
+              const incoming = Array.from(e.target.files ?? []);
+              const rejected: string[] = [];
+              const valid = incoming.filter((f) => {
+                if (!ALLOWED_MIME_TYPES.has(f.type)) {
+                  rejected.push(`${f.name}: unsupported file type`);
+                  return false;
+                }
+                if (f.size > MAX_FILE_BYTES) {
+                  rejected.push(`${f.name}: exceeds 50 MB limit`);
+                  return false;
+                }
+                return true;
+              });
+              if (rejected.length > 0) setError(rejected[0]);
+              if (valid.length > 0) setSelectedFiles((prev) => [...prev, ...valid]);
+              // Reset so the same file can be re-selected after an error
+              e.target.value = '';
+            }}
             className="hidden"
           />
           <button

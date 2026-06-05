@@ -91,6 +91,22 @@ function BannerShapes() {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+/** Returns a safe href — only http/https URLs pass through; everything else becomes '#'. */
+function sanitizeUrl(raw: string): string {
+  if (!raw) return '#';
+  const withProtocol =
+    raw.startsWith('http://') || raw.startsWith('https://')
+      ? raw
+      : `https://${raw}`;
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '#';
+    return url.href;
+  } catch {
+    return '#';
+  }
+}
+
 export default function ProfileClient() {
   const { profile: loggedInProfile, currentUser } = useApp();
   const router = useRouter();
@@ -491,7 +507,7 @@ export default function ProfileClient() {
             <div className="flex items-center gap-4 mt-2">
               {profile.website && (
                 <a
-                  href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                  href={sanitizeUrl(profile.website)}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1.5 text-sm text-[#5B5BD6] hover:underline"
