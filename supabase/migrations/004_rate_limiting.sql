@@ -8,14 +8,14 @@
 -- 1. Table: one row per (user, minute window)
 CREATE TABLE IF NOT EXISTS public.rate_limit_log (
   user_id     uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  window      timestamptz NOT NULL DEFAULT date_trunc('minute', now()),
+  "window"    timestamptz NOT NULL DEFAULT date_trunc('minute', now()),
   hits        int         NOT NULL DEFAULT 0,
-  PRIMARY KEY (user_id, window)
+  PRIMARY KEY (user_id, "window")
 );
 
 -- Index speeds up the upsert inside the function
 CREATE INDEX IF NOT EXISTS idx_rate_limit_log_window
-  ON public.rate_limit_log (user_id, window DESC);
+  ON public.rate_limit_log (user_id, "window" DESC);
 
 -- RLS: deny all direct client access; only the SECURITY DEFINER function writes
 ALTER TABLE public.rate_limit_log ENABLE ROW LEVEL SECURITY;
@@ -41,9 +41,9 @@ BEGIN
     RETURN true;
   END IF;
 
-  INSERT INTO public.rate_limit_log (user_id, window, hits)
+  INSERT INTO public.rate_limit_log (user_id, "window", hits)
   VALUES (auth.uid(), v_window, 1)
-  ON CONFLICT (user_id, window)
+  ON CONFLICT (user_id, "window")
   DO UPDATE SET hits = rate_limit_log.hits + 1
   RETURNING hits INTO v_hits;
 
@@ -61,7 +61,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   DELETE FROM public.rate_limit_log
-  WHERE window < now() - interval '5 minutes';
+  WHERE "window" < now() - interval '5 minutes';
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.cleanup_rate_limit_log() FROM PUBLIC;
