@@ -944,24 +944,25 @@ function Footer({ onGetAccess, onLogin }, ref) {
         <div style={{ padding: '0 20px' }}>
 
           {/* 1. Buttons row */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
             <button onClick={onLogin} style={{
-              flex: 1,
-              background: 'rgba(255,255,255,0.45)',
-              backdropFilter: 'blur(28px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.6)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.7)',
-              color: '#101010', fontWeight: 500, fontSize: '15px', letterSpacing: 'normal',
-              padding: '12px 0', borderRadius: '100px', cursor: 'pointer',
-            }}>Login</button>
+              background: 'none', border: 'none',
+              color: '#101010', fontWeight: 500, fontSize: '15px',
+              cursor: 'pointer', transition: 'color 0.15s', whiteSpace: 'nowrap',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#737373')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#101010')}
+            >Login</button>
             <button onClick={onGetAccess} className="pill-btn-stable" style={{
-              flex: 1,
               background: '#101010', color: '#fafafa',
-              fontWeight: 500, fontSize: '15px', letterSpacing: 'normal',
-              padding: '12px 0', borderRadius: '100px',
-              border: 'none', justifyContent: 'center',
-            }}>Get Access<span className="pill-arrow"><span>→</span></span></button>
+              fontWeight: 500, fontSize: '15px',
+              padding: '12px 22px', borderRadius: '100px',
+              border: 'none', display: 'inline-flex', alignItems: 'center',
+              transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#333')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
+            >Get Access<span className="pill-arrow"><span>→</span></span></button>
           </div>
 
           {/* 2. Brand */}
@@ -1101,19 +1102,14 @@ function Footer({ onGetAccess, onLogin }, ref) {
           </div>
 
           {/* Right — Login + Get Access */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button onClick={onLogin} style={{
-              background: 'rgba(255,255,255,0.45)',
-              backdropFilter: 'blur(28px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.6)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.7)',
-              color: '#101010', fontWeight: 500, fontSize: '16px', letterSpacing: 'normal',
-              padding: '12px 22px', borderRadius: '100px', cursor: 'pointer',
-              whiteSpace: 'nowrap', transition: 'background 0.15s',
+              background: 'none', border: 'none',
+              color: '#101010', fontWeight: 500, fontSize: '16px',
+              cursor: 'pointer', transition: 'color 0.15s', whiteSpace: 'nowrap',
             }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.65)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.45)')}
+              onMouseEnter={e => (e.currentTarget.style.color = '#737373')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#101010')}
             >Login</button>
             <button onClick={onGetAccess} className="pill-btn-stable" style={{
               background: '#101010', color: '#fafafa',

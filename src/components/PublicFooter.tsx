@@ -52,16 +52,11 @@ export default function PublicFooter() {
     fontSize: '12px', color: '#a3a3a3',
     textDecoration: 'none', transition: 'color 0.15s',
   };
-  const loginBtnStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.45)',
-    backdropFilter: 'blur(28px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-    border: '1px solid rgba(255,255,255,0.6)',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.7)',
-    color: '#101010', fontWeight: 500,
-    borderRadius: '100px', cursor: 'pointer',
-    textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    transition: 'background 0.15s', whiteSpace: 'nowrap' as const,
+  const loginTextStyle: React.CSSProperties = {
+    fontWeight: 500, color: '#101010',
+    textDecoration: 'none', cursor: 'pointer',
+    background: 'none', border: 'none',
+    transition: 'color 0.15s', whiteSpace: 'nowrap' as const,
   };
   const accessBtnStyle: React.CSSProperties = {
     background: '#101010', color: '#fafafa',
@@ -79,11 +74,14 @@ export default function PublicFooter() {
         <div style={{ padding: '0 20px' }}>
 
           {/* Buttons row */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '32px' }}>
-            <Link href="/" style={{ ...loginBtnStyle, flex: 1, fontSize: '15px', padding: '12px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+            <Link href="/"
+              style={{ ...loginTextStyle, fontSize: '15px' }}
+              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#737373')}
+              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#101010')}>
               Login
             </Link>
-            <Link href="/waitlist" className="pill-btn" style={{ ...accessBtnStyle, flex: 1, fontSize: '15px', padding: '12px 0' }}>
+            <Link href="/waitlist" className="pill-btn-stable" style={{ ...accessBtnStyle, fontSize: '15px', padding: '12px 22px' }}>
               Get Access<span className="pill-arrow"><span>→</span></span>
             </Link>
           </div>
@@ -187,13 +185,14 @@ export default function PublicFooter() {
           </div>
 
           {/* Right — Login + Get Access */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Link href="/" style={{ ...loginBtnStyle, fontSize: '16px', padding: '12px 22px' }}
-              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = 'rgba(255,255,255,0.65)')}
-              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = 'rgba(255,255,255,0.45)')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Link href="/"
+              style={{ ...loginTextStyle, fontSize: '16px' }}
+              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#737373')}
+              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#101010')}>
               Login
             </Link>
-            <Link href="/waitlist" className="pill-btn" style={{ ...accessBtnStyle, fontSize: '16px', padding: '12px 22px' }}
+            <Link href="/waitlist" className="pill-btn-stable" style={{ ...accessBtnStyle, fontSize: '16px', padding: '12px 22px' }}
               onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = '#333')}
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = '#101010')}>
               Get Access<span className="pill-arrow"><span>→</span></span>
