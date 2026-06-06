@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import PublicShell from '@/components/PublicShell';
 
 /* ── helpers ──────────────────────────────────────────────────── */
 function useIsMobile() {
@@ -118,6 +119,7 @@ function PlanCard({
       boxShadow: '0px 10.7px 18.7px -4px rgba(113,113,113,0.14)',
       display: 'flex',
       flexDirection: 'column',
+      flex: 1,
     }}>
       {/* ── coloured band — plan name ── */}
       <div style={{ padding: '14px 28px 14px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
@@ -234,12 +236,26 @@ export default function PricingPage() {
 
   const px = isMobile ? 20 : 32;
 
+  /* ── carousel: start centred on Pro (index 1) ── */
+  const carouselRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isMobile || !carouselRef.current) return;
+    const raf = requestAnimationFrame(() => {
+      const el = carouselRef.current;
+      if (!el) return;
+      // card = 80 % of container width, gap = 12 px
+      // scrollLeft to centre card[1] = 1 × (cardW + gap)
+      el.scrollLeft = el.offsetWidth * 0.80 + 12;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isMobile]);
+
   return (
-    <div style={{ background: '#fafafa', color: '#101010', minHeight: '100vh', fontFamily: B }}>
+    <PublicShell>
 
       <style>{`
         .pr-cta-btn:hover { opacity: 0.82; }
-        .pr-wl-btn:hover   { background: #333 !important; }
+        .pr-carousel::-webkit-scrollbar { display: none; }
         @media(max-width:900px){
           .pr-3col { grid-template-columns: 1fr !important; }
           .pr-2col { grid-template-columns: 1fr !important; }
@@ -247,23 +263,7 @@ export default function PricingPage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: `0 ${px}px` }}>
-
-        {/* ─── NAV ─── */}
-        <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0 20px' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 28, width: 28 }} />
-            <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 17, width: 'auto' }} />
-          </Link>
-          <Link href="/waitlist" className="pr-wl-btn" style={{
-            fontFamily: B, fontWeight: 500, fontSize: 14, letterSpacing: '-0.28px',
-            padding: '11px 20px', borderRadius: 100,
-            background: '#101010', color: '#fafafa', textDecoration: 'none',
-            transition: 'background .2s',
-          }}>
-            Join the waitlist
-          </Link>
-        </nav>
+      <div style={{ padding: `0 ${px}px ${isMobile ? 64 : 96}px` }}>
 
         {/* ─── HERO ─── */}
         <section style={{ paddingTop: isMobile ? 28 : 48, paddingBottom: 0 }}>
@@ -327,74 +327,172 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* 3-col grid */}
-          <div className="pr-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, alignItems: 'stretch' }}>
-
-            <PlanCard
-              outerBg="#f4f4f4"
-              nameText="Free Plan"
-              priceAmount="Free"
-              priceUnit="/forever"
-              priceSub="No card, no limits on the essentials"
-              desc="The door, wide open, the whole core, free to anyone."
-              dotColor="#e5e5e5"
-              features={[
-                'Unlimited projects (basic blocks)',
-                'Curated public profile',
-                'Full explore & search',
-                'Communities up to 5 members, 2 channels',
-                'Access to briefs posted by Scouts',
-              ]}
-              btnLabel="Start free"
-            />
-
-            <PlanCard
-              outerBg="linear-gradient(155deg, #efefff 0%, #e2e0ff 100%)"
-              nameText="Pro Plan"
-              badge="For professionals"
-              priceAmount={proPrice}
-              priceUnit="/month"
-              priceSub={proSub}
-              desc="For when the work becomes the career. Total command over how it's seen."
-              dotColor="#c4c3ff"
-              features={[
-                'Everything in Free',
-                'Unlimited project blocks',
-                'Customisable profile grid',
-                'Profile analytics',
-                'Verified badge',
-                'Priority in talent search',
-                '"Available for projects" signal',
-              ]}
-              btnLabel="Go Pro"
-            />
-
-            <PlanCard
-              outerBg="linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)"
-              nameText="Scout Plan"
-              badge="Studios & Brands"
-              priceAmount={scoutPrice}
-              priceUnit="/month"
-              priceSub={scoutSub}
-              priceSub2="From 2 seats · +6€/mo per extra seat"
-              desc="For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves."
-              dotColor="#c4c3ff"
-              features={[
-                'Each seat is a full Pro plan for a team member',
-                'Verified corporate profile',
-                'Unlimited project blocks',
-                'Your own private community',
-                'Customisable profile grid',
-                'Priority in search',
-                'Corporate verified badge',
-                'Direct contact with creators',
-                'Market analytics by category',
-                'Corporate profile analytics',
-              ]}
-              btnLabel="Become a Scout"
-            />
-
-          </div>
+          {/* ── mobile: snap carousel  ── desktop: 3-col grid ── */}
+          {isMobile ? (
+            /* Carousel — full-bleed, card = 80 vw, peek = 10 vw each side */
+            <div
+              ref={carouselRef}
+              className="pr-carousel"
+              style={{
+                display: 'flex',
+                overflowX: 'scroll',
+                scrollSnapType: 'x mandatory',
+                gap: 12,
+                /* cancel parent padding so carousel touches screen edges */
+                margin: `0 -${px}px`,
+                padding: '0 10vw',
+                /* iOS momentum + hide scrollbar */
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              } as React.CSSProperties}
+            >
+              {/* align-items default is stretch → all wrappers get Scout's height */}
+              {[
+                {
+                  outerBg: '#f4f4f4',
+                  nameText: 'Free Plan',
+                  priceAmount: 'Free',
+                  priceUnit: '/forever',
+                  priceSub: 'No card, no limits on the essentials',
+                  desc: 'The door, wide open, the whole core, free to anyone.',
+                  dotColor: '#e5e5e5',
+                  features: [
+                    'Unlimited projects (basic blocks)',
+                    'Curated public profile',
+                    'Full explore & search',
+                    'Communities up to 5 members, 2 channels',
+                    'Access to briefs posted by Scouts',
+                  ],
+                  btnLabel: 'Start free',
+                },
+                {
+                  outerBg: 'linear-gradient(155deg, #efefff 0%, #e2e0ff 100%)',
+                  nameText: 'Pro Plan',
+                  badge: 'For professionals',
+                  priceAmount: proPrice,
+                  priceUnit: '/month',
+                  priceSub: proSub,
+                  desc: "For when the work becomes the career. Total command over how it's seen.",
+                  dotColor: '#c4c3ff',
+                  features: [
+                    'Everything in Free',
+                    'Unlimited project blocks',
+                    'Customisable profile grid',
+                    'Profile analytics',
+                    'Verified badge',
+                    'Priority in talent search',
+                    '"Available for projects" signal',
+                  ],
+                  btnLabel: 'Go Pro',
+                },
+                {
+                  outerBg: 'linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)',
+                  nameText: 'Scout Plan',
+                  badge: 'Studios & Brands',
+                  priceAmount: scoutPrice,
+                  priceUnit: '/month',
+                  priceSub: scoutSub,
+                  priceSub2: 'From 2 seats · +6€/mo per extra seat',
+                  desc: 'For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves.',
+                  dotColor: '#c4c3ff',
+                  features: [
+                    'Each seat is a full Pro plan for a team member',
+                    'Verified corporate profile',
+                    'Unlimited project blocks',
+                    'Your own private community',
+                    'Customisable profile grid',
+                    'Priority in search',
+                    'Corporate verified badge',
+                    'Direct contact with creators',
+                    'Market analytics by category',
+                    'Corporate profile analytics',
+                  ],
+                  btnLabel: 'Become a Scout',
+                },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: '0 0 80vw',
+                    scrollSnapAlign: 'center',
+                    scrollSnapStop: 'always',
+                    minWidth: 0,
+                    /* flex column so PlanCard (flex:1) fills the stretched height */
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <PlanCard {...card} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Desktop 3-col grid */
+            <div className="pr-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, alignItems: 'stretch' }}>
+              <PlanCard
+                outerBg="#f4f4f4"
+                nameText="Free Plan"
+                priceAmount="Free"
+                priceUnit="/forever"
+                priceSub="No card, no limits on the essentials"
+                desc="The door, wide open, the whole core, free to anyone."
+                dotColor="#e5e5e5"
+                features={[
+                  'Unlimited projects (basic blocks)',
+                  'Curated public profile',
+                  'Full explore & search',
+                  'Communities up to 5 members, 2 channels',
+                  'Access to briefs posted by Scouts',
+                ]}
+                btnLabel="Start free"
+              />
+              <PlanCard
+                outerBg="linear-gradient(155deg, #efefff 0%, #e2e0ff 100%)"
+                nameText="Pro Plan"
+                badge="For professionals"
+                priceAmount={proPrice}
+                priceUnit="/month"
+                priceSub={proSub}
+                desc="For when the work becomes the career. Total command over how it's seen."
+                dotColor="#c4c3ff"
+                features={[
+                  'Everything in Free',
+                  'Unlimited project blocks',
+                  'Customisable profile grid',
+                  'Profile analytics',
+                  'Verified badge',
+                  'Priority in talent search',
+                  '"Available for projects" signal',
+                ]}
+                btnLabel="Go Pro"
+              />
+              <PlanCard
+                outerBg="linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)"
+                nameText="Scout Plan"
+                badge="Studios & Brands"
+                priceAmount={scoutPrice}
+                priceUnit="/month"
+                priceSub={scoutSub}
+                priceSub2="From 2 seats · +6€/mo per extra seat"
+                desc="For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves."
+                dotColor="#c4c3ff"
+                features={[
+                  'Each seat is a full Pro plan for a team member',
+                  'Verified corporate profile',
+                  'Unlimited project blocks',
+                  'Your own private community',
+                  'Customisable profile grid',
+                  'Priority in search',
+                  'Corporate verified badge',
+                  'Direct contact with creators',
+                  'Market analytics by category',
+                  'Corporate profile analytics',
+                ]}
+                btnLabel="Become a Scout"
+              />
+            </div>
+          )}
         </section>
 
         {/* ─── COMMUNITIES ─── */}
@@ -452,88 +550,8 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* ─── FOOTER ─── */}
-        {isMobile ? (
-          <footer style={{ background: '#f4f4f4', margin: '48px -20px 0', padding: '32px 20px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 32, width: 32 }} />
-              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 20, width: 'auto' }} />
-            </div>
-            <p style={{ fontSize: 13, color: '#737373', margin: '0 0 20px' }}>All your creative world in one place</p>
-            <div style={{ display: 'flex', gap: 48, marginBottom: 24 }}>
-              <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[{ label: 'Pricing', href: '/pricing' }, { label: 'Curated access', href: '/curated-access' }, { label: 'About', href: '/about' }].map(({ label, href }) => (
-                  <a key={label} href={href} style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{label}</a>
-                ))}
-              </nav>
-              <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {["Contact", "FAQ's"].map(l => (
-                  <a key={l} href="#" style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{l}</a>
-                ))}
-              </nav>
-            </div>
-            <div style={{ borderTop: '1px solid #e7e7e7', paddingTop: 16 }}>
-              <p style={{ fontSize: 12, color: '#a3a3a3', margin: '0 0 8px' }}>© 2026 BareFolio. All rights reserved.</p>
-              <div style={{ display: 'flex', gap: 16 }}>
-                {['Privacy', 'Terms', 'Cookies'].map(l => (
-                  <a key={l} href="#" style={{ fontSize: 12, color: '#a3a3a3', textDecoration: 'none' }}>{l}</a>
-                ))}
-              </div>
-            </div>
-          </footer>
-        ) : (
-          <footer style={{ background: '#f4f4f4', margin: '64px -32px 0', padding: '40px 32px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 32 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 200 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 36, width: 36 }} />
-                  <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 22, width: 'auto' }} />
-                </div>
-                <p style={{ fontSize: 13, color: '#737373', margin: 0, marginTop: 4 }}>All your creative world in one place</p>
-                <div style={{ display: 'flex', gap: 14, marginTop: 4 }}>
-                  <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
-                      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
-                    </svg>
-                  </a>
-                  <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.94a8.19 8.19 0 004.79 1.53V7.02a4.85 4.85 0 01-1.02-.33z"/>
-                    </svg>
-                  </a>
-                  <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.264 5.637 5.9-5.637zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 64, flex: 1, justifyContent: 'center' }}>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[{ label: 'Pricing', href: '/pricing' }, { label: 'Curated access', href: '/curated-access' }, { label: 'About', href: '/about' }].map(({ label, href }) => (
-                    <a key={label} href={href} style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{label}</a>
-                  ))}
-                </nav>
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {["Contact", "FAQ's"].map(l => (
-                    <a key={l} href="#" style={{ fontSize: 14, fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{l}</a>
-                  ))}
-                </nav>
-              </div>
-            </div>
-            <div style={{ borderTop: '1px solid #e7e7e7', paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontSize: 12, color: '#a3a3a3', margin: 0 }}>© 2026 BareFolio. All rights reserved.</p>
-              <div style={{ display: 'flex', gap: 16 }}>
-                {['Privacy', 'Terms', 'Cookies'].map(l => (
-                  <a key={l} href="#" style={{ fontSize: 12, color: '#a3a3a3', textDecoration: 'none' }}>{l}</a>
-                ))}
-              </div>
-            </div>
-          </footer>
-        )}
 
       </div>
-    </div>
+    </PublicShell>
   );
 }

@@ -1,3 +1,5 @@
+import PublicShell from '@/components/PublicShell';
+
 const PRINCIPLES = [
   { num: '01', title: 'No engagement algorithm',       body: "Visibility is built by what you've made, not by how often you post." },
   { num: '02', title: 'Process has space',             body: 'Sketches, decisions, discards — all first-class content, not just the final deliverable.' },
@@ -11,9 +13,12 @@ const STATS = [
   { n: '2026', label: 'Early access\nopens',          grey: true,  delay: '0.3s' },
 ];
 
+const D = 'var(--font-display), -apple-system, sans-serif';
+const B = 'var(--font-sans), -apple-system, sans-serif';
+
 export default function AboutPage() {
   return (
-    <>
+    <PublicShell>
       <style>{`
         @keyframes about-fadeUp {
           from { opacity: 0; transform: translateY(24px); }
@@ -57,15 +62,15 @@ export default function AboutPage() {
         .about-p-row:hover .about-p-num { color: #737373; }
       `}</style>
 
-      <div style={{ fontFamily: "'Helvetica Neue', system-ui, sans-serif", background: '#fafafa', color: '#101010', overflowX: 'hidden', minHeight: '100vh' }}>
+      <div style={{ fontFamily: B, overflowX: 'hidden' }}>
 
         {/* ── Hero ── */}
-        <section style={{ padding: '72px 24px 0', textAlign: 'center', position: 'relative' }}>
+        <section style={{ padding: '40px 24px 0', textAlign: 'center', position: 'relative' }}>
           <div className="about-orb" />
           <p className="about-a1" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#a3a3a3', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
             ABOUT
           </p>
-          <h1 className="about-a2" style={{ fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 400, letterSpacing: '-2px', color: '#101010', lineHeight: 1.05, margin: '0 auto 20px', position: 'relative', zIndex: 1, maxWidth: '720px' }}>
+          <h1 className="about-a2" style={{ fontFamily: D, fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 400, letterSpacing: '-2px', color: '#101010', lineHeight: 1.05, margin: '0 auto 20px', position: 'relative', zIndex: 1, maxWidth: '720px' }}>
             We&apos;re building the environment<br />
             the creative industry <em style={{ fontStyle: 'italic', color: '#737373' }}>was missing.</em>
           </h1>
@@ -79,7 +84,7 @@ export default function AboutPage() {
           <div style={{ display: 'flex', border: '1px solid #e7e7e7', borderRadius: '14px', overflow: 'hidden', background: '#fff' }}>
             {STATS.map(({ n, label, grey, delay }, i) => (
               <div key={i} className="about-stat-col" style={{ borderRight: i < 2 ? '1px solid #e7e7e7' : 'none' }}>
-                <div style={{ fontSize: '40px', fontWeight: 700, letterSpacing: '-2px', color: grey ? '#737373' : '#101010', lineHeight: 1, marginBottom: '6px', animation: `about-countUp 0.8s cubic-bezier(.22,1,.36,1) ${delay} both` }}>
+                <div style={{ fontFamily: D, fontSize: '40px', fontWeight: 700, letterSpacing: '-2px', color: grey ? '#737373' : '#101010', lineHeight: 1, marginBottom: '6px', animation: `about-countUp 0.8s cubic-bezier(.22,1,.36,1) ${delay} both` }}>
                   {n}
                 </div>
                 <div style={{ fontSize: '10px', color: '#a3a3a3', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
@@ -96,7 +101,7 @@ export default function AboutPage() {
         {/* ── What We Are ── */}
         <div className="about-a3" style={{ padding: '40px 24px', maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#a3a3a3', marginBottom: '16px' }}>WHAT WE ARE</p>
-          <h2 style={{ fontSize: '24px', fontWeight: 400, letterSpacing: '-0.8px', color: '#101010', lineHeight: 1.2, marginBottom: '16px' }}>
+          <h2 style={{ fontFamily: D, fontSize: '24px', fontWeight: 400, letterSpacing: '-0.8px', color: '#101010', lineHeight: 1.2, marginBottom: '16px' }}>
             A creative environment system.
           </h2>
           <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.75, margin: 0 }}>
@@ -131,7 +136,7 @@ export default function AboutPage() {
           <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#737373', marginBottom: '24px' }}>WHERE IT COMES FROM</p>
           <div style={{ background: '#101010', borderRadius: '18px', padding: '44px 40px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)', width: '260px', height: '260px', background: 'radial-gradient(circle, rgba(160,160,160,0.12) 0%, transparent 65%)', pointerEvents: 'none', animation: 'about-breathe 6s ease-in-out infinite' }} />
-            <p style={{ fontSize: '20px', fontWeight: 400, fontStyle: 'italic', color: '#fafafa', lineHeight: 1.5, letterSpacing: '-0.5px', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
+            <p style={{ fontFamily: D, fontSize: '20px', fontWeight: 400, fontStyle: 'italic', color: '#fafafa', lineHeight: 1.5, letterSpacing: '-0.5px', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
               &ldquo;Not everyone needed another platform.<br />They needed a different one.&rdquo;
             </p>
             <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.8, maxWidth: '440px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
@@ -144,6 +149,6 @@ export default function AboutPage() {
         </div>
 
       </div>
-    </>
+    </PublicShell>
   );
 }
