@@ -1167,6 +1167,12 @@ export default function LandingPage() {
 
       {/* BLOQUE 01 — Full-screen video hero */}
       <section style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
+        <style>{`
+          @keyframes scrollBounce {
+            0%, 100% { transform: translateX(-50%) translateY(0px); }
+            50%       { transform: translateX(-50%) translateY(7px); }
+          }
+        `}</style>
         <video src="/landing/bloque-01.mp4" autoPlay muted loop playsInline preload="auto"
           poster="/landing/bloque-01-poster.jpg"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1175,6 +1181,18 @@ export default function LandingPage() {
           height: '220px', pointerEvents: 'none',
           background: 'linear-gradient(to bottom, transparent 0%, #FAFAFA 100%)',
         }} />
+        {/* Scroll indicator */}
+        <div style={{
+          position: 'absolute', bottom: 36, left: '50%',
+          transform: 'translateX(-50%)',
+          animation: 'scrollBounce 2s ease-in-out infinite',
+          zIndex: 10, pointerEvents: 'none',
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+            stroke="#101010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </div>
       </section>
 
       <Block02 />
