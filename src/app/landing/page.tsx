@@ -953,7 +953,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
               onMouseEnter={e => (e.currentTarget.style.color = '#737373')}
               onMouseLeave={e => (e.currentTarget.style.color = '#101010')}
             >Login</button>
-            <button onClick={onGetAccess} className="pill-btn-stable" style={{
+            <button onClick={onGetAccess} className="pill-btn" style={{
               background: '#101010', color: '#fafafa',
               fontWeight: 500, fontSize: '15px',
               padding: '12px 22px', borderRadius: '100px',
@@ -1031,6 +1031,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
     <footer ref={ref} style={{ background: '#f4f4f4', padding: '40px 0 20px' }}>
       <div style={{ padding: '0 32px' }}>
         <div style={{
+          position: 'relative',
           display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', marginBottom: '24px', gap: '32px',
         }}>
@@ -1069,8 +1070,8 @@ function Footer({ onGetAccess, onLogin }, ref) {
             </div>
           </div>
 
-          {/* Centre — two nav columns */}
-          <div style={{ display: 'flex', gap: '64px', flex: 1, justifyContent: 'center' }}>
+          {/* Centre — two nav columns, absolutely centred so it never shifts */}
+          <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', display: 'flex', gap: '64px' }}>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
                 { label: 'Pricing', href: '/pricing' },
@@ -1111,7 +1112,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
               onMouseEnter={e => (e.currentTarget.style.color = '#737373')}
               onMouseLeave={e => (e.currentTarget.style.color = '#101010')}
             >Login</button>
-            <button onClick={onGetAccess} className="pill-btn-stable" style={{
+            <button onClick={onGetAccess} className="pill-btn" style={{
               background: '#101010', color: '#fafafa',
               fontWeight: 500, fontSize: '16px', letterSpacing: 'normal',
               padding: '12px 22px', borderRadius: '100px',

@@ -81,7 +81,7 @@ export default function PublicFooter() {
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#101010')}>
               Login
             </Link>
-            <Link href="/waitlist" className="pill-btn-stable" style={{ ...accessBtnStyle, fontSize: '15px', padding: '12px 22px' }}>
+            <Link href="/waitlist" className="pill-btn" style={{ ...accessBtnStyle, fontSize: '15px', padding: '12px 22px' }}>
               Get Access<span className="pill-arrow"><span>→</span></span>
             </Link>
           </div>
@@ -138,6 +138,7 @@ export default function PublicFooter() {
     <footer style={{ background: '#f4f4f4', padding: '40px 0 20px', width: '100%' }}>
       <div style={{ padding: '0 32px' }}>
         <div style={{
+          position: 'relative',
           display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', marginBottom: '24px', gap: '32px',
         }}>
@@ -162,8 +163,8 @@ export default function PublicFooter() {
             </div>
           </div>
 
-          {/* Centre — two nav columns */}
-          <div style={{ display: 'flex', gap: '64px', flex: 1, justifyContent: 'center' }}>
+          {/* Centre — two nav columns, absolutely centred so it never shifts */}
+          <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', display: 'flex', gap: '64px' }}>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {NAV_LINKS.map(({ label, href }) => (
                 <a key={label} href={href} style={navLink}
@@ -192,7 +193,7 @@ export default function PublicFooter() {
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#101010')}>
               Login
             </Link>
-            <Link href="/waitlist" className="pill-btn-stable" style={{ ...accessBtnStyle, fontSize: '16px', padding: '12px 22px' }}
+            <Link href="/waitlist" className="pill-btn" style={{ ...accessBtnStyle, fontSize: '16px', padding: '12px 22px' }}
               onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = '#333')}
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = '#101010')}>
               Get Access<span className="pill-arrow"><span>→</span></span>
