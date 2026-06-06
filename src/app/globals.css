@@ -137,7 +137,9 @@ body {
 }
 
 /* Stable variant — arrow always reserves space, only opacity changes.
-   Use where the button lives inside a flex layout that must not shift. */
+   Use where the button lives inside a flex layout that must not shift.
+   No grid trick needed here: the → character is always in the text flow,
+   taking up its natural width. Only opacity is animated. */
 .pill-btn-stable {
   cursor: pointer;
   display: inline-flex !important;
@@ -145,14 +147,10 @@ body {
   white-space: nowrap;
 }
 .pill-btn-stable .pill-arrow {
-  display: inline-grid;
-  grid-template-columns: 1fr; /* space always reserved */
-  overflow: hidden;
   opacity: 0;
   margin-left: 5px;
   transition: opacity 0.2s ease;
 }
-.pill-btn-stable .pill-arrow > span { min-width: 0; }
 .pill-btn-stable:hover .pill-arrow { opacity: 1; }
 
 /* ── Figma Text Style Utilities ────────────────────────────────
