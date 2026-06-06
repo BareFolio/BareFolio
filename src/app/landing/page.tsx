@@ -252,10 +252,14 @@ function BottomNav({ onLogin, onGetAccess, hidden }: {
         <div className="w-px h-5 mx-1" style={{ background: 'rgba(0,0,0,0.15)' }} />
         <button onClick={onLogin}
           className="text-[13px] font-medium px-2 py-1 rounded-full transition-all"
-          style={{ color: 'rgba(0,0,0,0.75)' }}>Login</button>
+          style={{ color: 'rgba(0,0,0,0.75)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          Login
+        </button>
         <button onClick={onGetAccess}
-          className="text-[13px] font-semibold text-white px-5 py-2 rounded-full transition-colors"
-          style={{ background: 'rgba(16,16,16,0.85)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>Get Access</button>
+          className="pill-btn text-[13px] font-semibold text-white px-5 py-2 rounded-full transition-colors"
+          style={{ background: 'rgba(16,16,16,0.85)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', border: 'none' }}>
+          Get Access<span className="pill-arrow"><span>→</span></span>
+        </button>
       </nav>
     </div>
   );
@@ -486,6 +490,7 @@ function Block03() {
           <div style={{
             background: '#181818', borderRadius: '20px',
             padding: '36px 24px 0', overflow: 'hidden',
+            marginTop: '64px',
           }}>
             <p style={{
               fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
@@ -525,6 +530,7 @@ function Block03() {
             padding: '56px 52px', position: 'relative',
             overflow: 'visible', minHeight: '360px',
             display: 'flex', alignItems: 'center',
+            marginTop: '64px',
           }}>
             <div style={{ flex: '0 0 52%', maxWidth: '52%', position: 'relative', zIndex: 2 }}>
               <p style={{
@@ -949,13 +955,13 @@ function Footer({ onGetAccess, onLogin }, ref) {
               color: '#101010', fontWeight: 500, fontSize: '15px', letterSpacing: 'normal',
               padding: '12px 0', borderRadius: '100px', cursor: 'pointer',
             }}>Login</button>
-            <button onClick={onGetAccess} style={{
+            <button onClick={onGetAccess} className="pill-btn-stable" style={{
               flex: 1,
               background: '#101010', color: '#fafafa',
               fontWeight: 500, fontSize: '15px', letterSpacing: 'normal',
               padding: '12px 0', borderRadius: '100px',
-              border: 'none', cursor: 'pointer',
-            }}>Get Access</button>
+              border: 'none', justifyContent: 'center',
+            }}>Get Access<span className="pill-arrow"><span>→</span></span></button>
           </div>
 
           {/* 2. Brand */}
@@ -1109,16 +1115,15 @@ function Footer({ onGetAccess, onLogin }, ref) {
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.65)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.45)')}
             >Login</button>
-            <button onClick={onGetAccess} style={{
+            <button onClick={onGetAccess} className="pill-btn-stable" style={{
               background: '#101010', color: '#fafafa',
               fontWeight: 500, fontSize: '16px', letterSpacing: 'normal',
               padding: '12px 22px', borderRadius: '100px',
-              border: 'none', cursor: 'pointer',
-              whiteSpace: 'nowrap', transition: 'background 0.15s',
+              border: 'none', transition: 'background 0.15s',
             }}
               onMouseEnter={e => (e.currentTarget.style.background = '#333')}
               onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
-            >Get Access</button>
+            >Get Access<span className="pill-arrow"><span>→</span></span></button>
           </div>
         </div>
 
@@ -1183,7 +1188,7 @@ export default function LandingPage() {
         }} />
         {/* Scroll indicator */}
         <div style={{
-          position: 'absolute', bottom: 36, left: '50%',
+          position: 'absolute', bottom: 104, left: '50%',
           transform: 'translateX(-50%)',
           animation: 'scrollBounce 2s ease-in-out infinite',
           zIndex: 10, pointerEvents: 'none',

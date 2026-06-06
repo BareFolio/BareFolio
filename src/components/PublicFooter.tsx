@@ -83,8 +83,8 @@ export default function PublicFooter() {
             <Link href="/" style={{ ...loginBtnStyle, flex: 1, fontSize: '15px', padding: '12px 0' }}>
               Login
             </Link>
-            <Link href="/waitlist" style={{ ...accessBtnStyle, flex: 1, fontSize: '15px', padding: '12px 0' }}>
-              Get Access
+            <Link href="/waitlist" className="pill-btn" style={{ ...accessBtnStyle, flex: 1, fontSize: '15px', padding: '12px 0' }}>
+              Get Access<span className="pill-arrow"><span>→</span></span>
             </Link>
           </div>
 
@@ -193,10 +193,10 @@ export default function PublicFooter() {
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = 'rgba(255,255,255,0.45)')}>
               Login
             </Link>
-            <Link href="/waitlist" style={{ ...accessBtnStyle, fontSize: '16px', padding: '12px 22px' }}
+            <Link href="/waitlist" className="pill-btn" style={{ ...accessBtnStyle, fontSize: '16px', padding: '12px 22px' }}
               onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = '#333')}
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.background = '#101010')}>
-              Get Access
+              Get Access<span className="pill-arrow"><span>→</span></span>
             </Link>
           </div>
 

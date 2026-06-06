@@ -102,6 +102,59 @@ body {
   will-change: transform;
 }
 
+/* ── Pill button hover arrow ─────────────────────────────────
+   Add class="pill-btn" to any pill-shaped button/link.
+   Add <span className="pill-arrow"><span>→</span></span>
+   as the last child inside the button.
+   ─────────────────────────────────────────────────────────── */
+.pill-btn {
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap;
+}
+/* Outer wrapper: grid column collapses to 0 width, hidden */
+.pill-arrow {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  margin-left: 0;
+  transition:
+    grid-template-columns 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity               0.18s ease,
+    margin-left           0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Inner span: must have min-width:0 for the grid trick to work */
+.pill-arrow > span {
+  min-width: 0;
+  overflow: hidden;
+}
+.pill-btn:hover .pill-arrow {
+  grid-template-columns: 1fr;
+  opacity: 1;
+  margin-left: 5px;
+}
+
+/* Stable variant — arrow always reserves space, only opacity changes.
+   Use where the button lives inside a flex layout that must not shift. */
+.pill-btn-stable {
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap;
+}
+.pill-btn-stable .pill-arrow {
+  display: inline-grid;
+  grid-template-columns: 1fr; /* space always reserved */
+  overflow: hidden;
+  opacity: 0;
+  margin-left: 5px;
+  transition: opacity 0.2s ease;
+}
+.pill-btn-stable .pill-arrow > span { min-width: 0; }
+.pill-btn-stable:hover .pill-arrow { opacity: 1; }
+
 /* ── Figma Text Style Utilities ────────────────────────────────
    Use these classes whenever you need a canonical type style.
    ─────────────────────────────────────────────────────────── */

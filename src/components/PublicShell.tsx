@@ -48,13 +48,14 @@ function ShellHeader({ isMobile }: { isMobile: boolean }) {
       </Link>
 
       {/* Join the waitlist — right side */}
-      <Link href="/waitlist" className="ps-wl-btn" style={{
+      <Link href="/waitlist" className="ps-wl-btn pill-btn" style={{
         fontFamily: B, fontWeight: 500, fontSize: 14, letterSpacing: '-0.28px',
         padding: '11px 20px', borderRadius: 100,
         background: '#101010', color: '#fafafa', textDecoration: 'none',
         transition: 'background .2s',
       }}>
         Join the waitlist
+        <span className="pill-arrow"><span>→</span></span>
       </Link>
     </header>
   );
