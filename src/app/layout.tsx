@@ -4,6 +4,7 @@ import "./globals.css";
 import SetupPage from "./setup/page";
 import { AppProvider } from "@/lib/store";
 import GlobalShell from "@/components/GlobalShell";
+import CookieBanner from "@/components/CookieBanner";
 
 const switzer = localFont({
   src: [
@@ -69,6 +70,7 @@ export default function RootLayout({
             {children}
           </GlobalShell>
         </AppProvider>
+        <CookieBanner />
       </body>
     </html>
   );
