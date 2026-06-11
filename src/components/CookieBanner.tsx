@@ -1,39 +1,44 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const STORAGE_KEY = 'bf_cookies_consent';
+
+function getConsent(): string | null {
+  try { return localStorage.getItem(STORAGE_KEY); }
+  catch { return null; }
+}
+
+function setConsent(value: string) {
+  try { localStorage.setItem(STORAGE_KEY, value); }
+  catch { /* ignore: private mode or quota exceeded */ }
+}
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      setVisible(true);
-    }
+    if (!getConsent()) setVisible(true);
   }, []);
 
-  function accept() {
-    localStorage.setItem(STORAGE_KEY, 'accepted');
-    setVisible(false);
-  }
-
-  function reject() {
-    localStorage.setItem(STORAGE_KEY, 'rejected');
-    setVisible(false);
-  }
+  function accept() { setConsent('accepted'); setVisible(false); }
+  function reject() { setConsent('rejected'); setVisible(false); }
 
   if (!visible) return null;
 
   return (
-    <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      zIndex: 200,
-      padding: '0 16px 16px',
-      pointerEvents: 'none',
-      display: 'flex', justifyContent: 'center',
-    }}>
+    <div
+      role="region"
+      aria-label="Cookie consent"
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 200,
+        padding: '0 16px 16px',
+        pointerEvents: 'none',
+        display: 'flex', justifyContent: 'center',
+      }}
+    >
       <div style={{
         background: '#ffffff',
         border: '1px solid #e7e7e7',
