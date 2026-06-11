@@ -122,8 +122,12 @@ export default function PublicFooter() {
               © 2026 BareFolio. All rights reserved.
             </p>
             <div style={{ display: 'flex', gap: '16px' }}>
-              {['Privacy', 'Terms', 'Cookies'].map(link => (
-                <a key={link} href="#" style={legalLink}>{link}</a>
+              {[
+                { label: 'Privacy', href: '/privacy' },
+                { label: 'Terms',   href: '/terms' },
+                { label: 'Cookies', href: '/cookies' },
+              ].map(({ label, href }) => (
+                <a key={label} href={href} style={legalLink}>{label}</a>
               ))}
             </div>
           </div>
@@ -207,11 +211,15 @@ export default function PublicFooter() {
           <p style={{ fontSize: '12px', color: '#a3a3a3', margin: 0 }}>
             © 2026 BareFolio. All rights reserved.
           </p>
-          {['Privacy', 'Terms', 'Cookies'].map(link => (
-            <a key={link} href="#" style={legalLink}
+          {[
+            { label: 'Privacy', href: '/privacy' },
+            { label: 'Terms',   href: '/terms' },
+            { label: 'Cookies', href: '/cookies' },
+          ].map(({ label, href }) => (
+            <a key={label} href={href} style={legalLink}
               onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
               onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-              {link}
+              {label}
             </a>
           ))}
         </div>
