@@ -1186,7 +1186,7 @@ export default function LandingPage() {
         }} />
         {/* Scroll indicator */}
         <div style={{
-          position: 'absolute', bottom: isMobile ? 160 : 104, left: '50%',
+          position: 'absolute', bottom: isMobile ? 140 : 104, left: '50%',
           transform: 'translateX(-50%)',
           animation: 'scrollBounce 2s ease-in-out infinite',
           zIndex: 10, pointerEvents: 'none',
