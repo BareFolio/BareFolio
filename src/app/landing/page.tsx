@@ -1147,6 +1147,7 @@ function Footer({ onGetAccess, onLogin }, ref) {
    ═══════════════════════════════════════════════════════════════════ */
 export default function LandingPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [modal, setModal] = useState<ModalMode>(null);
   const [footerVisible, setFooterVisible] = useState(false);
   const footerRef = useRef<HTMLElement>(null);
@@ -1185,7 +1186,7 @@ export default function LandingPage() {
         }} />
         {/* Scroll indicator */}
         <div style={{
-          position: 'absolute', bottom: 104, left: '50%',
+          position: 'absolute', bottom: isMobile ? 160 : 104, left: '50%',
           transform: 'translateX(-50%)',
           animation: 'scrollBounce 2s ease-in-out infinite',
           zIndex: 10, pointerEvents: 'none',
