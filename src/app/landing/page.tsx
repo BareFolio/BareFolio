@@ -1016,8 +1016,12 @@ function Footer({ onGetAccess, onLogin }, ref) {
           <div style={{ borderTop: '1px solid #e7e7e7', paddingTop: '16px' }}>
             <p style={{ fontSize: '12px', color: '#a3a3a3', margin: '0 0 8px' }}>© 2025 BareFolio. All rights reserved.</p>
             <div style={{ display: 'flex', gap: '16px' }}>
-              {['Privacy', 'Terms', 'Cookies'].map(link => (
-                <a key={link} href="#" style={{ fontSize: '12px', color: '#a3a3a3', textDecoration: 'none' }}>{link}</a>
+              {[
+                { label: 'Privacy', href: '/privacy' },
+                { label: 'Terms',   href: '/terms' },
+                { label: 'Cookies', href: '/cookies' },
+              ].map(({ label, href }) => (
+                <a key={label} href={href} style={{ fontSize: '12px', color: '#a3a3a3', textDecoration: 'none' }}>{label}</a>
               ))}
             </div>
           </div>
@@ -1127,13 +1131,17 @@ function Footer({ onGetAccess, onLogin }, ref) {
         {/* Bottom row */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '24px' }}>
           <p style={{ fontSize: '12px', color: '#a3a3a3', margin: 0 }}>© 2025 BareFolio. All rights reserved.</p>
-          {['Privacy', 'Terms', 'Cookies'].map(link => (
-            <a key={link} href="#" style={{
+          {[
+            { label: 'Privacy', href: '/privacy' },
+            { label: 'Terms',   href: '/terms' },
+            { label: 'Cookies', href: '/cookies' },
+          ].map(({ label, href }) => (
+            <a key={label} href={href} style={{
               fontSize: '12px', color: '#a3a3a3', textDecoration: 'none', transition: 'color 0.15s',
             }}
               onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
               onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-              {link}
+              {label}
             </a>
           ))}
         </div>
