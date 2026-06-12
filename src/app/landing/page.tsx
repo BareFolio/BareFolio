@@ -314,16 +314,16 @@ function Block02() {
           zIndex: 50, pointerEvents: 'none',
         }}>
           {isMobile ? (
-            <h2 style={{
+            <h1 style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: '20px', lineHeight: 1.3, letterSpacing: '-1px',
               color: '#101010', margin: 0,
             }}>
               One space for your work, your inspiration, and the people who need to find you,{' '}
               <span style={{ color: '#a3a3a3' }}>nothing else.</span>
-            </h2>
+            </h1>
           ) : (
-            <h2 style={{
+            <h1 style={{
               fontFamily: 'var(--font-display)', fontWeight: 400,
               fontSize: '32px', lineHeight: 1.125, letterSpacing: '-1px',
               color: '#101010', margin: 0, whiteSpace: 'nowrap',
@@ -331,7 +331,7 @@ function Block02() {
               One space for your work, your inspiration,<br />
               and the people who need to find you,<br />
               <span style={{ color: '#a3a3a3', fontWeight: 400 }}>nothing else.</span>
-            </h2>
+            </h1>
           )}
         </div>
 
@@ -344,7 +344,7 @@ function Block02() {
         }}>
           <img
             src="/landing/recursos/Bloque 2_01.png"
-            alt="BareFolio"
+            alt="BareFolio creative portfolio app — portfolio, inspiration and professional network in one place"
             style={{
               height: isMobile ? 'min(480px, 56vh)' : 'min(740px, 94vh)',
               width: 'auto',
@@ -444,15 +444,15 @@ function Block03() {
   const pillars = [
     {
       num: '01', title: 'Curated Inspiration',
-      body: 'Thoughtfully curated visual references.\nNo engagement algorithms.\nNo trends masquerading as quality.',
+      body: 'A visual library built for designers, photographers, art directors, and filmmakers — curated by quality, not by engagement algorithms or trending content.',
     },
     {
       num: '02', title: 'Process and Portfolio',
-      body: 'Showcase sketches, iterations, and final pieces all in one place. The journey matters just as much as the result.',
+      body: 'Share sketches, iterations, and final work in one creative portfolio. For graphic designers, illustrators, fashion designers, architects, and every visual discipline.',
     },
     {
       num: '03', title: 'Direct Connection',
-      body: 'Brands and studios discover talent based on discipline, style, and process. No algorithmic intermediaries.',
+      body: 'Brands, studios, and recruiters discover creative talent based on discipline, style, and process — without algorithmic gatekeeping.',
     },
   ];
 
@@ -503,16 +503,16 @@ function Block03() {
               lineHeight: 1.2, letterSpacing: '-1px', margin: '0 0 16px',
               fontFamily: 'var(--font-display)',
             }}>
-              You've been splitting yourself across platforms that were never built for you.
+              The creative portfolio platform built for the way visual creators actually work.
             </h3>
             <p style={{
               fontSize: '14px', color: 'rgba(255,255,255,0.4)',
               lineHeight: 1.6, margin: '0 0 32px',
             }}>
-              The visual creator today manages inspiration in one place, their portfolio
-              in another, professional connections in a third. Each platform demands
-              a slightly different version of you, and none of them were designed with
-              your process in mind.
+              Designers, photographers, art directors, and filmmakers have been splitting
+              themselves across tools never built for them — inspiration here, portfolio there,
+              professional network somewhere else. BareFolio brings it all into one space,
+              built entirely around visual creative work.
             </p>
             {/* Phones centered in card — percentage widths guarantee fit, no clipping */}
             <div style={{
@@ -544,18 +544,18 @@ function Block03() {
                 lineHeight: 1.15, letterSpacing: '-1px', marginBottom: '20px',
                 fontFamily: 'var(--font-display)',
               }}>
-                You've been splitting yourself<br />
-                across platforms that were never<br />
-                built for you.
+                The creative portfolio platform<br />
+                built for the way visual creators<br />
+                actually work.
               </h3>
               <p style={{
                 fontSize: '16px', color: 'rgba(255,255,255,0.4)',
                 lineHeight: 1.19, margin: 0, maxWidth: '390px', letterSpacing: '1px',
               }}>
-                The visual creator today manages inspiration in one place, their portfolio
-                in another, professional connections in a third. Each platform demands
-                a slightly different version of you, and none of them were designed with
-                your process in mind.
+                Designers, photographers, art directors, and filmmakers have been splitting
+                themselves across tools never built for them — inspiration here, portfolio there,
+                professional network somewhere else. BareFolio brings it all into one space,
+                built entirely around visual creative work.
               </p>
             </div>
             <div style={{
@@ -843,12 +843,12 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
                 margin: '0 0 14px',
               }}>Your work starts here.</h2>
               <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.65, margin: '0 0 10px' }}>
-                Early access, intentionally limited. Bare is currently in private access to build a curated,
-                high-quality environment from the start. Every creator joins with intention, helping shape
-                a space where work is presented with clarity and standards are shared.
+                BareFolio is a creative portfolio platform in private early access. We're building a
+                curated space for designers, photographers, art directors, filmmakers, and every visual
+                discipline — where quality is the only currency.
               </p>
               <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.65, margin: '0 0 24px' }}>
-                Request an invite to join early and be part of how Bare grows.
+                Request access to join early and help shape how the platform grows.
               </p>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <img src="/landing/appstore.png" alt="Download on the App Store"
