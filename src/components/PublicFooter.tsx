@@ -34,7 +34,7 @@ const XIcon = () => (
 
 const NAV_LINKS = [
   { label: 'Pricing',        href: '/pricing' },
-  { label: 'Curated access', href: '/curated-access' },
+  { label: 'Curated access', href: '/about#curated-access' },
   { label: 'About',          href: '/about' },
 ];
 
