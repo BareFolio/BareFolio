@@ -1,22 +1,17 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import PublicShell from '@/components/PublicShell';
+import { PrinciplesBlock, FeaturesBlock } from './AccordionBlock';
 
 export const metadata: Metadata = {
   title: 'About - BareFolio',
-  description: "We're building the creative environment the industry was missing — a single platform for portfolios, process, and professional opportunity.",
+  description: "We're building the creative environment the industry was missing — a single platform for portfolios, process, inspiration, and professional opportunity.",
 };
 
-const PRINCIPLES = [
-  { num: '01', title: 'No engagement algorithm',       body: "Visibility is built by what you've made, not by how often you post." },
-  { num: '02', title: 'Process has space',             body: 'Sketches, decisions, discards — all first-class content, not just the final deliverable.' },
-  { num: '03', title: 'Quality as the only criterion', body: 'Not popularity. Not followers. The work is what speaks.' },
-  { num: '04', title: 'AI as silent infrastructure',   body: "AI makes your work findable — it doesn't decide what's valuable." },
-];
-
 const STATS = [
-  { n: '5',    label: 'Core functions\nin one place', grey: false, delay: '0.1s' },
-  { n: '0',    label: 'Engagement\nalgorithms',       grey: false, delay: '0.2s' },
-  { n: '2026', label: 'Early access\nopens',          grey: true,  delay: '0.3s' },
+  { n: '1',   label: 'Space for your whole\ncreative world' },
+  { n: '+40', label: 'Creative disciplines\nwelcome'        },
+  { n: '5',   label: 'Dimensions of creative\npractice, unified' },
 ];
 
 const D = 'var(--font-display), -apple-system, sans-serif';
@@ -30,17 +25,9 @@ export default function AboutPage() {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes about-fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
         @keyframes about-breathe {
           0%, 100% { transform: scale(1);    opacity: 0.4; }
           50%       { transform: scale(1.06); opacity: 0.7; }
-        }
-        @keyframes about-countUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
         }
         .about-a1 { animation: about-fadeUp 0.9s cubic-bezier(.22,1,.36,1) 0.00s both; }
         .about-a2 { animation: about-fadeUp 0.9s cubic-bezier(.22,1,.36,1) 0.15s both; }
@@ -54,18 +41,17 @@ export default function AboutPage() {
           pointer-events: none;
           animation: about-breathe 5s ease-in-out infinite;
         }
+        .about-stat-col { flex: 1; padding: 24px 20px; text-align: center; cursor: default; transition: background 0.2s; }
+        .about-stat-col:hover { background: #f4f4f4; }
         .about-divider {
           width: 1px; height: 40px;
           background: linear-gradient(to bottom, transparent, #e7e7e7, transparent);
           margin: 0 auto;
-          animation: about-fadeIn 1s ease 0.8s both;
         }
-        .about-stat-col { flex: 1; padding: 24px 20px; text-align: center; transition: background 0.3s ease; cursor: default; }
-        .about-stat-col:hover { background: #f4f4f4 !important; }
-        .about-p-row { display: flex; align-items: center; gap: 20px; padding: 18px 24px; background: #fff; cursor: default; transition: background 0.25s ease; }
-        .about-p-row:hover { background: #f4f4f4; }
-        .about-p-num { font-size: 11px; font-weight: 700; color: #e7e7e7; width: 20px; flex-shrink: 0; transition: color 0.25s; }
-        .about-p-row:hover .about-p-num { color: #737373; }
+        @media (max-width: 767px) {
+          .about-two-col { grid-template-columns: 1fr !important; }
+          .about-manifesto-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       <div style={{ fontFamily: B, overflowX: 'hidden' }}>
@@ -73,26 +59,41 @@ export default function AboutPage() {
         {/* ── Hero ── */}
         <section style={{ padding: '40px 24px 0', textAlign: 'center', position: 'relative' }}>
           <div className="about-orb" />
-          <p className="about-a1" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#a3a3a3', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
-            ABOUT
-          </p>
-          <h1 className="about-a2" style={{ fontFamily: D, fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 400, letterSpacing: '-2px', color: '#101010', lineHeight: 1.05, margin: '0 auto 20px', position: 'relative', zIndex: 1, maxWidth: '720px' }}>
+          <p className="about-a1" style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px',
+            color: '#a3a3a3', marginBottom: '20px', position: 'relative', zIndex: 1,
+          }}>ABOUT</p>
+          <h1 className="about-a2" style={{
+            fontFamily: D, fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 400,
+            letterSpacing: '-2px', color: '#101010', lineHeight: 1.05,
+            margin: '0 auto 20px', position: 'relative', zIndex: 1, maxWidth: '720px',
+          }}>
             We&apos;re building the environment<br />
             the creative industry <em style={{ fontStyle: 'italic', color: '#737373' }}>was missing.</em>
           </h1>
-          <p className="about-a3" style={{ fontSize: '14px', color: '#737373', lineHeight: 1.7, maxWidth: '460px', margin: '0 auto 40px', position: 'relative', zIndex: 1 }}>
-            A single platform where inspiration, process, portfolio, community and professional opportunity coexist — without fragmentation, without engagement algorithms.
+          <p className="about-a3" style={{
+            fontSize: '14px', color: '#737373', lineHeight: 1.7,
+            maxWidth: '460px', margin: '0 auto 40px', position: 'relative', zIndex: 1,
+          }}>
+            A single platform where inspiration, process, portfolio, community, and
+            professional opportunity coexist — without fragmentation, without engagement algorithms.
           </p>
         </section>
 
         {/* ── Stats ── */}
-        <div className="about-a3" style={{ padding: '40px 24px', maxWidth: '680px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', border: '1px solid #e7e7e7', borderRadius: '14px', overflow: 'hidden', background: '#fff' }}>
-            {STATS.map(({ n, label, grey, delay }, i) => (
-              <div key={i} className="about-stat-col" style={{ borderRight: i < 2 ? '1px solid #e7e7e7' : 'none' }}>
-                <div style={{ fontFamily: D, fontSize: '40px', fontWeight: 700, letterSpacing: '-2px', color: grey ? '#737373' : '#101010', lineHeight: 1, marginBottom: '6px', animation: `about-countUp 0.8s cubic-bezier(.22,1,.36,1) ${delay} both` }}>
-                  {n}
-                </div>
+        <div className="about-a3" style={{ padding: '0 24px 40px', maxWidth: '680px', margin: '0 auto' }}>
+          <div style={{
+            display: 'flex', border: '1px solid #e7e7e7',
+            borderRadius: '14px', overflow: 'hidden', background: '#fff',
+          }}>
+            {STATS.map(({ n, label }, i) => (
+              <div key={i} className="about-stat-col"
+                style={{ borderRight: i < 2 ? '1px solid #e7e7e7' : 'none' }}>
+                <div style={{
+                  fontFamily: D, fontSize: '40px', fontWeight: 700,
+                  letterSpacing: '-2px', color: '#101010',
+                  lineHeight: 1, marginBottom: '6px',
+                }}>{n}</div>
                 <div style={{ fontSize: '10px', color: '#a3a3a3', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
                   {label}
                 </div>
@@ -104,53 +105,111 @@ export default function AboutPage() {
         {/* ── Divider ── */}
         <div className="about-divider" />
 
-        {/* ── What We Are ── */}
-        <div className="about-a3" style={{ padding: '40px 24px', maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#a3a3a3', marginBottom: '16px' }}>WHAT WE ARE</p>
-          <h2 style={{ fontFamily: D, fontSize: '24px', fontWeight: 400, letterSpacing: '-0.8px', color: '#101010', lineHeight: 1.2, marginBottom: '16px' }}>
-            A creative environment system.
-          </h2>
-          <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.75, margin: 0 }}>
-            BareFolio integrates in a single coherent space the five dimensions of professional creative practice that today require separate platforms.
-            The proposition is not the sum of those functions — it&apos;s their integration under a single logic:{' '}
-            <strong style={{ color: '#101010' }}>the creator as author, not as content producer.</strong>
-          </p>
+        {/* ── Two-column accordion ── */}
+        <div style={{ padding: '40px 24px', maxWidth: '960px', margin: '0 auto' }}>
+          <div
+            className="about-two-col"
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}
+          >
+            <PrinciplesBlock />
+            <FeaturesBlock />
+          </div>
         </div>
 
         {/* ── Divider ── */}
         <div className="about-divider" />
 
-        {/* ── Principles ── */}
-        <div className="about-a3" style={{ padding: '40px 24px', maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#a3a3a3', marginBottom: '20px' }}>PRINCIPLES</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#e7e7e7', border: '1px solid #e7e7e7', borderRadius: '14px', overflow: 'hidden', textAlign: 'left' }}>
-            {PRINCIPLES.map(({ num, title, body }) => (
-              <div key={num} className="about-p-row">
-                <span className="about-p-num">{num}</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#101010', flex: 1 }}>{title}</span>
-                <span style={{ fontSize: '11px', color: '#a3a3a3', flex: 2, lineHeight: 1.5 }}>{body}</span>
+        {/* ── Manifesto / Origin ── */}
+        <div className="about-a4" style={{ padding: '40px 24px 80px', maxWidth: '960px', margin: '0 auto' }}>
+          <p style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px',
+            color: '#737373', marginBottom: '24px', textAlign: 'center',
+          }}>WHERE IT COMES FROM</p>
+
+          {/* Dark manifesto card */}
+          <div style={{
+            background: '#101010', borderRadius: '20px',
+            padding: '56px 52px', position: 'relative', overflow: 'hidden',
+            marginBottom: '16px',
+          }}>
+            <div style={{
+              position: 'absolute', top: '-60px', left: '50%',
+              transform: 'translateX(-50%)', width: '400px', height: '300px',
+              background: 'radial-gradient(circle, rgba(160,160,160,0.08) 0%, transparent 65%)',
+              pointerEvents: 'none', animation: 'about-breathe 6s ease-in-out infinite',
+            }} />
+            <div
+              className="about-manifesto-grid"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', position: 'relative', zIndex: 1 }}
+            >
+              {/* Left — origin */}
+              <div>
+                <p style={{
+                  fontFamily: D, fontSize: 'clamp(18px, 2vw, 26px)', fontWeight: 400,
+                  fontStyle: 'italic', color: '#fafafa', lineHeight: 1.4,
+                  letterSpacing: '-0.5px', margin: '0 0 20px',
+                }}>
+                  &ldquo;Not everyone needed another platform.<br />
+                  They needed a different one.&rdquo;
+                </p>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, margin: '0 0 12px' }}>
+                  BareFolio was born during design studies in Barcelona — from a recurring conversation
+                  about the difficulty of existing professionally without fragmenting yourself across
+                  tools that don't speak to each other.
+                </p>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, margin: 0 }}>
+                  It started as a final degree research project. It became something
+                  with real intention to exist.
+                </p>
               </div>
-            ))}
+
+              {/* Right — purpose */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.3)', margin: '0 0 8px' }}>
+                    THE PROBLEM
+                  </p>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, margin: 0 }}>
+                    The visual creator today maintains a portfolio site, a Behance profile, a Dribbble,
+                    an Instagram, a LinkedIn. Each one demands a different version of them.
+                    None were designed for how creative work actually happens.
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.3)', margin: '0 0 8px' }}>
+                    THE PURPOSE
+                  </p>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, margin: 0 }}>
+                    BareFolio exists to give visual creatives — designers, photographers,
+                    art directors, filmmakers, and beyond — a single environment
+                    built entirely around their practice. One identity. One place. All the work.
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.3)', margin: '0 0 8px' }}>
+                    THE STANDARD
+                  </p>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, margin: 0 }}>
+                    Access is curated, not open. Every creator who joins earns their place
+                    through the quality of their work — and receives five invitations to bring
+                    in other creatives they believe in.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* ── Divider ── */}
-        <div style={{ width: '1px', height: '40px', background: 'linear-gradient(to bottom, transparent, #e7e7e7, transparent)', margin: '40px auto 0' }} />
-
-        {/* ── Origin Quote ── */}
-        <div className="about-a4" style={{ padding: '40px 24px 56px', maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#737373', marginBottom: '24px' }}>WHERE IT COMES FROM</p>
-          <div style={{ background: '#101010', borderRadius: '18px', padding: '44px 40px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)', width: '260px', height: '260px', background: 'radial-gradient(circle, rgba(160,160,160,0.12) 0%, transparent 65%)', pointerEvents: 'none', animation: 'about-breathe 6s ease-in-out infinite' }} />
-            <p style={{ fontFamily: D, fontSize: '20px', fontWeight: 400, fontStyle: 'italic', color: '#fafafa', lineHeight: 1.5, letterSpacing: '-0.5px', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
-              &ldquo;Not everyone needed another platform.<br />They needed a different one.&rdquo;
-            </p>
-            <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.8, maxWidth: '440px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
-              BareFolio was born during design studies in Barcelona — from a recurring conversation about the difficulty of existing professionally without fragmenting across tools that don&apos;t speak to each other.
-            </p>
-            <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.8, maxWidth: '440px', margin: '10px auto 0', position: 'relative', zIndex: 1 }}>
-              It started as a final degree research project. It became something with real intention to exist.
-            </p>
+          {/* CTA */}
+          <div style={{ textAlign: 'center', paddingTop: '16px' }}>
+            <Link href="/waitlist" style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: '#101010', color: '#fafafa',
+              fontFamily: B, fontSize: '14px', fontWeight: 500,
+              padding: '13px 28px', borderRadius: '100px',
+              textDecoration: 'none',
+            }}>
+              Request early access →
+            </Link>
           </div>
         </div>
 
