@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import PublicShell from '@/components/PublicShell';
+
+export const metadata: Metadata = {
+  title: 'Curated Access - BareFolio',
+  description: "BareFolio's curated access process: submit your work, get reviewed by a human team, and join a creative community built on quality.",
+};
 
 const STEPS: {
   n: number;
@@ -114,13 +121,14 @@ export default function CuratedAccessPage() {
 
         {/* ── CTA ── */}
         <div style={{ textAlign: 'center', padding: '0 24px 80px' }}>
-          <button style={{ fontFamily: B, background: '#101010', color: '#fafafa', border: 'none', borderRadius: '10px', padding: '14px 32px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+          <Link href="/waitlist" style={{ fontFamily: B, background: '#101010', color: '#fafafa', border: 'none', borderRadius: '10px', padding: '14px 32px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
             Apply for access →
-          </button>
+          </Link>
           <p style={{ fontSize: '11px', color: '#a3a3a3', marginTop: '10px' }}>
             Already on the waitlist? Your application will be reviewed when we open.
           </p>
         </div>
+
 
       </div>
     </PublicShell>

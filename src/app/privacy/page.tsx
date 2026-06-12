@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import PublicShell from '@/components/PublicShell';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy - BareFolio',
+  description: 'BareFolio privacy policy — how we collect, use, and protect your personal information.',
+};
 
 const D = 'var(--font-display), -apple-system, sans-serif';
 const B = 'var(--font-sans),    -apple-system, sans-serif';

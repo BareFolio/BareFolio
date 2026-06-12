@@ -6,6 +6,20 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  async headers() {
+    return [
+      {
+        // Long-lived cache for email assets — instant load on repeat opens
+        source: '/email/:file*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 if (process.env.NEXT_CAPACITOR === "1") {

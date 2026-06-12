@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import PublicShell from '@/components/PublicShell';
+
+export const metadata: Metadata = {
+  title: 'About - BareFolio',
+  description: "We're building the creative environment the industry was missing — a single platform for portfolios, process, and professional opportunity.",
+};
 
 const PRINCIPLES = [
   { num: '01', title: 'No engagement algorithm',       body: "Visibility is built by what you've made, not by how often you post." },

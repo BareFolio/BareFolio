@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import PublicFooter from '@/components/PublicFooter';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function rng(v: number, a: number, b: number) {
@@ -304,8 +305,8 @@ function Block02() {
           position: 'absolute',
           top: isMobile ? '4%' : '7%',
           left: '50%',
-          transform: `translateX(-50%) translateY(${(1 - textP) * 16}px)`,
-          opacity: textP,
+          transform: 'translateX(-50%)',
+          opacity: 1,
           width: isMobile ? '84vw' : 'max-content',
           maxWidth: isMobile ? '84vw' : '90vw',
           textAlign: 'center',
@@ -337,8 +338,8 @@ function Block02() {
         <div style={{
           position: 'absolute', left: '50%',
           ...(isMobile ? { bottom: '22%' } : { top: '26%' }),
-          transform: `translateX(-50%) translateY(${(1 - phoneP) * 120}px)`,
-          opacity: phoneP, zIndex: 30, pointerEvents: 'none',
+          transform: 'translateX(-50%)',
+          opacity: 1, zIndex: 30, pointerEvents: 'none',
         }}>
           <img
             src="/landing/recursos/Bloque 2_01.png"
@@ -931,224 +932,6 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   FOOTER
-   ═══════════════════════════════════════════════════════════════════ */
-const Footer = React.forwardRef<HTMLElement, { onGetAccess: () => void; onLogin: () => void }>(
-function Footer({ onGetAccess, onLogin }, ref) {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <footer ref={ref} style={{ background: '#f4f4f4', padding: '32px 0 24px' }}>
-        <div style={{ padding: '0 20px' }}>
-
-          {/* 1. Buttons row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-            <button onClick={onLogin} style={{
-              background: 'none', border: 'none',
-              color: '#101010', fontWeight: 500, fontSize: '15px',
-              cursor: 'pointer', transition: 'color 0.15s', whiteSpace: 'nowrap',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#737373')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#101010')}
-            >Login</button>
-            <button onClick={onGetAccess} className="pill-btn" style={{
-              background: '#101010', color: '#fafafa',
-              fontWeight: 500, fontSize: '15px',
-              padding: '12px 22px', borderRadius: '100px',
-              border: 'none', display: 'inline-flex', alignItems: 'center',
-              transition: 'background 0.15s',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#333')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
-            >Get Access<span className="pill-arrow"><span>→</span></span></button>
-          </div>
-
-          {/* 2. Brand */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: '32px', width: '32px' }} />
-              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: '20px', width: 'auto' }} />
-            </div>
-            <p style={{ fontSize: '13px', color: '#737373', margin: '0 0 12px' }}>
-              All your creative world in one place
-            </p>
-            <div style={{ display: 'flex', gap: '14px' }}>
-              <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
-                  <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
-                </svg>
-              </a>
-              <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.94a8.19 8.19 0 004.79 1.53V7.02a4.85 4.85 0 01-1.02-.33z"/>
-                </svg>
-              </a>
-              <a href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.264 5.637 5.9-5.637zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* 3. Nav */}
-          <div style={{ display: 'flex', gap: '48px', marginBottom: '28px' }}>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                { label: 'Pricing', href: '/pricing' },
-                { label: 'Curated access', href: '/curated-access' },
-                { label: 'About', href: '/about' },
-              ].map(({ label, href }) => (
-                <a key={label} href={href} style={{ fontSize: '14px', fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{label}</a>
-              ))}
-            </nav>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {["Contact", "FAQ's"].map(link => (
-                <a key={link} href="#" style={{ fontSize: '14px', fontWeight: 500, color: '#101010', textDecoration: 'none' }}>{link}</a>
-              ))}
-            </nav>
-          </div>
-
-          {/* 4. Legal */}
-          <div style={{ borderTop: '1px solid #e7e7e7', paddingTop: '16px' }}>
-            <p style={{ fontSize: '12px', color: '#a3a3a3', margin: '0 0 8px' }}>© 2025 BareFolio. All rights reserved.</p>
-            <div style={{ display: 'flex', gap: '16px' }}>
-              {[
-                { label: 'Privacy', href: '/privacy' },
-                { label: 'Terms',   href: '/terms' },
-                { label: 'Cookies', href: '/cookies' },
-              ].map(({ label, href }) => (
-                <a key={label} href={href} style={{ fontSize: '12px', color: '#a3a3a3', textDecoration: 'none' }}>{label}</a>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </footer>
-    );
-  }
-
-  return (
-    <footer ref={ref} style={{ background: '#f4f4f4', padding: '40px 0 20px' }}>
-      <div style={{ padding: '0 32px' }}>
-        <div style={{
-          position: 'relative',
-          display: 'flex', alignItems: 'flex-start',
-          justifyContent: 'space-between', marginBottom: '24px', gap: '32px',
-        }}>
-          {/* Left — logo + tagline + social */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '200px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: '36px', width: '36px' }} />
-              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: '22px', width: 'auto' }} />
-            </div>
-            <p style={{ fontSize: '13px', color: '#737373', margin: 0, marginTop: '4px' }}>
-              All your creative world in one place
-            </p>
-            <div style={{ display: 'flex', gap: '14px', marginTop: '4px' }}>
-              <a href="#" style={{ color: '#a3a3a3', lineHeight: 0, transition: 'color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
-                  <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
-                </svg>
-              </a>
-              <a href="#" style={{ color: '#a3a3a3', lineHeight: 0, transition: 'color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.94a8.19 8.19 0 004.79 1.53V7.02a4.85 4.85 0 01-1.02-.33z"/>
-                </svg>
-              </a>
-              <a href="#" style={{ color: '#a3a3a3', lineHeight: 0, transition: 'color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.264 5.637 5.9-5.637zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Centre — two nav columns, absolutely centred so it never shifts */}
-          <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', display: 'flex', gap: '64px' }}>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                { label: 'Pricing', href: '/pricing' },
-                { label: 'Curated access', href: '/curated-access' },
-                { label: 'About', href: '/about' },
-              ].map(({ label, href }) => (
-                <a key={label} href={href} style={{
-                  fontSize: '14px', fontWeight: 500, color: '#101010',
-                  textDecoration: 'none', transition: 'color 0.15s',
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {["Contact", "FAQ's"].map(link => (
-                <a key={link} href="#" style={{
-                  fontSize: '14px', fontWeight: 500, color: '#101010',
-                  textDecoration: 'none', transition: 'color 0.15s',
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
-                  {link}
-                </a>
-              ))}
-            </nav>
-          </div>
-
-          {/* Right — Login + Get Access */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button onClick={onLogin} style={{
-              background: 'none', border: 'none',
-              color: '#101010', fontWeight: 500, fontSize: '16px',
-              cursor: 'pointer', transition: 'color 0.15s', whiteSpace: 'nowrap',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#737373')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#101010')}
-            >Login</button>
-            <button onClick={onGetAccess} className="pill-btn" style={{
-              background: '#101010', color: '#fafafa',
-              fontWeight: 500, fontSize: '16px', letterSpacing: 'normal',
-              padding: '12px 22px', borderRadius: '100px',
-              border: 'none', transition: 'background 0.15s',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#333')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
-            >Get Access<span className="pill-arrow"><span>→</span></span></button>
-          </div>
-        </div>
-
-        {/* Bottom row */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '24px' }}>
-          <p style={{ fontSize: '12px', color: '#a3a3a3', margin: 0 }}>© 2025 BareFolio. All rights reserved.</p>
-          {[
-            { label: 'Privacy', href: '/privacy' },
-            { label: 'Terms',   href: '/terms' },
-            { label: 'Cookies', href: '/cookies' },
-          ].map(({ label, href }) => (
-            <a key={label} href={href} style={{
-              fontSize: '12px', color: '#a3a3a3', textDecoration: 'none', transition: 'color 0.15s',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-              {label}
-            </a>
-          ))}
-        </div>
-      </div>
-    </footer>
-  );
-});
 
 /* ═══════════════════════════════════════════════════════════════════
    Landing Page Root
@@ -1158,7 +941,7 @@ export default function LandingPage() {
   const isMobile = useIsMobile();
   const [modal, setModal] = useState<ModalMode>(null);
   const [footerVisible, setFooterVisible] = useState(false);
-  const footerRef = useRef<HTMLElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => {
@@ -1210,7 +993,7 @@ export default function LandingPage() {
       <Block03 />
       <Block04 />
       <Block05 onGetAccess={goToWaitlist} />
-      <Footer ref={footerRef} onLogin={() => setModal('login')} onGetAccess={goToWaitlist} />
+      <div ref={footerRef}><PublicFooter /></div>
 
       <AuthModal mode={modal} onClose={() => setModal(null)}
         onSwitch={() => setModal(modal === 'login' ? 'signup' : 'login')} />

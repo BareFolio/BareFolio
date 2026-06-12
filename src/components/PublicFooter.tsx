@@ -38,6 +38,17 @@ const NAV_LINKS = [
   { label: 'About',          href: '/about' },
 ];
 
+const SUPPORT_LINKS = [
+  { label: "FAQ's",   href: '/faqs' },
+  { label: 'Contact', href: '/contact' },
+];
+
+const SOCIAL_LINKS = [
+  { icon: <IgIcon />,      href: 'https://www.instagram.com/barefolio.app/',  label: 'Instagram' },
+  { icon: <TikTokIcon />,  href: 'https://www.tiktok.com/@barefolio',         label: 'TikTok'    },
+  { icon: <XIcon />,       href: 'https://x.com/barefolio',                   label: 'X'         },
+];
+
 /* ════════════════════════════════════════════════════════════════
    Canonical public footer — identical on every page
    ════════════════════════════════════════════════════════════════ */
@@ -70,7 +81,7 @@ export default function PublicFooter() {
   /* ── Mobile ── */
   if (isMobile) {
     return (
-      <footer style={{ background: '#f4f4f4', padding: '32px 0 24px', width: '100%' }}>
+      <footer style={{ background: '#f4f4f4', padding: '32px 0 24px', width: '100%', borderRadius: '15px 15px 0 0' }}>
         <div style={{ padding: '0 20px' }}>
 
           {/* Buttons row */}
@@ -89,15 +100,15 @@ export default function PublicFooter() {
           {/* Brand */}
           <div style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: '32px', width: '32px' }} />
-              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: '20px', width: 'auto' }} />
+              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: '24px', width: '24px' }} />
+              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: '16px', width: 'auto' }} />
             </div>
             <p style={{ fontSize: '13px', color: '#737373', margin: '0 0 12px' }}>
               All your creative world in one place
             </p>
             <div style={{ display: 'flex', gap: '14px' }}>
-              {[<IgIcon key="ig"/>, <TikTokIcon key="tt"/>, <XIcon key="x"/>].map((icon, i) => (
-                <a key={i} href="#" style={{ color: '#a3a3a3', lineHeight: 0 }}>{icon}</a>
+              {SOCIAL_LINKS.map(({ icon, href, label }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', lineHeight: 0 }}>{icon}</a>
               ))}
             </div>
           </div>
@@ -110,8 +121,8 @@ export default function PublicFooter() {
               ))}
             </nav>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {["Contact", "FAQ's"].map(link => (
-                <a key={link} href="#" style={navLink}>{link}</a>
+              {SUPPORT_LINKS.map(({ label, href }) => (
+                <a key={label} href={href} style={navLink}>{label}</a>
               ))}
             </nav>
           </div>
@@ -139,54 +150,59 @@ export default function PublicFooter() {
 
   /* ── Desktop ── */
   return (
-    <footer style={{ background: '#f4f4f4', padding: '40px 0 20px', width: '100%' }}>
+    <footer style={{ background: '#f4f4f4', padding: '40px 0 20px', width: '100%', borderRadius: '15px 15px 0 0' }}>
       <div style={{ padding: '0 32px' }}>
         <div style={{
-          position: 'relative',
           display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', marginBottom: '24px', gap: '32px',
         }}>
 
-          {/* Left — logo + tagline + social */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '200px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: '36px', width: '36px' }} />
-              <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: '22px', width: 'auto' }} />
-            </div>
-            <p style={{ fontSize: '13px', color: '#737373', margin: 0, marginTop: '4px' }}>
-              All your creative world in one place
-            </p>
-            <div style={{ display: 'flex', gap: '14px', marginTop: '4px' }}>
-              {[<IgIcon key="ig"/>, <TikTokIcon key="tt"/>, <XIcon key="x"/>].map((icon, i) => (
-                <a key={i} href="#" style={{ color: '#a3a3a3', lineHeight: 0, transition: 'color 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
-                  {icon}
-                </a>
-              ))}
-            </div>
-          </div>
+          {/* Left — brand + nav close together */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '140px' }}>
 
-          {/* Centre — two nav columns, absolutely centred so it never shifts */}
-          <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', display: 'flex', gap: '64px' }}>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {NAV_LINKS.map(({ label, href }) => (
-                <a key={label} href={href} style={navLink}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {["Contact", "FAQ's"].map(link => (
-                <a key={link} href="#" style={navLink}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
-                  {link}
-                </a>
-              ))}
-            </nav>
+            {/* Brand block */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: '20px', width: '20px' }} />
+                <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: '18px', width: 'auto' }} />
+              </div>
+              <p style={{ fontSize: '13px', color: '#737373', margin: 0, marginTop: '2px' }}>
+                All your creative world in one place
+              </p>
+              <div style={{ display: 'flex', gap: '14px', marginTop: '2px' }}>
+                {SOCIAL_LINKS.map(({ icon, href, label }) => (
+                  <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                    style={{ color: '#a3a3a3', lineHeight: 0, transition: 'color 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#a3a3a3')}>
+                    {icon}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Nav columns — directly beside brand */}
+            <div style={{ display: 'flex', gap: '48px' }}>
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {NAV_LINKS.map(({ label, href }) => (
+                  <a key={label} href={href} style={navLink}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
+                    {label}
+                  </a>
+                ))}
+              </nav>
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {SUPPORT_LINKS.map(({ label, href }) => (
+                  <a key={label} href={href} style={navLink}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#404040')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#101010')}>
+                    {label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+
           </div>
 
           {/* Right — Login + Get Access */}

@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import PublicShell from '@/components/PublicShell';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service - BareFolio',
+  description: 'BareFolio terms of service — the rules and conditions governing use of the platform.',
+};
 
 const D = 'var(--font-display), -apple-system, sans-serif';
 const B = 'var(--font-sans),    -apple-system, sans-serif';
