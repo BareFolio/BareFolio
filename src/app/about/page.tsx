@@ -180,10 +180,10 @@ export default function AboutPage() {
             <div className="about-who-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               {WHO.map(({ role, sub, headline, body }) => (
                 <div key={role} className="about-who-card" style={{ background: '#101010', borderRadius: '20px', padding: '32px 28px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.35)', margin: '0 0 4px' }}>{role}</p>
-                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.2)', margin: '0 0 20px', fontStyle: 'italic' }}>{sub}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.5)', margin: '0 0 4px' }}>{role}</p>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', margin: '0 0 20px', fontStyle: 'italic' }}>{sub}</p>
                   <h3 style={{ fontFamily: D, fontSize: '22px', fontWeight: 400, letterSpacing: '-0.8px', color: '#fafafa', margin: '0 0 12px', lineHeight: 1.2 }}>{headline}</h3>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, margin: 0 }}>{body}</p>
+                  <p style={{ fontSize: '13px', color: '#fafafa', lineHeight: 1.75, margin: 0 }}>{body}</p>
                 </div>
               ))}
             </div>
@@ -227,7 +227,7 @@ export default function AboutPage() {
         </section>
 
         {/* ── 5. Statement tipográfico ── */}
-        <div style={{ padding: '64px 24px', textAlign: 'center' }}>
+        <div style={{ padding: '100px 24px', textAlign: 'center' }}>
           <p style={{
             fontFamily: D, fontSize: 'clamp(36px, 6vw, 72px)',
             fontWeight: 400, letterSpacing: '-3px',
@@ -283,6 +283,19 @@ export default function AboutPage() {
                 note="900 × 1100 — Portfolio review or creative work in context"
                 ratio="9/11"
               />
+            </div>
+
+            {/* Get access CTA */}
+            <div style={{ marginTop: '40px', textAlign: 'center' }}>
+              <Link href="/waitlist" className="pill-btn" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                background: '#101010', color: '#fafafa',
+                fontFamily: B, fontSize: '14px', fontWeight: 500,
+                padding: '13px 28px', borderRadius: '100px',
+                textDecoration: 'none',
+              }}>
+                Get access<span className="pill-arrow"><span>→</span></span>
+              </Link>
             </div>
           </div>
         </section>
