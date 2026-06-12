@@ -126,11 +126,12 @@ function AuthModal({ mode, onClose, onSwitch }: {
             lineHeight: 1, fontSize: '27px',
           }}>✕</button>
           <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 24, height: 24 }} />
-          <button style={{
+          <a href="/contact" style={{
             background: 'none', border: 'none',
             fontSize: '13px', color: '#101010',
             cursor: 'pointer', fontWeight: 500, justifySelf: 'end',
-          }}>Get Help</button>
+            textDecoration: 'none',
+          }}>Get Help</a>
         </div>
 
         {/* Content */}

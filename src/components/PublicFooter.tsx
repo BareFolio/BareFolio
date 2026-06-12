@@ -86,7 +86,7 @@ export default function PublicFooter() {
 
           {/* Buttons row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-            <Link href="/"
+            <Link href="/login"
               style={{ ...loginTextStyle, fontSize: '15px' }}
               onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#737373')}
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#101010')}>
@@ -207,7 +207,7 @@ export default function PublicFooter() {
 
           {/* Right — Login + Get Access */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/"
+            <Link href="/login"
               style={{ ...loginTextStyle, fontSize: '16px' }}
               onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#737373')}
               onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = '#101010')}>
