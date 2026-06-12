@@ -36,15 +36,15 @@ const geist = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://barefolio.com'),
-  title: "BareFolio - The Visual Portfolio Network",
-  description: "Showcase premium design portfolios, share visual updates, and connect with creative agencies and brands.",
+  title: "BareFolio — All your creative world in one place",
+  description: "All your creative world in one place. Showcase your portfolio, share your process, and connect with the people who move the creative industry.",
   icons: {
     icon: [{ url: "/favicon.svg?v=2", type: "image/svg+xml" }],
     shortcut: "/favicon.svg?v=2",
   },
   openGraph: {
-    title: "BareFolio - The Visual Portfolio Network",
-    description: "Showcase premium design portfolios, share visual updates, and connect with creative agencies and brands.",
+    title: "BareFolio — All your creative world in one place",
+    description: "All your creative world in one place. Showcase your portfolio, share your process, and connect with the people who move the creative industry.",
     url: "https://barefolio.com",
     siteName: "BareFolio",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "BareFolio" }],
@@ -52,8 +52,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "BareFolio - The Visual Portfolio Network",
-    description: "Showcase premium design portfolios, share visual updates, and connect with creative agencies and brands.",
+    title: "BareFolio — All your creative world in one place",
+    description: "All your creative world in one place. Showcase your portfolio, share your process, and connect with the people who move the creative industry.",
     images: ["/og.jpg"],
   },
 };

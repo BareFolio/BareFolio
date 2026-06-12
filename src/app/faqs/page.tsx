@@ -14,7 +14,7 @@ const B = 'var(--font-sans), -apple-system, sans-serif';
 const FAQS: { q: string; a: string }[] = [
   {
     q: 'What is BareFolio?',
-    a: 'BareFolio is a visual portfolio network for serious creatives. It brings together inspiration, portfolio, process documentation, and professional connection in a single space — built without engagement algorithms, and with quality as the only currency.',
+    a: 'BareFolio is your creative world in one place — portfolio, process, inspiration, and professional connection all in a single space, built without engagement algorithms and with quality as the only currency.',
   },
   {
     q: 'Who is BareFolio for?',
