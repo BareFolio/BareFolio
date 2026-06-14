@@ -566,6 +566,77 @@ function Block02b() {
   );
 }
 
+/* ── Marquee row (module-level — must NOT be inside Block02c) ─── */
+function MarqueeRow({ items, direction, fontSize }: {
+  items: string[];
+  direction: 'left' | 'right';
+  fontSize: string;
+}) {
+  const doubled = [...items, ...items];
+  const anim = direction === 'left'
+    ? 'marquee-left 28s linear infinite'
+    : 'marquee-right 32s linear infinite';
+
+  return (
+    <div style={{ overflow: 'hidden' }}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center',
+        whiteSpace: 'nowrap' as const,
+        animation: anim,
+      }}>
+        {doubled.map((d, i) => (
+          <React.Fragment key={i}>
+            <span style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize, letterSpacing: '-0.5px',
+              color: i % 2 === 0 ? '#101010' : '#a3a3a3',
+              padding: '0 20px',
+            }}>{d}</span>
+            <span style={{
+              color: '#e5e5e5', fontSize,
+              fontFamily: 'var(--font-display)',
+            }}>·</span>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BLOQUE 02c — Disciplines marquee
+   ═══════════════════════════════════════════════════════════════════ */
+function Block02c() {
+  const isMobile = useIsMobile();
+
+  const row1 = [
+    'Photography', 'Art Direction', 'Graphic Design',
+    'Illustration', 'Film', 'Motion', 'Branding', 'Architecture',
+  ];
+  const row2 = [
+    'Fashion', 'Typography', 'UX / UI', 'Editorial',
+    'Industrial Design', 'Packaging', 'Furniture Design', 'Photography',
+  ];
+
+  const fontSize = isMobile ? '22px' : 'clamp(22px, 3vw, 36px)';
+
+  return (
+    <section style={{ background: '#fafafa', padding: isMobile ? '36px 0' : '48px 0', overflow: 'hidden' }}>
+      <p style={{
+        fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+        letterSpacing: '1px', textTransform: 'uppercase' as const,
+        color: '#a3a3a3', margin: '0 0 20px', padding: '0 20px',
+      }}>
+        Built for every visual discipline
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <MarqueeRow items={row1} direction="left" fontSize={fontSize} />
+        <MarqueeRow items={row2} direction="right" fontSize={fontSize} />
+      </div>
+    </section>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    BLOQUE 03
    ═══════════════════════════════════════════════════════════════════ */
@@ -1132,6 +1203,14 @@ export default function LandingPage() {
             0%, 100% { transform: translateX(-50%) translateY(0px); }
             50%       { transform: translateX(-50%) translateY(7px); }
           }
+          @keyframes marquee-left {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+          }
+          @keyframes marquee-right {
+            from { transform: translateX(-50%); }
+            to   { transform: translateX(0); }
+          }
         `}</style>
         <video src="/landing/bloque-01.mp4" autoPlay muted loop playsInline preload="auto" disablePictureInPicture
           poster="/landing/bloque-01-poster.jpg"
@@ -1158,6 +1237,8 @@ export default function LandingPage() {
       <Block02 />
 
       <Block02b />
+
+      <Block02c />
 
       <Block03 />
       <Block04 />
