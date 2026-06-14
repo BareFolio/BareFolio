@@ -436,6 +436,137 @@ function Block02() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   BLOQUE 02b — Who it's for
+   ═══════════════════════════════════════════════════════════════════ */
+function Block02b() {
+  const isMobile = useIsMobile();
+
+  /* Mobile: stacked rows with horizontal dividers */
+  if (isMobile) {
+    return (
+      <section style={{ background: '#fafafa', padding: '40px 0' }}>
+        <div style={{ padding: '0 20px' }}>
+
+          <div style={{ padding: '0 0 20px', borderBottom: '1px solid #e5e5e5' }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+              color: '#a3a3a3', margin: '0 0 10px',
+            }}>Creators</p>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18,
+              letterSpacing: '-0.5px', lineHeight: 1.2, color: '#101010', margin: '0 0 10px',
+            }}>Your work, your presence.</h3>
+            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
+              Designers, photographers, art directors, motion designers, illustrators. Your portfolio, your process, and your professional presence — all in one place, without engagement algorithms deciding who sees you.
+            </p>
+          </div>
+
+          <div style={{ padding: '20px 0', borderBottom: '1px solid #e5e5e5' }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+              color: '#8a88e7', margin: '0 0 10px',
+            }}>Studios & Brands</p>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18,
+              letterSpacing: '-0.5px', lineHeight: 1.2, color: '#101010', margin: '0 0 10px',
+            }}>Direct access to talent.</h3>
+            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
+              Studios, agencies, and brands looking to hire. Discover creators by discipline and style, contact them directly, and post briefs to the people who match what you're looking for.
+            </p>
+          </div>
+
+          <div style={{ padding: '20px 0 0' }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+              color: '#a3a3a3', margin: '0 0 10px',
+            }}>Communities</p>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18,
+              letterSpacing: '-0.5px', lineHeight: 1.2, color: '#101010', margin: '0 0 10px',
+            }}>A space for your circle.</h3>
+            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
+              Creative collectives, discipline groups, or your studio's inner circle. Your own space with channels, resources, and internal briefs — one fee per community, not per member.
+            </p>
+          </div>
+
+        </div>
+      </section>
+    );
+  }
+
+  /* Desktop: 3-column grid with 1px vertical dividers */
+  return (
+    <section style={{ background: '#fafafa', padding: '60px 0' }}>
+      <div style={{ padding: '0 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr' }}>
+
+          {/* Creators */}
+          <div style={{ padding: '0 32px 0 0' }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+              color: '#a3a3a3', margin: '0 0 10px',
+            }}>Creators</p>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 'clamp(18px, 2vw, 22px)', letterSpacing: '-0.5px',
+              lineHeight: 1.2, color: '#101010', margin: '0 0 10px',
+            }}>Your work, your presence.</h3>
+            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
+              Designers, photographers, art directors, motion designers, illustrators. Your portfolio, your process, and your professional presence — all in one place, without engagement algorithms deciding who sees you.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div style={{ background: '#e5e5e5' }} />
+
+          {/* Studios & Brands */}
+          <div style={{ padding: '0 32px' }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+              color: '#8a88e7', margin: '0 0 10px',
+            }}>Studios & Brands</p>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 'clamp(18px, 2vw, 22px)', letterSpacing: '-0.5px',
+              lineHeight: 1.2, color: '#101010', margin: '0 0 10px',
+            }}>Direct access to talent.</h3>
+            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
+              Studios, agencies, and brands looking to hire. Discover creators by discipline and style, contact them directly, and post briefs to the people who match what you're looking for.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div style={{ background: '#e5e5e5' }} />
+
+          {/* Communities */}
+          <div style={{ padding: '0 0 0 32px' }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+              color: '#a3a3a3', margin: '0 0 10px',
+            }}>Communities</p>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontWeight: 400,
+              fontSize: 'clamp(18px, 2vw, 22px)', letterSpacing: '-0.5px',
+              lineHeight: 1.2, color: '#101010', margin: '0 0 10px',
+            }}>A space for your circle.</h3>
+            <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
+              Creative collectives, discipline groups, or your studio's inner circle. Your own space with channels, resources, and internal briefs — one fee per community, not per member.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    BLOQUE 03
    ═══════════════════════════════════════════════════════════════════ */
 function Block03() {
@@ -507,22 +638,39 @@ function Block03() {
             </h3>
             <p style={{
               fontSize: '14px', color: 'rgba(255,255,255,0.4)',
-              lineHeight: 1.6, margin: '0 0 32px',
+              lineHeight: 1.6, margin: '0 0 24px',
             }}>
               Designers, photographers, art directors, and filmmakers have been splitting
               themselves across tools never built for them — inspiration here, portfolio there,
               professional network somewhere else. BareFolio brings it all into one space,
               built entirely around visual creative work.
             </p>
+            <a
+              href="/waitlist"
+              onClick={() => { try { (window as any).gtag?.('event', 'waitlist_cta_click', { source: 'landing_dark_card' }); } catch {} }}
+              className="pill-btn"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                background: '#fafafa', color: '#101010',
+                fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: 500,
+                padding: '12px 24px', borderRadius: '100px',
+                textDecoration: 'none', letterSpacing: '-0.3px',
+                transition: 'background 0.2s', marginBottom: '32px',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#e5e5e5')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#fafafa')}
+            >
+              Join the Waitlist<span className="pill-arrow"><span>→</span></span>
+            </a>
             {/* Phones centered in card — percentage widths guarantee fit, no clipping */}
             <div style={{
               display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
               marginTop: '24px',
             }}>
               <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
-                style={{ width: '47%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
+                style={{ width: '56%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
               <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
-                style={{ width: '52%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-16%' }} />
+                style={{ width: '62%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-20%' }} />
             </div>
           </div>
         ) : (
@@ -550,13 +698,30 @@ function Block03() {
               </h3>
               <p style={{
                 fontSize: '16px', color: 'rgba(255,255,255,0.4)',
-                lineHeight: 1.19, margin: 0, maxWidth: '390px', letterSpacing: '1px',
+                lineHeight: 1.19, margin: '0 0 28px', maxWidth: '390px', letterSpacing: '1px',
               }}>
                 Designers, photographers, art directors, and filmmakers have been splitting
                 themselves across tools never built for them — inspiration here, portfolio there,
                 professional network somewhere else. BareFolio brings it all into one space,
                 built entirely around visual creative work.
               </p>
+              <a
+                href="/waitlist"
+                onClick={() => { try { (window as any).gtag?.('event', 'waitlist_cta_click', { source: 'landing_dark_card' }); } catch {} }}
+                className="pill-btn"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  background: '#fafafa', color: '#101010',
+                  fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: 500,
+                  padding: '13px 28px', borderRadius: '100px',
+                  textDecoration: 'none', letterSpacing: '-0.3px',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#e5e5e5')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#fafafa')}
+              >
+                Join the Waitlist<span className="pill-arrow"><span>→</span></span>
+              </a>
             </div>
             <div style={{
               position: 'absolute', right: '80px', bottom: 0,
@@ -565,11 +730,11 @@ function Block03() {
             }}>
               <div style={{ position: 'relative', zIndex: 2, flexShrink: 0, order: 1 }}>
                 <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
-                  style={{ height: 'clamp(320px, 37vw, 410px)', width: 'auto', display: 'block' }} />
+                  style={{ height: 'clamp(380px, 44vw, 500px)', width: 'auto', display: 'block' }} />
               </div>
               <div style={{ position: 'relative', zIndex: 1, flexShrink: 0, order: 2, marginLeft: '-110px' }}>
                 <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
-                  style={{ height: 'clamp(350px, 40vw, 445px)', width: 'auto', display: 'block' }} />
+                  style={{ height: 'clamp(420px, 48vw, 540px)', width: 'auto', display: 'block' }} />
               </div>
             </div>
           </div>
@@ -705,7 +870,7 @@ function Block04() {
             <div style={{ position: 'relative', height: '42vh', flexShrink: 0, borderRadius: '16px', overflow: 'hidden' }}>
               {panels.map((panel, i) => (
                 <div key={i} style={{ position: 'absolute', inset: 0, opacity: opacities[i] }}>
-                  <video src={panel.video} autoPlay muted loop playsInline
+                  <video src={panel.video} autoPlay muted loop playsInline disablePictureInPicture
                     style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f4f4f4', display: 'block' }} />
                 </div>
               ))}
@@ -796,7 +961,7 @@ function Block04() {
                 borderRadius: '20px', overflow: 'hidden',
                 opacity: opacities[i],
               }}>
-                <video src={panel.video} autoPlay muted loop playsInline
+                <video src={panel.video} autoPlay muted loop playsInline disablePictureInPicture
                   style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
               </div>
             ))}
@@ -968,7 +1133,7 @@ export default function LandingPage() {
             50%       { transform: translateX(-50%) translateY(7px); }
           }
         `}</style>
-        <video src="/landing/bloque-01.mp4" autoPlay muted loop playsInline preload="auto"
+        <video src="/landing/bloque-01.mp4" autoPlay muted loop playsInline preload="auto" disablePictureInPicture
           poster="/landing/bloque-01-poster.jpg"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{
@@ -991,6 +1156,9 @@ export default function LandingPage() {
       </section>
 
       <Block02 />
+
+      <Block02b />
+
       <Block03 />
       <Block04 />
       <Block05 onGetAccess={goToWaitlist} />
