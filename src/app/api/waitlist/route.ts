@@ -8,7 +8,6 @@ const TOKEN   = process.env.AIRTABLE_TOKEN!;
 const BASE_ID = process.env.AIRTABLE_BASE_ID!;
 const TABLE   = 'Waitlist';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM   = process.env.RESEND_FROM ?? 'onboarding@resend.dev';
 
 /* Form role → Airtable single-select label */
@@ -105,6 +104,9 @@ export async function POST(req: NextRequest) {
 
   /* ── Send confirmation email ── */
   try {
+    /* Instantiate lazily — keeps the module build-safe when RESEND_API_KEY
+       is absent (e.g. Preview env), instead of throwing at module load. */
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const html = await render(WaitlistConfirmation({ name }));
     await resend.emails.send({
       from:    FROM,

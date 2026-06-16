@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { rateLimit, clientIp } from '@/lib/rateLimit';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM   = process.env.RESEND_FROM ?? 'onboarding@resend.dev';
 const TO     = 'barefolio.app@gmail.com';
 
@@ -65,6 +64,9 @@ export async function POST(req: NextRequest) {
   const headerSubject = subject.replace(/[\r\n]+/g, ' ').trim();
 
   try {
+    /* Instantiate lazily — keeps the module build-safe when RESEND_API_KEY
+       is absent (e.g. Preview env), instead of throwing at module load. */
+    const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from:    FROM,
       to:      TO,
