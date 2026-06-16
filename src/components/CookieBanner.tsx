@@ -92,7 +92,8 @@ export default function CookieBanner() {
             lineHeight: 1.55, margin: 0,
           }}>
             We use cookies to improve your experience and understand how the
-            site is used. See our{' '}
+            site is used.<br />
+            See our{' '}
             <Link href="/cookies" style={{ color: '#101010', fontWeight: 500, textDecoration: 'underline' }}>
               Cookie Policy
             </Link>.
