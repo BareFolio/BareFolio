@@ -62,11 +62,11 @@ export default function CookieBanner() {
       }}
     >
       <div style={{
-        /* Glassmorphism */
-        background: 'rgba(255, 255, 255, 0.55)',
-        backdropFilter: 'blur(18px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-        border: '1px solid rgba(255, 255, 255, 0.6)',
+        /* Glassmorphism — subtle frost */
+        background: 'rgba(255, 255, 255, 0.78)',
+        backdropFilter: 'blur(8px) saturate(130%)',
+        WebkitBackdropFilter: 'blur(8px) saturate(130%)',
+        border: '1px solid rgba(255, 255, 255, 0.55)',
         borderRadius: '16px',
         padding: '18px 20px',
         width: '400px',
@@ -83,7 +83,9 @@ export default function CookieBanner() {
           fontSize: '14px', color: '#404040',
           lineHeight: 1.55, margin: 0,
         }}>
-          We use cookies to improve your experience. See our{' '}
+          We use cookies to improve your experience, remember your
+          preferences, and understand how the site is used. You can accept
+          or decline non-essential cookies at any time. See our{' '}
           <Link href="/cookies" style={{ color: '#101010', fontWeight: 500, textDecoration: 'underline' }}>
             Cookie Policy
           </Link>{' '}
@@ -92,23 +94,6 @@ export default function CookieBanner() {
 
         {/* ── Actions ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* View Cookies — text button, above the two main buttons */}
-          <Link
-            href="/cookies"
-            style={{
-              fontFamily: 'var(--font-sans), sans-serif',
-              fontWeight: 500, fontSize: '13px',
-              color: '#737373', textDecoration: 'underline',
-              textUnderlineOffset: '2px',
-              alignSelf: 'flex-start',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#737373')}
-          >
-            View Cookies
-          </Link>
-
           {/* Accept + Decline — primary buttons side by side */}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
