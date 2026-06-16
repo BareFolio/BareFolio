@@ -53,25 +53,31 @@ export default function CookieBanner() {
       role="region"
       aria-label="Cookie consent"
       style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
+        position: 'fixed', bottom: 0, right: 0,
         zIndex: 200,
-        padding: '0 16px 16px',
+        padding: '0 20px 20px',
         pointerEvents: 'none',
-        display: 'flex', justifyContent: 'center',
+        display: 'flex', justifyContent: 'flex-end',
+        maxWidth: '100%',
       }}
     >
       <div style={{
-        background: '#ffffff',
-        border: '1px solid #e7e7e7',
+        /* Glassmorphism */
+        background: 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: 'blur(18px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+        border: '1px solid rgba(255, 255, 255, 0.6)',
         borderRadius: '16px',
-        padding: '16px 20px',
-        maxWidth: '640px', width: '100%',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+        padding: '18px 20px',
+        width: '400px',
+        maxWidth: 'calc(100vw - 40px)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
         pointerEvents: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '14px',
       }}>
+        {/* ── Top content (unchanged copy) ── */}
         <p style={{
           fontFamily: 'var(--font-sans), sans-serif',
           fontSize: '14px', color: '#404040',
@@ -83,37 +89,69 @@ export default function CookieBanner() {
           </Link>{' '}
           for details.
         </p>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            onClick={accept}
+
+        {/* ── Actions ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* View Cookies — text button, above the two main buttons */}
+          <Link
+            href="/cookies"
             style={{
-              background: '#101010', color: '#fafafa',
               fontFamily: 'var(--font-sans), sans-serif',
-              fontWeight: 500, fontSize: '14px',
-              padding: '9px 20px', borderRadius: '100px',
-              border: 'none', cursor: 'pointer',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#333')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
-          >
-            Accept
-          </button>
-          <button
-            onClick={reject}
-            style={{
-              background: 'none', color: '#737373',
-              fontFamily: 'var(--font-sans), sans-serif',
-              fontWeight: 500, fontSize: '14px',
-              padding: '9px 12px',
-              border: 'none', cursor: 'pointer',
+              fontWeight: 500, fontSize: '13px',
+              color: '#737373', textDecoration: 'underline',
+              textUnderlineOffset: '2px',
+              alignSelf: 'flex-start',
               transition: 'color 0.15s',
             }}
             onMouseEnter={e => (e.currentTarget.style.color = '#101010')}
             onMouseLeave={e => (e.currentTarget.style.color = '#737373')}
           >
-            Reject
-          </button>
+            View Cookies
+          </Link>
+
+          {/* Accept + Decline — primary buttons side by side */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={accept}
+              style={{
+                flex: 1,
+                background: '#101010', color: '#fafafa',
+                fontFamily: 'var(--font-sans), sans-serif',
+                fontWeight: 500, fontSize: '14px',
+                padding: '10px 20px', borderRadius: '100px',
+                border: 'none', cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#333')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#101010')}
+            >
+              Accept
+            </button>
+            <button
+              onClick={reject}
+              style={{
+                flex: 1,
+                background: 'rgba(255, 255, 255, 0.4)', color: '#404040',
+                fontFamily: 'var(--font-sans), sans-serif',
+                fontWeight: 500, fontSize: '14px',
+                padding: '10px 20px', borderRadius: '100px',
+                border: '1px solid rgba(0, 0, 0, 0.12)', cursor: 'pointer',
+                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.7)';
+                e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.25)';
+                e.currentTarget.style.color = '#101010';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.4)';
+                e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.12)';
+                e.currentTarget.style.color = '#404040';
+              }}
+            >
+              Decline
+            </button>
+          </div>
         </div>
       </div>
     </div>
