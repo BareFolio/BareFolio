@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { ProfileType } from '@/lib/database.types';
+import { gatePlatform } from '@/lib/platformGate';
 
 const ROLES = [
   { id: 'creator', title: 'Creator', desc: 'Centralize your portfolio. Upload design projects, share micro-posts, and get discovered by clients.', plan: 'Free / Pro' },
@@ -56,6 +57,7 @@ const INDUSTRIES = [
 ];
 
 export default function OnboardingPage() {
+  gatePlatform();
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState('');
   

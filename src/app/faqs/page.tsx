@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { Metadata } from 'next';
 import PublicShell from '@/components/PublicShell';
 import Link from 'next/link';
 
@@ -22,7 +21,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'How does curated access work?',
-    a: 'You submit a project for review. A human team evaluates technical quality and presentation — not your following, background, or years of experience. If accepted, you\'re in and receive five invitation codes to bring other creatives you believe in. If not, you get clear feedback and can resubmit.',
+    a: 'You submit a project for review. A human team evaluates technical quality and presentation — not your following, background, or years of experience. If accepted, you gain full access to BareFolio. If not, you get clear feedback and can resubmit.',
   },
   {
     q: 'What creative disciplines does BareFolio accept?',

@@ -10,7 +10,7 @@ type AccountType = 'creator' | 'seeker' | 'studio';
 const ACCOUNT_TYPES: { id: AccountType; label: string; sub: string }[] = [
   { id: 'creator', label: 'Creator',        sub: 'I publish work'    },
   { id: 'seeker',  label: 'Seeker',         sub: "I'm hiring talent" },
-  { id: 'studio',  label: 'Studio & Brand', sub: "We're a team"      },
+  { id: 'studio',  label: 'Studio - Brand', sub: "We're a team"      },
 ];
 
 /* ── Subjects per account type ──────────────────────────────────── */
@@ -70,6 +70,7 @@ export default function ContactForm() {
   const [subject,      setSubject]      = useState('');
   const [customSubject, setCustomSubject] = useState('');
   const [message,      setMessage]      = useState('');
+  const [website,      setWebsite]      = useState(''); // honeypot
   const [status,       setStatus]       = useState<Status>('idle');
 
   /* Reset subject when account type changes */
@@ -93,7 +94,7 @@ export default function ContactForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstName, lastName, email,
-          accountType, subject: finalSubject, message,
+          accountType, subject: finalSubject, message, website,
         }),
       });
       if (!res.ok) throw new Error();
@@ -124,6 +125,14 @@ export default function ContactForm() {
   /* ── Form ── */
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+      {/* Honeypot — hidden from humans, bots tend to fill it */}
+      <input
+        type="text" name="website" tabIndex={-1} autoComplete="off"
+        value={website} onChange={e => setWebsite(e.target.value)}
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+      />
 
       {/* Name row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -216,7 +225,7 @@ export default function ContactForm() {
 
       {status === 'error' && (
         <p style={{ fontFamily: B, fontSize: '13px', color: '#dc2626', margin: 0, textAlign: 'center' }}>
-          Something went wrong. Try emailing us at hello@barefolio.com
+          Something went wrong. Try emailing us at barefolio.app@gmail.com
         </p>
       )}
 

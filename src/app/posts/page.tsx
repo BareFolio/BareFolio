@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Heart, MessageSquare, Share2, Bookmark, MoreHorizontal } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
+import { gatePlatform } from '@/lib/platformGate';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -323,6 +324,7 @@ function TextPost({ post, onLike, onSave }: { post: Post; onLike: () => void; on
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PostsPage() {
+  gatePlatform();
   const { setCreatePickerOpen, postsTab, currentUser } = useApp();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);

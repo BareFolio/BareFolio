@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
+import { gatePlatform } from '@/lib/platformGate';
 
 const NOTIFICATIONS_NEW = [
   { 
@@ -67,6 +68,7 @@ const NOTIFICATIONS_ALL = [
 ];
 
 export default function NotificationsPage() {
+  gatePlatform();
   const router = useRouter();
 
   return (

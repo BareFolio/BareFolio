@@ -47,3 +47,8 @@ next-env.d.ts
 
 # Reference documents (large PDFs)
 Referencias/
+
+# Design source files (heavy .mov/.pdf masters — not part of the build)
+# Leading slash anchors to repo root so it does NOT match public/landing/
+# (macOS filesystem is case-insensitive, so an unanchored "Landing/" would).
+/Landing/

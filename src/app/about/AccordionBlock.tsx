@@ -73,7 +73,7 @@ export function PrinciplesBlock() {
   return (
     <div>
       <p style={{ fontFamily: B, fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: '#a3a3a3', margin: '0 0 16px', paddingLeft: '20px' }}>
-        PRINCIPLES
+        VALUES
       </p>
       <div style={{ border: '1px solid #e7e7e7', borderRadius: '14px', overflow: 'hidden', background: '#fff' }}>
         {items.map(item => <AccordionItem key={item.title} {...item} />)}

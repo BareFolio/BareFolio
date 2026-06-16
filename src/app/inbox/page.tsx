@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import type { Message, Profile } from '@/lib/database.types';
 import { Search, Bell, MoreHorizontal, Plus, Smile, Mic, ChevronLeft, ChevronRight, Info, MessageSquare, Folder } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { gatePlatform } from '@/lib/platformGate';
 
 // ── Mock data with Unsplash high-fidelity photo portraits ────────────────────────────────
 const MOCK_CONVERSATIONS = [
@@ -100,6 +101,7 @@ const MOCK_CHANNEL_MESSAGES: Record<string, { id: string; sender: string; text: 
 };
 
 export default function InboxPage() {
+  gatePlatform();
   const { currentUser, inboxTab, setInboxTab } = useApp();
   const searchParams = useSearchParams();
   const router = useRouter();

@@ -190,13 +190,13 @@ export default function WaitlistConfirmation({ name }: Props) {
           <Section style={{ padding: '32px 24px 16px' }}>
             <Row>
               <Column align="center">
-                <Link href="https://instagram.com/barefolio" style={{ display: 'inline-block', marginRight: 20 }}>
+                <Link href="https://www.instagram.com/barefolio.app/" style={{ display: 'inline-block', marginRight: 20 }}>
                   <Img src={IG} width={21} height={21} alt="Instagram" className="dm-invert" style={{ display: 'block' }} />
                 </Link>
-                <Link href="https://linkedin.com/company/barefolio" style={{ display: 'inline-block', marginRight: 20 }}>
+                <Link href="https://www.linkedin.com/company/barefolio" style={{ display: 'inline-block', marginRight: 20 }}>
                   <Img src={LI} width={20} height={20} alt="LinkedIn" className="dm-invert" style={{ display: 'block' }} />
                 </Link>
-                <Link href="https://tiktok.com/@barefolio" style={{ display: 'inline-block', marginRight: 20 }}>
+                <Link href="https://www.tiktok.com/@barefolio" style={{ display: 'inline-block', marginRight: 20 }}>
                   <Img src={TT} width={17} height={19} alt="TikTok" className="dm-invert" style={{ display: 'block' }} />
                 </Link>
                 <Link href="https://x.com/barefolio" style={{ display: 'inline-block' }}>

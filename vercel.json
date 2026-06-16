@@ -21,7 +21,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://mzyhiyleoktpeamwjjse.supabase.co https://*.googleusercontent.com; connect-src 'self' https://mzyhiyleoktpeamwjjse.supabase.co wss://mzyhiyleoktpeamwjjse.supabase.co https://accounts.google.com; font-src 'self'; frame-src 'none'; object-src 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://mzyhiyleoktpeamwjjse.supabase.co https://*.googleusercontent.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://mzyhiyleoktpeamwjjse.supabase.co wss://mzyhiyleoktpeamwjjse.supabase.co https://accounts.google.com https://*.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://stats.g.doubleclick.net; font-src 'self'; frame-src https://*.googletagmanager.com; object-src 'none';"
         }
       ]
     }

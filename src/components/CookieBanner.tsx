@@ -10,20 +10,41 @@ function getConsent(): string | null {
   catch { return null; }
 }
 
-function setConsent(value: string) {
+function saveConsent(value: string) {
   try { localStorage.setItem(STORAGE_KEY, value); }
   catch { /* ignore: private mode or quota exceeded */ }
+}
+
+function pushConsent(granted: boolean) {
+  const state = granted ? 'granted' : 'denied';
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).gtag?.('consent', 'update', {
+      ad_storage: state,
+      analytics_storage: state,
+      ad_user_data: state,
+      ad_personalization: state,
+      functionality_storage: state,
+      personalization_storage: state,
+    });
+  } catch { /* ignore */ }
 }
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!getConsent()) setVisible(true);
+    const stored = getConsent();
+    if (!stored) {
+      setVisible(true);
+    } else {
+      // Returning visitor: sync consent state with GTM on every page load
+      pushConsent(stored === 'accepted');
+    }
   }, []);
 
-  function accept() { setConsent('accepted'); setVisible(false); }
-  function reject() { setConsent('rejected'); setVisible(false); }
+  function accept() { saveConsent('accepted'); pushConsent(true);  setVisible(false); }
+  function reject() { saveConsent('rejected'); pushConsent(false); setVisible(false); }
 
   if (!visible) return null;
 

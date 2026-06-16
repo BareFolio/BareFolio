@@ -15,19 +15,15 @@ export default function GlobalShell({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
 
-  const PUBLIC_PATHS = ['/', '/landing', '/login', '/onboarding', '/waitlist', '/pricing', '/curated-access', '/about', '/privacy', '/terms', '/cookies', '/contact', '/faqs'];
+  const PUBLIC_PATHS = ['/', '/waitlist', '/waitlist/confirmed', '/pricing', '/about', '/privacy', '/terms', '/cookies', '/contact', '/faqs'];
 
   useEffect(() => {
     if (!loading) {
       // Unauthenticated users can only access public paths
       if (!currentUser && !PUBLIC_PATHS.includes(pathname)) {
-        router.push('/login');
+        router.push('/');
       }
-      // Authenticated users on the landing page → send to the app
-      if (currentUser && pathname === '/landing') {
-        router.push('/home');
-      }
-      // "/" handles its own redirect in page.tsx (→ /landing or /explore)
+      // "/" handles auth redirect in page.tsx (→ /home for authenticated users)
     }
   }, [currentUser, loading, pathname, router]);
 

@@ -1,7 +1,9 @@
 import { Suspense } from 'react';
 import ProjectClient from "./ProjectClient";
+import { gatePlatform } from '@/lib/platformGate';
 
 export default function ProjectPage() {
+  gatePlatform();
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">

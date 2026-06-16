@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PublicFooter from '@/components/PublicFooter';
 
@@ -54,27 +55,6 @@ function MarqueeRow() {
           </span>
         ))}
       </div>
-    </div>
-  );
-}
-
-/* ── Avatar stack ─────────────────────────────────── */
-function AvatarStack({ size = 24 }: { size?: number }) {
-  const srcs = ['/waitlist/avatar-1.jpg', '/waitlist/avatar-2.jpg', '/waitlist/avatar-3.jpg'];
-  return (
-    <div style={{ display: 'flex', alignItems: 'center' }}>
-      {srcs.map((src, i) => (
-        <div key={i} style={{
-          width: size, height: size, borderRadius: '50%',
-          border: '1px solid #fafafa', overflow: 'hidden',
-          marginLeft: i === 0 ? 0 : -(size * 0.25),
-          position: 'relative', zIndex: 3 - i,
-          boxShadow: '0 1px 2.4px rgba(12,12,13,0.1)',
-          flexShrink: 0, background: '#e7e7e7',
-        }}>
-          <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        </div>
-      ))}
     </div>
   );
 }
@@ -154,32 +134,48 @@ function CubeWord() {
 
 /* ── Main page ────────────────────────────────────── */
 export default function WaitlistPage() {
-  const [role, setRole]               = useState<Role>('creator');
+  const [role, setRole]               = useState<Role | null>(null);
   const [hoveredRole, setHoveredRole] = useState<Role | null>(null);
   const [name, setName]               = useState('');
   const [surname, setSurname]         = useState('');
   const [email, setEmail]             = useState('');
-  const [submitted, setSubmitted]     = useState(false);
+  const [newsletter, setNewsletter]   = useState(false);
+  const [website, setWebsite]         = useState(''); // honeypot
   const [submitting, setSubmitting]   = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [errorMsg, setErrorMsg]       = useState<string | null>(null);
   const formRef                       = useRef<HTMLFormElement>(null);
   const isMobile                      = useIsMobile();
+  const router                        = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || submitting) return;
+    if (!role || !name || !email || !newsletter || submitting) return;
     setSubmitting(true);
-    setSubmitError(false);
+    setErrorMsg(null);
     try {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, name, surname, email }),
+        body: JSON.stringify({ role, name, surname, email, newsletter, website }),
       });
+      if (res.status === 409) {
+        setErrorMsg('This email is already on the waitlist.');
+        return;
+      }
       if (!res.ok) throw new Error('error');
-      setSubmitted(true);
+      // GA4 conversion event — fires only on confirmed server-side success,
+      // BEFORE navigating away so it's queued to dataLayer first.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).gtag?.('event', 'generate_lead', {
+          event_category: 'waitlist',
+          method: 'waitlist_form',
+          role,
+        });
+      } catch { /* ignore */ }
+      router.push('/waitlist/confirmed');
     } catch {
-      setSubmitError(true);
+      setErrorMsg('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -329,8 +325,16 @@ export default function WaitlistPage() {
           width: '100%',
         }}>
 
+          {/* Honeypot — hidden from humans, bots tend to fill it */}
+          <input
+            type="text" name="website" tabIndex={-1} autoComplete="off"
+            value={website} onChange={e => setWebsite(e.target.value)}
+            aria-hidden="true"
+            style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+          />
+
           {/* Role pills */}
-          {!submitted && <div style={{
+          <div style={{
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
             gap: isMobile ? 7 : 9, alignItems: 'stretch',
@@ -339,13 +343,13 @@ export default function WaitlistPage() {
             {ROLES.map(r => {
               const active  = role === r.id;
               const hovered = !active && hoveredRole === r.id;
-              const borderColor = active ? '#181818' : hovered ? '#101010' : '#a3a3a3';
+              const borderColor = active ? '#181818' : hovered ? '#404040' : '#d4d4d4';
               const textColor   = active ? '#fafafa'  : hovered ? '#101010' : '#a3a3a3';
               return (
                 <button
                   key={r.id}
                   type="button"
-                  onClick={() => setRole(r.id)}
+                  onClick={() => setRole(role === r.id ? null : r.id)}
                   onMouseEnter={() => setHoveredRole(r.id)}
                   onMouseLeave={() => setHoveredRole(null)}
                   style={{
@@ -380,30 +384,10 @@ export default function WaitlistPage() {
                 </button>
               );
             })}
-          </div>}
+          </div>
 
           {/* Form fields */}
-          {submitted ? (
-            <div style={{
-              textAlign: 'center', padding: '32px 24px',
-              background: '#f4f4f4', borderRadius: 12,
-              width: SECTION_W,
-            }}>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400,
-                color: '#101010', letterSpacing: '-0.5px', margin: '0 0 6px',
-              }}>
-                You're on the list.
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-sans)', fontSize: 14,
-                color: '#737373', letterSpacing: '0.14px', margin: 0,
-              }}>
-                We'll reach out when early access opens.
-              </p>
-            </div>
-          ) : (
-            <div style={{
+          <div style={{
               display: 'flex', flexDirection: 'column', gap: 7,
               width: SECTION_W,
             }}>
@@ -427,54 +411,76 @@ export default function WaitlistPage() {
               <div style={{ display: 'flex', gap: 7 }}>
                 <input
                   type="email" placeholder="Email"
-                  value={email} onChange={e => setEmail(e.target.value)}
+                  value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(null); }}
                   className="waitlist-input"
                   required
                   style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 44, fontSize: isMobile ? 13 : 16 }}
                 />
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !role || !name || !newsletter}
                   style={{
                     width: isMobile ? 110 : 120,
                     height: isMobile ? 46 : 44,
                     flexShrink: 0,
-                    background: submitting ? '#525252' : '#101010',
+                    background: (submitting || !role || !name || !newsletter) ? '#a3a3a3' : '#101010',
                     border: 'none', borderRadius: 10,
                     fontFamily: 'var(--font-sans)', fontSize: isMobile ? 13 : 16, fontWeight: 500,
                     color: '#fafafa', letterSpacing: '-0.26px',
-                    cursor: submitting ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                    cursor: (submitting || !role || !name || !newsletter) ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = '#181818'; }}
-                  onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = '#101010'; }}
+                  onMouseEnter={e => { if (!submitting && role && name && newsletter) e.currentTarget.style.background = '#181818'; }}
+                  onMouseLeave={e => { if (!submitting && role && name && newsletter) e.currentTarget.style.background = '#101010'; }}
                 >
                   {submitting ? '...' : 'Join Now'}
                 </button>
               </div>
+
+              {/* Row 3: Newsletter — required */}
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                cursor: 'pointer', paddingTop: 2,
+              }}>
+                <div
+                  onClick={() => setNewsletter(v => !v)}
+                  style={{
+                    width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                    border: `1.5px solid ${newsletter ? '#101010' : '#a3a3a3'}`,
+                    background: newsletter ? '#101010' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'background 0.15s, border-color 0.15s',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {newsletter && (
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                      <path d="M1 3.5L3.5 6L8 1" stroke="#fafafa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <span
+                  onClick={() => setNewsletter(v => !v)}
+                  style={{
+                    fontFamily: 'var(--font-sans)', fontSize: isMobile ? 11 : 12,
+                    color: '#737373', lineHeight: 1.5, userSelect: 'none',
+                  }}
+                >
+                  I'd like to receive updates, news and early access announcements{' '}
+                  <span style={{ color: '#e04040' }}>*</span>
+                </span>
+              </label>
             </div>
-          )}
 
           {/* Error message */}
-          {submitError && (
+          {errorMsg && (
             <p style={{
               fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e04040',
               margin: 0, textAlign: 'center',
             }}>
-              Something went wrong. Please try again.
+              {errorMsg}
             </p>
           )}
-
-          {/* Social proof */}
-          {!submitted && <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8 }}>
-            <AvatarStack size={isMobile ? 19 : 24} />
-            <span style={{
-              fontFamily: 'var(--font-sans)', fontSize: isMobile ? 9.5 : 11.5,
-              fontWeight: 600, color: '#adadad',
-            }}>
-              Join 2,000+ others who signed up
-            </span>
-          </div>}
         </form>
       </div>
 

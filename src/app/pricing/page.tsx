@@ -16,15 +16,15 @@ function useIsMobile() {
   return m;
 }
 
-const D = 'var(--font-display), -apple-system, sans-serif'; // Switzer
-const B = 'var(--font-sans),    -apple-system, sans-serif'; // Geist
+const D = 'var(--font-display), -apple-system, sans-serif';
+const B = 'var(--font-sans),    -apple-system, sans-serif';
 
 /* ── Feature item ─────────────────────────────────────────────── */
 function Feat({ dot, children }: { dot: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 30 }}>
-      <span style={{ flexShrink: 0, width: 8, height: 8, borderRadius: 2, background: dot }} />
-      <span style={{ fontFamily: B, fontWeight: 400, fontSize: 14, color: '#101010', lineHeight: '19px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minHeight: 28 }}>
+      <span style={{ flexShrink: 0, width: 7, height: 7, borderRadius: 2, background: dot, marginTop: 6 }} />
+      <span style={{ fontFamily: B, fontWeight: 400, fontSize: 13, color: '#101010', lineHeight: '19px' }}>
         {children}
       </span>
     </div>
@@ -49,174 +49,263 @@ function Badge({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── Price display ────────────────────────────────────────────── */
-function Price({ amount, unit }: { amount: string; unit: string }) {
-  return (
-    <p style={{ margin: '0 0 6px', lineHeight: 0 }}>
-      <span style={{ fontFamily: D, fontWeight: 400, fontSize: 50, lineHeight: '51px', letterSpacing: '-1px', color: '#101010' }}>
-        {amount}
-      </span>
-      <span style={{ fontFamily: B, fontWeight: 400, fontSize: 16, lineHeight: '19px', letterSpacing: '0.16px', color: '#a3a3a3' }}>
-        {unit}
-      </span>
-    </p>
-  );
-}
-
 /* ── CTA button ───────────────────────────────────────────────── */
-function Btn({ href, label }: { href: string; label: string }) {
+function Btn({ label }: { label: string }) {
   return (
-    <Link href={href} className="pr-cta-btn" style={{
-      display: 'block', width: '100%', textAlign: 'center',
-      padding: '13px 10px', borderRadius: 10,
-      background: '#101010', color: '#fafafa',
-      fontFamily: B, fontWeight: 500, fontSize: 16, lineHeight: '16px',
-      letterSpacing: '-0.32px', textDecoration: 'none',
-      transition: 'opacity .15s',
-    }}>
+    <Link
+      href="/waitlist"
+      className="pr-cta-btn"
+      onClick={() => { try { (window as any).gtag?.('event', 'waitlist_cta_click', { source: 'pricing' }); } catch {} }}
+      style={{
+        display: 'block', width: '100%', textAlign: 'center',
+        padding: '13px 10px', borderRadius: 10,
+        background: '#101010', color: '#fafafa',
+        fontFamily: B, fontWeight: 500, fontSize: 15, lineHeight: '16px',
+        letterSpacing: '-0.3px', textDecoration: 'none',
+        transition: 'opacity .15s',
+      }}
+    >
       {label}
     </Link>
   );
 }
 
-/* ── Two-layer plan card ──────────────────────────────────────── */
-/*
- * Outer shell: colored background — the top ~48 px is the "band" that shows
- * through, giving the card its colour. Sides and bottom show as a ~2 px border.
- * Inner panel: white (#fafafa), inset 2 px on sides/bottom, 48 px from top.
- */
-function PlanCard({
-  outerBg,
-  nameText,
-  nameColor = '#101010',
-  badge,
-  priceAmount,
-  priceUnit,
-  priceSub,
-  priceSub2,
-  desc,
-  dotColor,
-  features,
-  btnLabel,
-}: {
-  outerBg: string;
-  nameText: string;
-  nameColor?: string;
-  badge?: string;
-  priceAmount: string;
-  priceUnit: string;
-  priceSub: string;
-  priceSub2?: string;
-  desc: string;
-  dotColor: string;
-  features: string[];
-  btnLabel: string;
-}) {
+/* ── Accordion chevron ────────────────────────────────────────── */
+function Chevron({ open }: { open: boolean }) {
   return (
-    <div style={{
-      background: outerBg,
-      borderRadius: 20,
-      boxShadow: '0px 10.7px 18.7px -4px rgba(113,113,113,0.14)',
-      display: 'flex',
-      flexDirection: 'column',
-      flex: 1,
-    }}>
-      {/* ── coloured band — plan name ── */}
-      <div style={{ padding: '14px 28px 14px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: nameColor }}>
-          {nameText}
-        </span>
-      </div>
+    <svg
+      width="14" height="14" viewBox="0 0 14 14" fill="none"
+      style={{ transition: 'transform 0.25s ease', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}
+    >
+      <path d="M3 5L7 9L11 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-      {/* ── white inner panel ── */}
+/* ── Plan card (Free + Pro) ───────────────────────────────────── */
+function PlanCard({
+  outerBg, nameText, nameColor = '#101010', badge,
+  priceAmount, priceUnit, priceSub, desc, dotColor,
+  features, details, roleNote,
+}: {
+  outerBg: string; nameText: string; nameColor?: string; badge?: string;
+  priceAmount: string; priceUnit: string; priceSub: string;
+  desc: string; dotColor: string;
+  features: readonly string[]; details: readonly string[];
+  roleNote?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{
+        background: outerBg, borderRadius: 20,
+        boxShadow: hovered ? '0px 22px 44px -8px rgba(100,100,100,0.22)' : '0px 10.7px 18.7px -4px rgba(113,113,113,0.14)',
+        transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
+        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+        display: 'flex', flexDirection: 'column', flex: 1,
+      }}
+    >
+      <div style={{ padding: '14px 28px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: nameColor }}>{nameText}</span>
+      </div>
       <div style={{
-        background: '#fafafa',
-        borderRadius: 18,
-        margin: '0 2px 2px',
-        padding: '20px 26px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
+        background: '#fafafa', borderRadius: 18, margin: '0 2px 2px',
+        padding: '20px 26px 24px', display: 'flex', flexDirection: 'column', flex: 1,
       }}>
         {badge && <Badge>{badge}</Badge>}
-        <Price amount={priceAmount} unit={priceUnit} />
-        <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: priceSub2 ? '0 0 4px' : '0 0 14px' }}>
-          {priceSub}
+        <p style={{ margin: '0 0 6px', lineHeight: 0 }}>
+          <span style={{ fontFamily: D, fontWeight: 400, fontSize: 48, lineHeight: '50px', letterSpacing: '-1px', color: '#101010' }}>{priceAmount}</span>
+          <span style={{ fontFamily: B, fontWeight: 400, fontSize: 15, lineHeight: '19px', color: '#a3a3a3' }}>{priceUnit}</span>
         </p>
-        {priceSub2 && (
-          <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 14px' }}>
-            {priceSub2}
-          </p>
-        )}
-        <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 22px' }}>
-          {desc}
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginBottom: 24 }}>
+        <p style={{ fontFamily: B, fontSize: 13, color: '#525252', margin: '0 0 14px' }}>{priceSub}</p>
+        <p style={{ fontFamily: B, fontSize: 12, lineHeight: '16px', color: '#737373', margin: '0 0 20px' }}>{desc}</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, marginBottom: 20 }}>
           {features.map(f => <Feat key={f} dot={dotColor}>{f}</Feat>)}
         </div>
-        <Btn href="/waitlist" label={btnLabel} />
+
+        <button onClick={() => setOpen(o => !o)} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: '0 0 16px', margin: '0 auto', width: '100%',
+          fontFamily: B, fontWeight: 500, fontSize: 13, color: '#737373', letterSpacing: '-0.1px',
+        }}>
+          {open ? 'Less info' : 'More info'}<Chevron open={open} />
+        </button>
+
+        <div style={{ maxHeight: open ? '640px' : '0', overflow: 'hidden', transition: 'max-height 0.32s ease' }}>
+          <div style={{ paddingBottom: 20 }}>
+            {roleNote && (
+              <div style={{ background: '#efefff', border: '1px solid #dddcff', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+                <p style={{ fontFamily: B, fontWeight: 500, fontSize: 12, lineHeight: '17px', color: '#5b59c4', margin: 0 }}>{roleNote}</p>
+              </div>
+            )}
+            {details.map((d, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                <span style={{ color: '#8a88e7', fontFamily: B, fontSize: 15, lineHeight: '18px', flexShrink: 0, marginTop: 1 }}>·</span>
+                <span style={{ fontFamily: B, fontWeight: 400, fontSize: 13, lineHeight: '18px', color: '#525252' }}>{d}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <Btn label="Join the Waitlist" />
       </div>
     </div>
   );
 }
 
-/* ── Two-layer community card ─────────────────────────────────── */
-function CommCard({
-  outerBg,
-  nameText,
-  nameColor = '#101010',
-  priceAmount,
-  priceUnit,
-  priceSub,
-  desc,
-  dotColor,
-  features,
-}: {
-  outerBg: string;
-  nameText: string;
-  nameColor?: string;
-  priceAmount: string;
-  priceUnit: string;
-  priceSub: string;
-  desc: string;
-  dotColor: string;
-  features: string[];
-}) {
-  return (
-    <div style={{
-      background: outerBg,
-      borderRadius: 20,
-      boxShadow: '0px 10.7px 18.7px -4px rgba(113,113,113,0.14)',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* ── coloured band — plan name ── */}
-      <div style={{ padding: '14px 28px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontFamily: D, fontWeight: 400, fontSize: 20, lineHeight: '20px', letterSpacing: '-0.5px', color: nameColor }}>
-          {nameText}
-        </span>
-      </div>
+/* ── Scout card — with seat calculator ───────────────────────── */
+function ScoutCard({ billing, currency }: { billing: 'mo' | 'yr'; currency: 'eur' | 'usd' }) {
+  const [seats, setSeats] = useState(1);
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
-      {/* ── white inner panel ── */}
+  const sym       = currency === 'eur' ? '€' : '$';
+  const base      = billing === 'mo' ? (currency === 'eur' ? 48 : 53) : (currency === 'eur' ? 32 : 35);
+  const extra     = currency === 'eur' ? 8 : 9;
+  const total     = base + (seats - 1) * extra;
+  const yearlyBase = currency === 'eur' ? 384 : 420;
+
+  const priceSub = billing === 'mo'
+    ? 'Billed monthly'
+    : `Base billed yearly · ${sym}${yearlyBase}/yr`;
+
+  const FEATURES = [
+    '1 seat included · add more as needed',
+    'Each seat is a full Pro profile',
+    'Verified corporate profile',
+    'Unlimited project blocks & layouts',
+    'Your own private community',
+    'Customisable profile grid',
+    'Priority in talent search',
+    'Corporate verified badge',
+    'Direct contact with any creator',
+    'Brief posting to matched talent',
+    'Market analytics by discipline',
+    'Corporate profile analytics',
+  ] as const;
+
+  const DETAILS = [
+    'Each seat gives one team member a full Pro profile under your studio account — portfolio, process, analytics, verified badge and all.',
+    'Post talent briefs visible to Pro creators who match your discipline and style criteria.',
+    'Direct messaging: reach any creator on the platform without an introduction.',
+    'Market analytics showing which disciplines are most active, what the talent pool looks like, and how demand shifts over time.',
+    'A private community built into your corporate profile — invite clients, collaborators, or internal teams.',
+    'Corporate analytics: track profile visibility, how your briefs perform, and which talent engages with you.',
+    'Advanced admin roles for managing team access and permissions across seats.',
+  ] as const;
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)',
+        borderRadius: 20,
+        boxShadow: hovered ? '0px 22px 44px -8px rgba(100,100,100,0.22)' : '0px 10.7px 18.7px -4px rgba(113,113,113,0.14)',
+        transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
+        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+        display: 'flex', flexDirection: 'column', flex: 1,
+      }}
+    >
+      <div style={{ padding: '14px 28px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: '#101010' }}>Scout Plan</span>
+      </div>
       <div style={{
-        background: '#fafafa',
-        borderRadius: 18,
-        margin: '0 2px 2px',
-        padding: '20px 26px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
+        background: '#fafafa', borderRadius: 18, margin: '0 2px 2px',
+        padding: '20px 26px 24px', display: 'flex', flexDirection: 'column', flex: 1,
       }}>
-        <Price amount={priceAmount} unit={priceUnit} />
-        <p style={{ fontFamily: B, fontWeight: 400, fontSize: 14, lineHeight: '14px', letterSpacing: '0.14px', color: '#525252', margin: '0 0 14px' }}>
-          {priceSub}
-        </p>
-        <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: '0 0 22px' }}>
-          {desc}
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {features.map(f => <Feat key={f} dot={dotColor}>{f}</Feat>)}
+        <Badge>Studios & Brands</Badge>
+
+        {/* Price + seat stepper — side by side */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+
+          {/* Left: price */}
+          <div>
+            <p style={{ margin: '0 0 4px', lineHeight: 0 }}>
+              <span style={{ fontFamily: D, fontWeight: 400, fontSize: 48, lineHeight: '50px', letterSpacing: '-1px', color: '#101010' }}>
+                {sym}{total}
+              </span>
+              <span style={{ fontFamily: B, fontWeight: 400, fontSize: 15, lineHeight: '19px', color: '#a3a3a3' }}>/mo</span>
+            </p>
+            <p style={{ fontFamily: B, fontSize: 13, color: '#525252', margin: 0 }}>{priceSub}</p>
+            {billing === 'yr' && seats > 1 && (
+              <p style={{ fontFamily: B, fontSize: 11, color: '#a3a3a3', margin: '3px 0 0' }}>+ extra seats monthly</p>
+            )}
+          </div>
+
+          {/* Right: seat stepper */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingTop: 4, flexShrink: 0 }}>
+            <p style={{ fontFamily: B, fontWeight: 500, fontSize: 11, color: '#a3a3a3', margin: '0 0 6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Team seats</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#f4f4f4', borderRadius: 10, padding: 4 }}>
+              <button
+                onClick={() => setSeats(s => Math.max(1, s - 1))}
+                style={{
+                  width: 28, height: 28, borderRadius: 7, border: '1.5px solid #e5e5e5',
+                  background: '#fff', cursor: seats === 1 ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: B, fontSize: 16, color: seats === 1 ? '#d4d4d4' : '#101010',
+                  lineHeight: 1,
+                }}
+              >−</button>
+              <span style={{ fontFamily: D, fontSize: 18, fontWeight: 400, color: '#101010', minWidth: 30, textAlign: 'center' }}>
+                {seats}
+              </span>
+              <button
+                onClick={() => setSeats(s => s + 1)}
+                style={{
+                  width: 28, height: 28, borderRadius: 7, border: '1.5px solid #e5e5e5',
+                  background: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: B, fontSize: 16, color: '#101010',
+                  lineHeight: 1,
+                }}
+              >+</button>
+            </div>
+            <p style={{ fontFamily: B, fontSize: 11, color: '#a3a3a3', margin: '5px 0 0', textAlign: 'right', lineHeight: 1.4 }}>
+              {seats === 1 ? '1 seat included' : `1 incl. · ${seats - 1} extra × ${sym}${extra}`}
+            </p>
+          </div>
+
         </div>
+
+        <p style={{ fontFamily: B, fontSize: 12, lineHeight: '16px', color: '#737373', margin: '0 0 20px' }}>
+          For studios with hiring to do. Reach talent directly, post briefs, and read the market as it moves.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, marginBottom: 20 }}>
+          {FEATURES.map(f => <Feat key={f} dot="#c4c3ff">{f}</Feat>)}
+        </div>
+
+        <button onClick={() => setOpen(o => !o)} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: '0 0 16px', margin: '0 auto', width: '100%',
+          fontFamily: B, fontWeight: 500, fontSize: 13, color: '#737373', letterSpacing: '-0.1px',
+        }}>
+          {open ? 'Less info' : 'More info'}<Chevron open={open} />
+        </button>
+
+        <div style={{ maxHeight: open ? '640px' : '0', overflow: 'hidden', transition: 'max-height 0.32s ease' }}>
+          <div style={{ paddingBottom: 20 }}>
+            <div style={{ background: '#efefff', border: '1px solid #dddcff', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+              <p style={{ fontFamily: B, fontWeight: 500, fontSize: 12, lineHeight: '17px', color: '#5b59c4', margin: 0 }}>
+                Scout is exclusively for studios and brands. Individual creators and seekers subscribe to Pro instead.
+              </p>
+            </div>
+            {DETAILS.map((d, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                <span style={{ color: '#8a88e7', fontFamily: B, fontSize: 15, lineHeight: '18px', flexShrink: 0, marginTop: 1 }}>·</span>
+                <span style={{ fontFamily: B, fontWeight: 400, fontSize: 13, lineHeight: '18px', color: '#525252' }}>{d}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <Btn label="Join the Waitlist" />
       </div>
     </div>
   );
@@ -226,15 +315,19 @@ function CommCard({
    PAGE
    ════════════════════════════════════════════════════════════════ */
 export default function PricingPage() {
-  const [billing, setBilling] = useState<'mo' | 'yr'>('mo');
+  const [billing, setBilling]   = useState<'mo' | 'yr'>('yr');
+  const [currency, setCurrency] = useState<'eur' | 'usd'>('eur');
   const isMobile = useIsMobile();
 
-  const proPrice   = billing === 'mo' ? '12€' : '8€';
-  const proSub     = billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 96€/yr';
-  const scoutPrice = billing === 'mo' ? '32€' : '21€';
-  const scoutSub   = billing === 'mo' ? 'Billed monthly' : 'Billed yearly · 252€/yr';
+  const sym      = currency === 'eur' ? '€' : '$';
+  const proPrice = billing === 'mo'
+    ? (currency === 'eur' ? '18€' : '$20')
+    : (currency === 'eur' ? '12€' : '$13');
+  const proSub   = billing === 'mo'
+    ? 'Billed monthly'
+    : (currency === 'eur' ? 'Billed yearly · 144€/yr' : 'Billed yearly · $156/yr');
 
-  const px = isMobile ? 20 : 32;
+  const px = isMobile ? 20 : 60;
 
   /* ── carousel: start centred on Pro (index 1) ── */
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -243,24 +336,89 @@ export default function PricingPage() {
     const raf = requestAnimationFrame(() => {
       const el = carouselRef.current;
       if (!el) return;
-      // card = 80 % of container width, gap = 12 px
-      // scrollLeft to centre card[1] = 1 × (cardW + gap)
       el.scrollLeft = el.offsetWidth * 0.80 + 12;
     });
     return () => cancelAnimationFrame(raf);
   }, [isMobile]);
 
+  /* ── Free + Pro card data ── */
+  const planCards = [
+    {
+      outerBg: '#f4f4f4',
+      nameText: 'Free Plan',
+      priceAmount: 'Free',
+      priceUnit: '/forever',
+      priceSub: 'No card required',
+      desc: 'The whole core, free to anyone. Your work on the platform from day one.',
+      dotColor: '#d4d4d4',
+      features: [
+        'Unlimited projects (core blocks)',
+        'Curated public profile',
+        'Full explore & search',
+        'Save & organise inspiration',
+        'Access to studio briefs',
+        'Join communities (up to 5 members)',
+      ] as const,
+      details: [
+        'Public profile visible to the entire BareFolio network from day one — no paid gate to be found.',
+        'Core project blocks: images, text, links, and basic layouts.',
+        'Full access to Explore — browse and search the whole platform at no cost.',
+        'Save references and build inspiration boards without algorithmic interference.',
+        'See and respond to briefs posted by Scout-plan studios.',
+        'Join or create communities with up to 5 members and 2 channels.',
+      ] as const,
+    },
+    {
+      outerBg: 'linear-gradient(155deg, #efefff 0%, #e2e0ff 100%)',
+      nameText: 'Pro Plan',
+      badge: 'For professionals',
+      priceAmount: proPrice,
+      priceUnit: '/mo',
+      priceSub: proSub,
+      desc: 'For when the work becomes the career. Total command over how it\'s seen, found, and valued.',
+      dotColor: '#c4c3ff',
+      features: [
+        'Everything in Free',
+        'Unlimited project blocks & layouts',
+        'Case study & process documentation',
+        'Customisable profile grid',
+        'Profile & project analytics',
+        'Verified creator badge',
+        'Priority in talent search',
+        '"Available for projects" signal',
+        'Communities up to 50 members & 5 channels',
+      ] as const,
+      details: [
+        'Full project block library: video, audio, image galleries, case study layouts, process logs, and mood boards.',
+        'Analytics dashboard: profile views, project engagement, visit patterns, and discovery sources over time.',
+        'Appear at the top of results when studios search for your discipline or style.',
+        'Toggle your availability: "open for projects", "in talks", or "not available right now".',
+        'Verified badge that confirms your identity as a professional creator on the platform.',
+        'Create and manage communities with up to 50 members and 5 themed channels.',
+      ] as const,
+      roleNote: 'Pro is exclusively for creators and seekers. Studios and brands subscribe to Scout instead.',
+    },
+  ] as const;
+
+  /* ── Toggle styles (shared) ── */
+  const toggleWrap: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center',
+    background: '#f4f4f4', border: '1px solid #e5e5e5', borderRadius: 100,
+    height: 42, padding: '4px', flexShrink: 0,
+  };
+  const toggleBtn = (active: boolean): React.CSSProperties => ({
+    height: 34, padding: '0 16px', borderRadius: 100, border: 'none', cursor: 'pointer',
+    background: active ? '#101010' : 'transparent',
+    color: active ? '#e5e5e5' : '#525252',
+    fontFamily: B, fontWeight: 500, fontSize: 14, letterSpacing: '-0.28px',
+    transition: 'background .2s',
+  });
+
   return (
     <PublicShell>
-
       <style>{`
         .pr-cta-btn:hover { opacity: 0.82; }
         .pr-carousel::-webkit-scrollbar { display: none; }
-        @media(max-width:900px){
-          .pr-3col { grid-template-columns: 1fr !important; }
-          .pr-2col { grid-template-columns: 1fr !important; }
-          .pr-head { flex-wrap: wrap !important; }
-        }
       `}</style>
 
       <div style={{ padding: `0 ${px}px ${isMobile ? 64 : 96}px` }}>
@@ -268,288 +426,122 @@ export default function PricingPage() {
         {/* ─── HERO ─── */}
         <section style={{ paddingTop: isMobile ? 28 : 48, paddingBottom: 0 }}>
           <p style={{
-            fontFamily: B, fontWeight: 600, fontSize: 12, lineHeight: '12px',
+            fontFamily: B, fontWeight: 600, fontSize: 12,
             letterSpacing: '1px', textTransform: 'uppercase', color: '#101010', marginBottom: 16,
           }}>PRICING</p>
 
-          <p style={{ margin: '0 0 16px', fontFamily: D, fontWeight: 400, fontSize: isMobile ? 36 : 50, lineHeight: isMobile ? '40px' : '51px', letterSpacing: '-1px' }}>
-            <span style={{ color: '#101010' }}>One place for your work.<br /></span>
-            <span style={{ color: '#a3a3a3' }}>Choose how far you go.</span>
+          <p style={{ margin: '0 0 20px', fontFamily: D, fontWeight: 400, fontSize: isMobile ? 34 : 50, lineHeight: isMobile ? '38px' : '54px', letterSpacing: '-1.5px' }}>
+            <span style={{ color: '#101010' }}>Three plans.<br /></span>
+            <span style={{ color: '#101010' }}>One platform. </span>
+            <span style={{ color: '#a3a3a3' }}>Free to start.</span>
           </p>
 
-          <p style={{ fontFamily: B, fontWeight: 400, fontSize: 16, lineHeight: '19px', letterSpacing: '0.16px', color: '#101010', maxWidth: 623, margin: 0 }}>
-            Creators, studios, communities — three separate grounds, each with its own people and its own
-            pace. None is ever billed against another, and no one pays a toll simply to be found.
-            You pay only for the room you stand in.
+          <p style={{ fontFamily: B, fontWeight: 400, fontSize: 15, lineHeight: '22px', color: '#525252', maxWidth: 560, margin: '0 0 24px' }}>
+            A home for creative work at every level. Free gives you a real presence on the platform from day one.
+            Pro hands creators full control over how their work is seen, found, and valued.
+            Scout gives studios and brands direct lines to the talent they're looking for.
           </p>
+
+          {/* Early access notice */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: '#efefff', border: '1px solid #dddcff',
+            borderRadius: 10, padding: '10px 16px',
+          }}>
+            <span style={{ color: '#8a88e7', fontSize: 14, lineHeight: 1 }}>✦</span>
+            <span style={{ fontFamily: B, fontWeight: 500, fontSize: 13, color: '#5b59c4', lineHeight: 1.4 }}>
+              We're in early access — pricing applies at launch. Join the waitlist to get in first.
+            </span>
+          </div>
         </section>
 
         {/* ─── PLANS ─── */}
-        <section style={{ marginTop: isMobile ? 40 : 60 }}>
-          <div style={{ height: 1, background: '#e5e5e5', marginBottom: 22 }} />
+        <section style={{ marginTop: isMobile ? 48 : 64 }}>
+          <div style={{ height: 1, background: '#e5e5e5', marginBottom: 24 }} />
 
           {/* section head */}
-          <div className="pr-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
-            <div>
-              <p style={{ fontFamily: D, fontWeight: 400, fontSize: 24, lineHeight: '26px', letterSpacing: '-1px', color: '#101010', margin: '0 0 5px' }}>Plans</p>
-              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: 0 }}>
-                From the open door to a full studio presence.
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 32 }}>
+            <div style={{ maxWidth: 480 }}>
+              <p style={{ fontFamily: D, fontWeight: 400, fontSize: 24, lineHeight: '26px', letterSpacing: '-1px', color: '#101010', margin: '0 0 10px' }}>Plans</p>
+              <p style={{ fontFamily: B, fontWeight: 400, fontSize: 13, lineHeight: '18px', color: '#737373', margin: 0 }}>
+                Three plans, three different kinds of presence. Free gives anyone a place on the platform with no card required.
+                Pro is for creators who want full command over how their work is discovered. Scout is for studios doing the hiring.
               </p>
             </div>
 
-            {/* billing toggle */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center',
-              background: '#f4f4f4', border: '1px solid #e5e5e5', borderRadius: 100,
-              height: 42, padding: '4px 4px 4px 4px', flexShrink: 0,
-            }}>
-              <button onClick={() => setBilling('mo')} style={{
-                height: 34, padding: '0 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
-                background: billing === 'mo' ? '#101010' : 'transparent',
-                color: billing === 'mo' ? '#e5e5e5' : '#525252',
-                fontFamily: B, fontWeight: 500, fontSize: 14, letterSpacing: '-0.28px',
-                transition: 'background .2s',
-              }}>Monthly</button>
-              <button onClick={() => setBilling('yr')} style={{
-                height: 34, padding: '0 10px 0 14px', borderRadius: 100, border: 'none', cursor: 'pointer',
-                background: billing === 'yr' ? '#101010' : 'transparent',
-                color: billing === 'yr' ? '#e5e5e5' : '#525252',
-                fontFamily: B, fontWeight: 500, fontSize: 14, letterSpacing: '-0.28px',
-                display: 'flex', alignItems: 'center', gap: 6, transition: 'background .2s',
-              }}>
-                Yearly
-                <span style={{
-                  background: '#e1e1ff', border: '1px solid #8a88e7', borderRadius: 100,
-                  padding: '3px 8px', fontFamily: B, fontWeight: 400, fontSize: 12,
-                  letterSpacing: '0.12px', color: '#4e4bb9', whiteSpace: 'nowrap',
-                }}>Save 33%</span>
-              </button>
+            {/* Toggles */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+
+              {/* Currency toggle */}
+              <div style={toggleWrap}>
+                <button onClick={() => setCurrency('eur')} style={toggleBtn(currency === 'eur')}>€ EUR</button>
+                <button onClick={() => setCurrency('usd')} style={toggleBtn(currency === 'usd')}>$ USD</button>
+              </div>
+
+              {/* Billing toggle */}
+              <div style={toggleWrap}>
+                <button onClick={() => setBilling('mo')} style={toggleBtn(billing === 'mo')}>Monthly</button>
+                <button onClick={() => setBilling('yr')} style={{
+                  ...toggleBtn(billing === 'yr'),
+                  padding: '0 10px 0 16px',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  Yearly
+                  <span style={{
+                    background: '#e1e1ff', border: '1px solid #8a88e7', borderRadius: 100,
+                    padding: '3px 8px', fontFamily: B, fontWeight: 400, fontSize: 11,
+                    color: '#4e4bb9', whiteSpace: 'nowrap',
+                  }}>Save 33%</span>
+                </button>
+              </div>
+
             </div>
           </div>
 
           {/* ── mobile: snap carousel  ── desktop: 3-col grid ── */}
           {isMobile ? (
-            /* Carousel — full-bleed, card = 80 vw, peek = 10 vw each side */
             <div
               ref={carouselRef}
               className="pr-carousel"
               style={{
-                display: 'flex',
-                overflowX: 'scroll',
-                scrollSnapType: 'x mandatory',
-                gap: 12,
-                /* cancel parent padding so carousel touches screen edges */
-                margin: `0 -${px}px`,
-                padding: '0 10vw',
-                /* iOS momentum + hide scrollbar */
+                display: 'flex', overflowX: 'scroll',
+                scrollSnapType: 'x mandatory', gap: 12,
+                margin: `0 -${px}px`, padding: '0 10vw',
                 WebkitOverflowScrolling: 'touch',
                 scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
               } as React.CSSProperties}
             >
-              {/* align-items default is stretch → all wrappers get Scout's height */}
-              {[
-                {
-                  outerBg: '#f4f4f4',
-                  nameText: 'Free Plan',
-                  priceAmount: 'Free',
-                  priceUnit: '/forever',
-                  priceSub: 'No card, no limits on the essentials',
-                  desc: 'The door, wide open, the whole core, free to anyone.',
-                  dotColor: '#e5e5e5',
-                  features: [
-                    'Unlimited projects (basic blocks)',
-                    'Curated public profile',
-                    'Full explore & search',
-                    'Communities up to 5 members, 2 channels',
-                    'Access to briefs posted by Scouts',
-                  ],
-                  btnLabel: 'Start free',
-                },
-                {
-                  outerBg: 'linear-gradient(155deg, #efefff 0%, #e2e0ff 100%)',
-                  nameText: 'Pro Plan',
-                  badge: 'For professionals',
-                  priceAmount: proPrice,
-                  priceUnit: '/month',
-                  priceSub: proSub,
-                  desc: "For when the work becomes the career. Total command over how it's seen.",
-                  dotColor: '#c4c3ff',
-                  features: [
-                    'Everything in Free',
-                    'Unlimited project blocks',
-                    'Customisable profile grid',
-                    'Profile analytics',
-                    'Verified badge',
-                    'Priority in talent search',
-                    '"Available for projects" signal',
-                  ],
-                  btnLabel: 'Go Pro',
-                },
-                {
-                  outerBg: 'linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)',
-                  nameText: 'Scout Plan',
-                  badge: 'Studios & Brands',
-                  priceAmount: scoutPrice,
-                  priceUnit: '/month',
-                  priceSub: scoutSub,
-                  priceSub2: 'From 2 seats · +6€/mo per extra seat',
-                  desc: 'For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves.',
-                  dotColor: '#c4c3ff',
-                  features: [
-                    'Each seat is a full Pro plan for a team member',
-                    'Verified corporate profile',
-                    'Unlimited project blocks',
-                    'Your own private community',
-                    'Customisable profile grid',
-                    'Priority in search',
-                    'Corporate verified badge',
-                    'Direct contact with creators',
-                    'Market analytics by category',
-                    'Corporate profile analytics',
-                  ],
-                  btnLabel: 'Become a Scout',
-                },
-              ].map((card, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flex: '0 0 80vw',
-                    scrollSnapAlign: 'center',
-                    scrollSnapStop: 'always',
-                    minWidth: 0,
-                    /* flex column so PlanCard (flex:1) fills the stretched height */
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
+              {planCards.map((card, i) => (
+                <div key={i} style={{ flex: '0 0 80vw', scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <PlanCard {...card} />
                 </div>
               ))}
+              <div style={{ flex: '0 0 80vw', scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <ScoutCard billing={billing} currency={currency} />
+              </div>
             </div>
           ) : (
-            /* Desktop 3-col grid */
-            <div className="pr-3col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, alignItems: 'stretch' }}>
-              <PlanCard
-                outerBg="#f4f4f4"
-                nameText="Free Plan"
-                priceAmount="Free"
-                priceUnit="/forever"
-                priceSub="No card, no limits on the essentials"
-                desc="The door, wide open, the whole core, free to anyone."
-                dotColor="#e5e5e5"
-                features={[
-                  'Unlimited projects (basic blocks)',
-                  'Curated public profile',
-                  'Full explore & search',
-                  'Communities up to 5 members, 2 channels',
-                  'Access to briefs posted by Scouts',
-                ]}
-                btnLabel="Start free"
-              />
-              <PlanCard
-                outerBg="linear-gradient(155deg, #efefff 0%, #e2e0ff 100%)"
-                nameText="Pro Plan"
-                badge="For professionals"
-                priceAmount={proPrice}
-                priceUnit="/month"
-                priceSub={proSub}
-                desc="For when the work becomes the career. Total command over how it's seen."
-                dotColor="#c4c3ff"
-                features={[
-                  'Everything in Free',
-                  'Unlimited project blocks',
-                  'Customisable profile grid',
-                  'Profile analytics',
-                  'Verified badge',
-                  'Priority in talent search',
-                  '"Available for projects" signal',
-                ]}
-                btnLabel="Go Pro"
-              />
-              <PlanCard
-                outerBg="linear-gradient(155deg, #f5f4ff 0%, #eceaff 100%)"
-                nameText="Scout Plan"
-                badge="Studios & Brands"
-                priceAmount={scoutPrice}
-                priceUnit="/month"
-                priceSub={scoutSub}
-                priceSub2="From 2 seats · +6€/mo per extra seat"
-                desc="For studios with hiring to do. Reach talent directly, post briefs and read the market as it moves."
-                dotColor="#c4c3ff"
-                features={[
-                  'Each seat is a full Pro plan for a team member',
-                  'Verified corporate profile',
-                  'Unlimited project blocks',
-                  'Your own private community',
-                  'Customisable profile grid',
-                  'Priority in search',
-                  'Corporate verified badge',
-                  'Direct contact with creators',
-                  'Market analytics by category',
-                  'Corporate profile analytics',
-                ]}
-                btnLabel="Become a Scout"
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, alignItems: 'stretch' }}>
+              {planCards.map((card, i) => <PlanCard key={i} {...card} />)}
+              <ScoutCard billing={billing} currency={currency} />
             </div>
           )}
-        </section>
 
-        {/* ─── COMMUNITIES ─── */}
-        <section style={{ marginTop: isMobile ? 40 : 60 }}>
-          <div style={{ height: 1, background: '#e5e5e5', marginBottom: 22 }} />
-
-          <div style={{ marginBottom: 24 }}>
-            <p style={{ fontFamily: D, fontWeight: 400, fontSize: 24, lineHeight: '26px', letterSpacing: '-1px', color: '#101010', margin: '0 0 5px' }}>Communities</p>
-            <p style={{ fontFamily: B, fontWeight: 400, fontSize: 12, lineHeight: '14px', letterSpacing: '0.12px', color: '#737373', margin: 0, maxWidth: 280 }}>
-              A ground of its own. One fee for each community you open, not a key to unlimited ones.
-            </p>
-          </div>
-
-          {/* 2-col grid */}
-          <div className="pr-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-
-            <CommCard
-              outerBg="#f4f4f4"
-              nameText="Plus"
-              priceAmount="3,99€"
-              priceUnit="/month per community"
-              priceSub="One fee for each community you run"
-              desc="A space still finding its shape, and the tools to keep it gathered."
-              dotColor="#e5e5e5"
-              features={[
-                'Up to 250 members',
-                '5 themed channels',
-                'Private + invite-only visibility',
-                'Share Projects',
-                'Internal briefs',
-                'Resources channel',
-              ]}
+          {/* ─── PLATFORM PREVIEW ─── */}
+          <div style={{ marginTop: isMobile ? 40 : 56 }}>
+            <img
+              src="/pricing-preview.jpg"
+              alt="BareFolio app shown on a phone"
+              width={2000}
+              height={1116}
+              loading="lazy"
+              style={{
+                width: '100%', height: 'auto', display: 'block',
+                aspectRatio: '2000 / 1116', borderRadius: 20, objectFit: 'cover',
+              }}
             />
-
-            <CommCard
-              outerBg="#101010"
-              nameText="Max"
-              nameColor="#fafafa"
-              priceAmount="7,99€"
-              priceUnit="/month per community"
-              priceSub="One fee for each community you run"
-              desc="No ceilings, open it to everyone and run it your way."
-              dotColor="#d4d4d4"
-              features={[
-                'Unlimited members',
-                'Unlimited channels',
-                'Full visibility (All)',
-                'Share Projects',
-                'Internal briefs',
-                'Resources channel',
-                'Advanced admin roles',
-              ]}
-            />
-
           </div>
         </section>
-
 
       </div>
     </PublicShell>

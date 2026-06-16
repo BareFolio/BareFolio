@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
+import { gatePlatform } from '@/lib/platformGate';
 import SwipeCard from '@/components/SwipeCard';
 import TasteBuilder from '@/components/TasteBuilder';
 import { useRouter } from 'next/navigation';
@@ -305,6 +306,7 @@ const SWIPE_DECK = [
 ];
 
 export default function ExplorePage() {
+  gatePlatform();
   const { profile, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline } = useApp();
   const selectedDiscipline = globalDiscipline;
   const setSelectedDiscipline = setGlobalDiscipline;

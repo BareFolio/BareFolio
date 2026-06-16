@@ -35,6 +35,7 @@ function ShellHeader({ isMobile }: { isMobile: boolean }) {
       width: '100%',
       boxSizing: 'border-box',
     }}>
+
       {/* Logo — links to landing */}
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         {isMobile ? (
@@ -48,7 +49,7 @@ function ShellHeader({ isMobile }: { isMobile: boolean }) {
       </Link>
 
       {/* Join the waitlist — right side */}
-      <Link href="/waitlist" className="ps-wl-btn pill-btn" style={{
+      <Link href="/waitlist" className="ps-wl-btn pill-btn" onClick={() => { try { (window as any).gtag?.('event', 'waitlist_cta_click', { source: 'header' }); } catch {} }} style={{
         fontFamily: B, fontWeight: 500, fontSize: 14, letterSpacing: '-0.28px',
         padding: '11px 20px', borderRadius: 100,
         background: '#101010', color: '#fafafa', textDecoration: 'none',

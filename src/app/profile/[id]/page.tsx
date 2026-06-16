@@ -1,4 +1,5 @@
 import ProfileClient from './ProfileClient';
+import { gatePlatform } from '@/lib/platformGate';
 
 export async function generateStaticParams() {
   return [
@@ -12,5 +13,6 @@ export async function generateStaticParams() {
 }
 
 export default function ProfilePage() {
+  gatePlatform();
   return <ProfileClient />;
 }

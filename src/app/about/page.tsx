@@ -1,11 +1,25 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import PublicShell from '@/components/PublicShell';
+import WaitlistLink from '@/components/WaitlistLink';
 import { PrinciplesBlock, FeaturesBlock } from './AccordionBlock';
 
 export const metadata: Metadata = {
-  title: 'About - BareFolio',
+  title: 'About',
   description: "We're building the creative environment the industry was missing — a single platform for portfolios, process, inspiration, and professional opportunity.",
+  alternates: { canonical: 'https://barefolio.com/about' },
+  openGraph: {
+    title: 'About | BareFolio',
+    description: "We're building the creative environment the industry was missing — a single platform for portfolios, process, inspiration, and professional opportunity.",
+    url: 'https://barefolio.com/about',
+    type: 'website',
+    images: [{ url: '/og.jpg', width: 1200, height: 630, alt: 'About BareFolio' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About | BareFolio',
+    description: "We're building the creative environment the industry was missing — a single platform for portfolios, process, inspiration, and professional opportunity.",
+    images: ['/og.jpg'],
+  },
 };
 
 const D = 'var(--font-display), -apple-system, sans-serif';
@@ -54,7 +68,7 @@ const STEPS = [
   },
   {
     n: '03', title: 'Join',
-    body: 'Accepted creators gain full access to BareFolio and receive five invitation codes to bring in other creatives they believe in.',
+    body: 'Accepted creators gain full access to BareFolio — to publish their work, curate inspiration, and connect with the brands and studios looking for exactly what they make.',
   },
 ];
 
@@ -95,6 +109,12 @@ export default function AboutPage() {
         .about-a1 { animation: about-fadeUp 0.9s cubic-bezier(.22,1,.36,1) 0.00s both; }
         .about-a2 { animation: about-fadeUp 0.9s cubic-bezier(.22,1,.36,1) 0.15s both; }
         .about-a3 { animation: about-fadeUp 0.9s cubic-bezier(.22,1,.36,1) 0.30s both; }
+        /* Footer floats up over the black manifesto section — only on About */
+        body:has(.about-manifesto) footer {
+          position: relative;
+          z-index: 2;
+          margin-top: -50px;
+        }
         .about-orb {
           position: absolute; top: 40px; left: 50%;
           transform: translateX(-50%);
@@ -122,15 +142,33 @@ export default function AboutPage() {
           font-family: var(--font-sans), sans-serif;
           margin-bottom: 16px; flex-shrink: 0;
         }
+        /* Desktop visibility */
+        .about-dim-desktop       { display: block; }
+        .about-dim-mobile-scroll { display: none;  }
         @media (max-width: 767px) {
-          .about-who-grid    { grid-template-columns: 1fr !important; }
-          .about-dim-grid    { grid-template-columns: 1fr !important; }
-          .about-dim-row2    { grid-template-columns: 1fr !important; max-width: 100% !important; }
-          .about-curated-grid { grid-template-columns: 1fr !important; }
-          .about-steps-grid  { grid-template-columns: 1fr !important; }
-          .about-two-col     { grid-template-columns: 1fr !important; }
-          .about-origin-grid { grid-template-columns: 1fr !important; }
+          /* Vertical stacks (unchanged behaviour) */
+          .about-curated-grid    { grid-template-columns: 1fr !important; }
+          .about-steps-grid      { grid-template-columns: 1fr !important; }
+          .about-two-col         { grid-template-columns: 1fr !important; }
+          .about-origin-grid     { grid-template-columns: 1fr !important; }
           .about-manifesto-inner { padding: 40px 24px !important; }
+          /* ── Who It's For: horizontal scroll gallery ── */
+          .about-who-grid {
+            display: flex !important;
+            overflow-x: auto; scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 12px;
+          }
+          .about-who-grid::-webkit-scrollbar { display: none; }
+          .about-who-grid > * { flex: 0 0 calc(100% - 28px) !important; scroll-snap-align: start; }
+          /* ── Five Dimensions: horizontal scroll gallery ── */
+          .about-dim-desktop       { display: none; }
+          .about-dim-mobile-scroll {
+            display: flex;
+            overflow-x: auto; scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 12px;
+          }
+          .about-dim-mobile-scroll::-webkit-scrollbar { display: none; }
+          .about-dim-mobile-scroll > * { flex: 0 0 calc(100% - 28px); scroll-snap-align: start; }
         }
       `}</style>
 
@@ -180,8 +218,8 @@ export default function AboutPage() {
             <div className="about-who-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               {WHO.map(({ role, sub, headline, body }) => (
                 <div key={role} className="about-who-card" style={{ background: '#101010', borderRadius: '20px', padding: '32px 28px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.5)', margin: '0 0 4px' }}>{role}</p>
-                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', margin: '0 0 20px', fontStyle: 'italic' }}>{sub}</p>
+                  <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.7)', margin: '0 0 4px' }}>{role}</p>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: '0 0 20px', fontStyle: 'italic' }}>{sub}</p>
                   <h3 style={{ fontFamily: D, fontSize: '22px', fontWeight: 400, letterSpacing: '-0.8px', color: '#fafafa', margin: '0 0 12px', lineHeight: 1.2 }}>{headline}</h3>
                   <p style={{ fontSize: '13px', color: '#fafafa', lineHeight: 1.75, margin: 0 }}>{body}</p>
                 </div>
@@ -190,12 +228,12 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ── Image placeholder 1 ── */}
+        {/* ── Teaser video ── */}
         <div style={{ padding: '12px 24px 56px', maxWidth: '960px', margin: '0 auto' }}>
-          <ImgPlaceholder
-            label="EDITORIAL IMAGE"
-            note="1400 × 600 — Creative portfolio showcase, curated visual work"
-            ratio="21/8"
+          <video
+            src="/teaser.mp4"
+            autoPlay muted loop playsInline disablePictureInPicture
+            style={{ width: '100%', aspectRatio: '16/9', borderRadius: '20px', objectFit: 'cover', display: 'block' }}
           />
         </div>
 
@@ -205,17 +243,31 @@ export default function AboutPage() {
             <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: '#a3a3a3', margin: '0 0 24px', textAlign: 'center' }}>
               THE FIVE DIMENSIONS
             </p>
-            <div className="about-dim-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
-              {DIMENSIONS.slice(0, 3).map(({ n, title, body }) => (
-                <div key={n} className="about-dim-card" style={{ background: '#f4f4f4', borderRadius: '20px', padding: '28px 24px' }}>
-                  <div style={{ fontFamily: D, fontSize: '40px', fontWeight: 400, color: '#101010', lineHeight: 1, marginBottom: '4px', letterSpacing: '-1px' }}>{n}</div>
-                  <div style={{ fontFamily: D, fontSize: '18px', fontWeight: 400, color: '#101010', marginBottom: '10px', lineHeight: 1.2, letterSpacing: '-0.5px' }}>{title}</div>
-                  <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.65, margin: 0 }}>{body}</p>
-                </div>
-              ))}
+            {/* Desktop: 3 + 2 grid */}
+            <div className="about-dim-desktop">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
+                {DIMENSIONS.slice(0, 3).map(({ n, title, body }) => (
+                  <div key={n} className="about-dim-card" style={{ background: '#f4f4f4', borderRadius: '20px', padding: '28px 24px' }}>
+                    <div style={{ fontFamily: D, fontSize: '40px', fontWeight: 400, color: '#101010', lineHeight: 1, marginBottom: '4px', letterSpacing: '-1px' }}>{n}</div>
+                    <div style={{ fontFamily: D, fontSize: '18px', fontWeight: 400, color: '#101010', marginBottom: '10px', lineHeight: 1.2, letterSpacing: '-0.5px' }}>{title}</div>
+                    <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.65, margin: 0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxWidth: '640px', margin: '0 auto' }}>
+                {DIMENSIONS.slice(3).map(({ n, title, body }) => (
+                  <div key={n} className="about-dim-card" style={{ background: '#f4f4f4', borderRadius: '20px', padding: '28px 24px' }}>
+                    <div style={{ fontFamily: D, fontSize: '40px', fontWeight: 400, color: '#101010', lineHeight: 1, marginBottom: '4px', letterSpacing: '-1px' }}>{n}</div>
+                    <div style={{ fontFamily: D, fontSize: '18px', fontWeight: 400, color: '#101010', marginBottom: '10px', lineHeight: 1.2, letterSpacing: '-0.5px' }}>{title}</div>
+                    <p style={{ fontSize: '13px', color: '#737373', lineHeight: 1.65, margin: 0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="about-dim-row2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxWidth: '640px', margin: '0 auto' }}>
-              {DIMENSIONS.slice(3).map(({ n, title, body }) => (
+
+            {/* Mobile: horizontal scroll with all 5 */}
+            <div className="about-dim-mobile-scroll">
+              {DIMENSIONS.map(({ n, title, body }) => (
                 <div key={n} className="about-dim-card" style={{ background: '#f4f4f4', borderRadius: '20px', padding: '28px 24px' }}>
                   <div style={{ fontFamily: D, fontSize: '40px', fontWeight: 400, color: '#101010', lineHeight: 1, marginBottom: '4px', letterSpacing: '-1px' }}>{n}</div>
                   <div style={{ fontFamily: D, fontSize: '18px', fontWeight: 400, color: '#101010', marginBottom: '10px', lineHeight: 1.2, letterSpacing: '-0.5px' }}>{title}</div>
@@ -261,7 +313,7 @@ export default function AboutPage() {
 
             {/* 2-col: steps left, image right */}
             <div className="about-curated-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'start' }}>
-              <div className="about-steps-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 {STEPS.map(({ n, title, body }) => (
                   <div key={n} style={{ display: 'flex', gap: '18px', alignItems: 'flex-start' }}>
                     <div className="about-step-num" style={{
@@ -277,25 +329,23 @@ export default function AboutPage() {
                     </div>
                   </div>
                 ))}
+                <div>
+                  <WaitlistLink source="about_curated" className="pill-btn" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: '#101010', color: '#fafafa',
+                    fontFamily: B, fontSize: '14px', fontWeight: 500,
+                    padding: '13px 28px', borderRadius: '100px',
+                    textDecoration: 'none',
+                  }}>
+                    Get access<span className="pill-arrow"><span>→</span></span>
+                  </WaitlistLink>
+                </div>
               </div>
-              <ImgPlaceholder
-                label="PROCESS IMAGE"
-                note="900 × 1100 — Portfolio review or creative work in context"
-                ratio="9/11"
+              <img
+                src="/curatedaccess.webp"
+                alt="Curated access — portfolio review process"
+                style={{ width: '100%', aspectRatio: '9/11', borderRadius: '20px', objectFit: 'cover', display: 'block' }}
               />
-            </div>
-
-            {/* Get access CTA */}
-            <div style={{ marginTop: '40px', textAlign: 'center' }}>
-              <Link href="/waitlist" className="pill-btn" style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                background: '#101010', color: '#fafafa',
-                fontFamily: B, fontSize: '14px', fontWeight: 500,
-                padding: '13px 28px', borderRadius: '100px',
-                textDecoration: 'none',
-              }}>
-                Get access<span className="pill-arrow"><span>→</span></span>
-              </Link>
             </div>
           </div>
         </section>
@@ -312,10 +362,10 @@ export default function AboutPage() {
         </div>
 
         {/* ── 8 + 9. Origin / Manifiesto + CTA — full width black ── */}
-        <section style={{ background: '#101010', width: '100%', marginTop: '40px' }}>
+        <section className="about-manifesto" style={{ background: '#101010', width: '100%', marginTop: '40px', paddingBottom: '40px', position: 'relative', zIndex: 1 }}>
           <div className="about-manifesto-inner" style={{ maxWidth: '960px', margin: '0 auto', padding: '64px 24px 0' }}>
 
-            <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: 'rgba(255,255,255,0.3)', marginBottom: '32px', textAlign: 'center' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: 'rgba(255,255,255,0.6)', marginBottom: '32px', textAlign: 'center' }}>
               WHERE IT COMES FROM
             </p>
 
@@ -325,17 +375,17 @@ export default function AboutPage() {
                 <p style={{ fontFamily: D, fontSize: 'clamp(18px, 2vw, 26px)', fontWeight: 400, fontStyle: 'italic', color: '#fafafa', lineHeight: 1.4, letterSpacing: '-0.5px', margin: '0 0 24px' }}>
                   &ldquo;Not everyone needed another platform.<br />They needed a different one.&rdquo;
                 </p>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.85, margin: '0 0 14px' }}>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.85, margin: '0 0 14px' }}>
                   BareFolio was born during design studies in Barcelona — from a recurring conversation
                   about the difficulty of existing professionally without fragmenting yourself across
                   tools that don&apos;t speak to each other.
                 </p>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.85, margin: '0 0 14px' }}>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.85, margin: '0 0 14px' }}>
                   The idea took shape as a final degree research project: a study of how visual
                   creatives manage their professional identity online. The conclusion was clear.
                   The tools exist. The integration doesn&apos;t.
                 </p>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.85, margin: 0 }}>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.85, margin: 0 }}>
                   What started as an academic inquiry became a product conviction — the creative
                   industry needed a different kind of platform. Not another social network. Not
                   another portfolio builder. An environment built entirely around creative practice.
@@ -359,8 +409,8 @@ export default function AboutPage() {
                   },
                 ].map(({ label, text }) => (
                   <div key={label}>
-                    <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.25)', margin: '0 0 8px' }}>{label}</p>
-                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, margin: 0 }}>{text}</p>
+                    <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.6)', margin: '0 0 8px' }}>{label}</p>
+                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.8, margin: 0 }}>{text}</p>
                   </div>
                 ))}
               </div>
@@ -373,7 +423,7 @@ export default function AboutPage() {
 
           {/* CTA — same black block */}
           <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 24px 72px', textAlign: 'center' }}>
-            <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: 'rgba(255,255,255,0.3)', margin: '0 0 20px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2.5px', color: 'rgba(255,255,255,0.6)', margin: '0 0 20px' }}>
               EARLY ACCESS
             </p>
             <h2 style={{
@@ -382,11 +432,11 @@ export default function AboutPage() {
             }}>
               Your work deserves<br />the right space.
             </h2>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, maxWidth: '380px', margin: '0 auto 32px' }}>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, maxWidth: '380px', margin: '0 auto 32px' }}>
               BareFolio is currently in private early access. Submit your work for review
               and be part of building a space where quality is the only currency.
             </p>
-            <Link href="/waitlist" style={{
+            <WaitlistLink source="about_cta" style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
               background: '#fafafa', color: '#101010',
               fontFamily: B, fontSize: '14px', fontWeight: 500,
@@ -394,7 +444,7 @@ export default function AboutPage() {
               textDecoration: 'none',
             }}>
               Request early access →
-            </Link>
+            </WaitlistLink>
           </div>
         </section>
 

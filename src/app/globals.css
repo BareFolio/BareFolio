@@ -64,6 +64,17 @@ html {
   overflow-x: clip;
 }
 
+/* ── Video: never show native controls on any device ───────── */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+}
+
 body {
   background-color: var(--bare-white);
   color: var(--bare-black);
