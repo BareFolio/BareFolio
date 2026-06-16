@@ -62,11 +62,11 @@ export default function CookieBanner() {
       }}
     >
       <div style={{
-        /* Glassmorphism — subtle frost */
-        background: 'rgba(255, 255, 255, 0.78)',
-        backdropFilter: 'blur(8px) saturate(130%)',
-        WebkitBackdropFilter: 'blur(8px) saturate(130%)',
-        border: '1px solid rgba(255, 255, 255, 0.55)',
+        /* Glassmorphism — light, translucent frost */
+        background: 'rgba(255, 255, 255, 0.45)',
+        backdropFilter: 'blur(12px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+        border: '1px solid rgba(255, 255, 255, 0.6)',
         borderRadius: '16px',
         padding: '18px 20px',
         width: '400px',
@@ -77,20 +77,27 @@ export default function CookieBanner() {
         flexDirection: 'column',
         gap: '14px',
       }}>
-        {/* ── Top content (unchanged copy) ── */}
-        <p style={{
-          fontFamily: 'var(--font-sans), sans-serif',
-          fontSize: '14px', color: '#404040',
-          lineHeight: 1.55, margin: 0,
-        }}>
-          We use cookies to improve your experience, remember your
-          preferences, and understand how the site is used. You can accept
-          or decline non-essential cookies at any time. See our{' '}
-          <Link href="/cookies" style={{ color: '#101010', fontWeight: 500, textDecoration: 'underline' }}>
-            Cookie Policy
-          </Link>{' '}
-          for details.
-        </p>
+        {/* ── Top content ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <h2 style={{
+            fontFamily: 'var(--font-sans), sans-serif',
+            fontSize: '15px', fontWeight: 600, color: '#101010',
+            margin: 0,
+          }}>
+            We value your privacy
+          </h2>
+          <p style={{
+            fontFamily: 'var(--font-sans), sans-serif',
+            fontSize: '14px', color: '#404040',
+            lineHeight: 1.55, margin: 0,
+          }}>
+            We use cookies to improve your experience and understand how the
+            site is used. See our{' '}
+            <Link href="/cookies" style={{ color: '#101010', fontWeight: 500, textDecoration: 'underline' }}>
+              Cookie Policy
+            </Link>.
+          </p>
+        </div>
 
         {/* ── Actions ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
