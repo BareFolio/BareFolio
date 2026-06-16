@@ -91,8 +91,8 @@ export default function CookieBanner() {
             fontSize: '14px', color: '#404040',
             lineHeight: 1.55, margin: 0,
           }}>
-            We use cookies to improve your experience and understand how the
-            site is used.<br />
+            We use cookies to improve your experience<br />
+            and understand how the site is used.<br />
             See our{' '}
             <Link href="/cookies" style={{ color: '#101010', fontWeight: 500, textDecoration: 'underline' }}>
               Cookie Policy
