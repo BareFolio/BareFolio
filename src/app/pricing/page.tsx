@@ -19,6 +19,12 @@ function useIsMobile() {
 const D = 'var(--font-display), -apple-system, sans-serif';
 const B = 'var(--font-sans),    -apple-system, sans-serif';
 
+/* ── Mobile carousel geometry ─────────────────────────────────── */
+const CARD_VW = 72;                       // card width (vw) — smaller = side cards peek more
+const SIDE_PAD = (100 - CARD_VW) / 2;     // padding that keeps a card snapped to centre
+const CARD_GAP = 12;                      // gap between cards (px)
+const PLAN_NAMES = ['Free Plan', 'Pro Plan', 'Scout Plan'] as const;
+
 /* ── Feature item ─────────────────────────────────────────────── */
 function Feat({ dot, children }: { dot: string; children: React.ReactNode }) {
   return (
@@ -331,15 +337,34 @@ export default function PricingPage() {
 
   /* ── carousel: start centred on Pro (index 1) ── */
   const carouselRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(1);
+
   useEffect(() => {
     if (!isMobile || !carouselRef.current) return;
     const raf = requestAnimationFrame(() => {
       const el = carouselRef.current;
       if (!el) return;
-      el.scrollLeft = el.offsetWidth * 0.80 + 12;
+      el.scrollLeft = el.offsetWidth * (CARD_VW / 100) + CARD_GAP;
     });
     return () => cancelAnimationFrame(raf);
   }, [isMobile]);
+
+  /* Track which card is centred so the breadcrumb dots stay in sync */
+  function handleCarouselScroll() {
+    const el = carouselRef.current;
+    if (!el) return;
+    const step = el.offsetWidth * (CARD_VW / 100) + CARD_GAP;
+    const idx = Math.max(0, Math.min(PLAN_NAMES.length - 1, Math.round(el.scrollLeft / step)));
+    setActiveIndex(idx);
+  }
+
+  /* Tap a dot to jump to that plan */
+  function goToCard(i: number) {
+    const el = carouselRef.current;
+    if (!el) return;
+    const step = el.offsetWidth * (CARD_VW / 100) + CARD_GAP;
+    el.scrollTo({ left: step * i, behavior: 'smooth' });
+  }
 
   /* ── Free + Pro card data ── */
   const planCards = [
@@ -444,13 +469,13 @@ export default function PricingPage() {
 
           {/* Early access notice */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
+            display: 'inline-flex', alignItems: isMobile ? 'flex-start' : 'center', gap: 8,
             background: '#efefff', border: '1px solid #dddcff',
             borderRadius: 10, padding: '10px 16px',
           }}>
-            <span style={{ color: '#8a88e7', fontSize: 14, lineHeight: 1 }}>✦</span>
+            <span style={{ color: '#8a88e7', fontSize: 14, lineHeight: 1.4 }}>✦</span>
             <span style={{ fontFamily: B, fontWeight: 500, fontSize: 13, color: '#5b59c4', lineHeight: 1.4 }}>
-              We're in early access — pricing applies at launch. Join the waitlist to get in first.
+              We&apos;re in early access — pricing applies at launch.{isMobile ? <br /> : ' '}Join the waitlist to get in first.
             </span>
           </div>
         </section>
@@ -498,25 +523,59 @@ export default function PricingPage() {
             </div>
           </div>
 
+          {/* ── mobile: breadcrumb dots above the carousel ── */}
+          {isMobile && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+              <span style={{
+                fontFamily: B, fontWeight: 600, fontSize: 11,
+                letterSpacing: '1px', textTransform: 'uppercase', color: '#101010',
+              }}>
+                {PLAN_NAMES[activeIndex]}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                {PLAN_NAMES.map((name, i) => (
+                  <button
+                    key={name}
+                    onClick={() => goToCard(i)}
+                    aria-label={name}
+                    aria-current={i === activeIndex}
+                    style={{
+                      border: 'none', background: 'transparent', padding: 4,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    }}
+                  >
+                    <span style={{
+                      display: 'block', height: 7, borderRadius: 100,
+                      width: i === activeIndex ? 22 : 7,
+                      background: i === activeIndex ? '#101010' : '#d4d4d4',
+                      transition: 'width 0.28s ease, background 0.28s ease',
+                    }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── mobile: snap carousel  ── desktop: 3-col grid ── */}
           {isMobile ? (
             <div
               ref={carouselRef}
               className="pr-carousel"
+              onScroll={handleCarouselScroll}
               style={{
                 display: 'flex', overflowX: 'scroll',
-                scrollSnapType: 'x mandatory', gap: 12,
-                margin: `0 -${px}px`, padding: '0 10vw',
+                scrollSnapType: 'x mandatory', gap: CARD_GAP,
+                margin: `0 -${px}px`, padding: `0 ${SIDE_PAD}vw`,
                 WebkitOverflowScrolling: 'touch',
                 scrollbarWidth: 'none',
               } as React.CSSProperties}
             >
               {planCards.map((card, i) => (
-                <div key={i} style={{ flex: '0 0 80vw', scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <div key={i} style={{ flex: `0 0 ${CARD_VW}vw`, scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <PlanCard {...card} />
                 </div>
               ))}
-              <div style={{ flex: '0 0 80vw', scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: `0 0 ${CARD_VW}vw`, scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                 <ScoutCard billing={billing} currency={currency} />
               </div>
             </div>

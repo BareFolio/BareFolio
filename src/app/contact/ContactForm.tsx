@@ -47,7 +47,7 @@ const SUBJECTS: Record<AccountType, string[]> = {
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
 /* ════════════════════════════════════════════════════════════════ */
-export default function ContactForm() {
+export default function ContactForm({ isMobile = false }: { isMobile?: boolean }) {
   const [firstName,    setFirstName]    = useState('');
   const [lastName,     setLastName]     = useState('');
   const [email,        setEmail]        = useState('');
@@ -120,7 +120,7 @@ export default function ContactForm() {
       />
 
       {/* Name row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
         <FloatingField
           label="First name" value={firstName} onValue={setFirstName}
           inputProps={{ required: true }}
@@ -141,7 +141,7 @@ export default function ContactForm() {
         <p style={{ fontFamily: B, fontSize: '12px', fontWeight: 600, color: '#a3a3a3', letterSpacing: '0.5px', margin: '4px 0 10px' }}>
           ACCOUNT TYPE
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '8px' }}>
           {ACCOUNT_TYPES.map(({ id, label, sub }) => {
             const active = accountType === id;
             return (
@@ -226,7 +226,7 @@ export default function ContactForm() {
           cursor: (status === 'loading' || !accountType || !subject) ? 'default' : 'pointer',
           opacity: (status === 'loading' || !accountType || !subject) ? 0.45 : 1,
           transition: 'background 0.15s, opacity 0.15s',
-          alignSelf: 'flex-start',
+          alignSelf: isMobile ? 'center' : 'flex-start',
         }}
       >
         {status === 'loading' ? 'Sending…' : 'Send message'}
