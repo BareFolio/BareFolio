@@ -152,20 +152,28 @@ export default function AboutPage() {
           .about-two-col         { grid-template-columns: 1fr !important; }
           .about-origin-grid     { grid-template-columns: 1fr !important; }
           .about-manifesto-inner { padding: 40px 24px !important; }
-          /* ── Who It's For: horizontal scroll gallery ── */
+          /* ── Who It's For: edge-to-edge scroll, inset first card ── */
           .about-who-grid {
             display: flex !important;
             overflow-x: auto; scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 12px;
+            margin: 0 -24px !important;           /* scroll area spans full viewport (no clip at the gutter) */
+            padding: 0 24px !important;           /* but first card stays inset → the margin still "exists" */
+            scroll-padding-left: 24px;            /* snap respects the inset */
+            box-sizing: border-box;
           }
           .about-who-grid::-webkit-scrollbar { display: none; }
           .about-who-grid > * { flex: 0 0 calc(100% - 28px) !important; scroll-snap-align: start; }
-          /* ── Five Dimensions: horizontal scroll gallery ── */
+          /* ── Five Dimensions: edge-to-edge scroll, inset first card ── */
           .about-dim-desktop       { display: none; }
           .about-dim-mobile-scroll {
             display: flex;
             overflow-x: auto; scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 12px;
+            margin: 0 -24px;                      /* scroll area spans full viewport (no clip at the gutter) */
+            padding: 0 24px;                      /* but first card stays inset → the margin still "exists" */
+            scroll-padding-left: 24px;            /* snap respects the inset */
+            box-sizing: border-box;
           }
           .about-dim-mobile-scroll::-webkit-scrollbar { display: none; }
           .about-dim-mobile-scroll > * { flex: 0 0 calc(100% - 28px); scroll-snap-align: start; }

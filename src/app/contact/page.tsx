@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import PublicShell from '@/components/PublicShell';
-import ContactForm from './ContactForm';
+import ContactBody from './ContactBody';
 
 export const metadata: Metadata = {
   title: 'Contact',
@@ -54,80 +54,8 @@ export default function ContactPage() {
           </p>
         </div>
 
-        {/* ── Two columns ── */}
-        <div style={{
-          maxWidth: '1140px', margin: '0 auto',
-          padding: '0 24px 80px',
-          display: 'grid',
-          gridTemplateColumns: '1fr 2fr',
-          gap: '32px',
-          alignItems: 'start',
-        }}>
-
-          {/* Left — email + info */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{
-              background: '#f4f4f4', borderRadius: '16px',
-              padding: '24px 28px',
-            }}>
-              <p style={{
-                fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px',
-                color: '#a3a3a3', margin: '0 0 10px',
-              }}>
-                EMAIL
-              </p>
-              <a
-                href="mailto:barefolio.app@gmail.com"
-                style={{
-                  fontFamily: B, fontSize: '15px', fontWeight: 500,
-                  color: '#101010', textDecoration: 'none',
-                }}
-              >
-                barefolio.app@gmail.com
-              </a>
-            </div>
-
-            <div style={{
-              background: '#f4f4f4', borderRadius: '16px',
-              padding: '24px 28px',
-            }}>
-              <p style={{
-                fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px',
-                color: '#a3a3a3', margin: '0 0 10px',
-              }}>
-                RESPONSE TIME
-              </p>
-              <p style={{ fontFamily: B, fontSize: '14px', color: '#101010', margin: 0 }}>
-                Within 48 hours
-              </p>
-            </div>
-
-            <div style={{
-              background: '#f4f4f4', borderRadius: '16px',
-              padding: '24px 28px',
-            }}>
-              <p style={{
-                fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px',
-                color: '#a3a3a3', margin: '0 0 10px',
-              }}>
-                TOPICS
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {['General questions', 'Partnerships', 'Press & media', 'Technical support'].map(t => (
-                  <p key={t} style={{ fontFamily: B, fontSize: '13px', color: '#737373', margin: 0 }}>
-                    {t}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right — form */}
-          <div>
-            <ContactForm />
-          </div>
-
-        </div>
+        {/* ── Info + form (single column on mobile) ── */}
+        <ContactBody />
 
       </div>
     </PublicShell>
