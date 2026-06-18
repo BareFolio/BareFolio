@@ -5,8 +5,9 @@ import { ChevronLeft, Search, Download, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { ProfileType } from '@/lib/database.types';
 import { gatePlatform } from '@/lib/platformGate';
+import { getSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
+import { buildSignupMetadata } from '@/lib/onboardingMappings';
 import FloatingField, { SHARED_FIELD_STYLE } from '@/components/FloatingField';
 import { DISCIPLINES as ALL_DISCIPLINES, SUGGESTED_DISCIPLINES } from '@/lib/disciplines';
 import { INDUSTRIES as ALL_INDUSTRIES, SUGGESTED_INDUSTRIES } from '@/lib/industries';
@@ -251,9 +252,11 @@ function OnboardingHeader() {
 function ProfileVerification({
   entityLabel,
   onExitToPrevStep,
+  onComplete,
 }: {
   entityLabel: string;
   onExitToPrevStep: () => void;
+  onComplete: (method: string, data: string) => void;
 }) {
   const [screen, setScreen] =
     useState<'choose' | 'email' | 'emailCode' | 'document' | 'linkedin'>('choose');
@@ -480,6 +483,29 @@ function ProfileVerification({
             It must be a corporate email address; @gmail, @hotmail, @outlook,
             @iCloud, or similar addresses are not accepted.
           </p>
+
+          <button
+            type="button"
+            onClick={() => onComplete('email', corporateEmail)}
+            disabled={!corporateEmail}
+            style={{
+              width: '266px',
+              height: '53px',
+              marginTop: '24px',
+              background: '#101010',
+              color: '#fafafa',
+              border: 'none',
+              borderRadius: '10px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '16px',
+              fontWeight: 500,
+              cursor: corporateEmail ? 'pointer' : 'not-allowed',
+              opacity: corporateEmail ? 1 : 0.4,
+              transition: 'opacity .12s ease',
+            }}
+          >
+            Verify email
+          </button>
         </div>
       )}
 
@@ -573,6 +599,26 @@ function ProfileVerification({
               ? `Resend in ${String(Math.floor(otpSeconds / 60)).padStart(2, '0')}:${String(otpSeconds % 60).padStart(2, '0')}`
               : 'Resend'}
           </button>
+
+          <button
+            type="button"
+            onClick={() => onComplete('email', corporateEmail)}
+            style={{
+              width: '266px',
+              height: '53px',
+              marginTop: '24px',
+              background: '#101010',
+              color: '#fafafa',
+              border: 'none',
+              borderRadius: '10px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '16px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Confirm code
+          </button>
         </div>
       )}
 
@@ -621,6 +667,7 @@ function ProfileVerification({
 
           <button
             type="button"
+            onClick={() => onComplete('social', 'linkedin')}
             style={{ ...GLASS_BTN_STYLE, marginTop: '40px' }}
             onMouseEnter={e => glassBtnEnter(e.currentTarget)}
             onMouseLeave={e => glassBtnLeave(e.currentTarget)}
@@ -832,6 +879,28 @@ function ProfileVerification({
           >
             {docError || 'Maximum file size: 50 MB.'}
           </p>
+
+          {docName && (
+            <button
+              type="button"
+              onClick={() => onComplete('document', docName)}
+              style={{
+                width: '266px',
+                height: '53px',
+                marginTop: '20px',
+                background: '#101010',
+                color: '#fafafa',
+                border: 'none',
+                borderRadius: '10px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '16px',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Submit document
+            </button>
+          )}
         </div>
       )}
 
@@ -880,21 +949,21 @@ export default function OnboardingPage() {
   const [studioStep, setStudioStep] = useState(0);
   const [selectedRole, setSelectedRole] = useState('');
   
-  // Basic Details (collected during signup on the landing page; read-only here
-  // until the real flow passes them through).
-  const [email] = useState('');
-  const [password] = useState('');
-  const [name] = useState('');
-  
+  // Common fields collected on the landing page, handed off in memory.
+  const draft = getSignupDraft();
+  const email = draft?.email ?? '';
+  const password = draft?.password ?? '';
+  const name = draft ? `${draft.firstName} ${draft.lastName}`.trim() : '';
+
   // Creator Profile Questionnaire
   const [username, setUsername] = useState('');
-  // Collected here; read when the profile is submitted to the backend (TODO).
-  const [, setCareerStage] = useState('');
+  // Collected here; read when the profile is submitted to the backend.
+  const [careerStage, setCareerStage] = useState('');
   const [mainDiscipline, setMainDiscipline] = useState('');
   const [disciplineQuery, setDisciplineQuery] = useState('');
   const [disciplineFocused, setDisciplineFocused] = useState(false);
-  // Collected here; read when the profile is submitted to the backend (TODO).
-  const [, setAvailability] = useState('');
+  // Collected here; read when the profile is submitted to the backend.
+  const [availability, setAvailability] = useState('');
   const [practice, setPractice] = useState('freelance');
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>([]);
   const [availabilityStatus, setAvailabilityStatus] = useState('yes');
@@ -941,8 +1010,8 @@ export default function OnboardingPage() {
   //   0 = "Your creative identity" (reuses `username`)
   //   1 = "What describes your practice?"  2 = disciplines they're looking for
   const [seekerStep, setSeekerStep] = useState(0);
-  // Collected here; read when the profile is submitted to the backend (TODO).
-  const [, setSeekerPractice] = useState('');
+  // Collected here; read when the profile is submitted to the backend.
+  const [seekerPractice, setSeekerPractice] = useState('');
   const [seekerDisciplines, setSeekerDisciplines] = useState<string[]>([]);
   const [seekerDisciplineQuery, setSeekerDisciplineQuery] = useState('');
   const [seekerDisciplineFocused, setSeekerDisciplineFocused] = useState(false);
@@ -951,8 +1020,16 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
-  
+  // Flipped by the last step of each role flow → shows the confirmation screen.
+  const [profileCreated, setProfileCreated] = useState(false);
+
   const router = useRouter();
+
+  // Without the landing handoff we cannot register (hard refresh or direct
+  // navigation to /onboarding). Send the user back to start.
+  useEffect(() => {
+    if (!getSignupDraft()) router.replace('/');
+  }, [router]);
 
   // Fade the intro copy out (opacity) before swapping to the role screen.
   const leaveIntro = () => {
@@ -1062,6 +1139,23 @@ export default function OnboardingPage() {
     profileNext();
   };
 
+  // Creator: last questionnaire step → show confirmation.
+  const profileFinish = () => {
+    if (!username) { setError('Please create a username.'); return; }
+    if (selectedDisciplines.length === 0) { setError('Please select at least one main discipline.'); return; }
+    setError('');
+    setProfileCreated(true);
+  };
+  // Seeker: last step ("Finish") → show confirmation.
+  const seekerFinish = () => {
+    if (!username) { setError('Please create a username.'); return; }
+    if (seekerDisciplines.length === 0) { setError('Please select at least one discipline you are looking for.'); return; }
+    setError('');
+    setProfileCreated(true);
+  };
+  const studioFinish = () => { setError(''); setProfileCreated(true); };
+  const companyFinish = () => { setError(''); setProfileCreated(true); };
+
   const toggleDiscipline = (disc: string, type: 'creator' | 'studio' | 'brand') => {
     if (type === 'creator') {
       setSelectedDisciplines(prev => 
@@ -1110,135 +1204,57 @@ export default function OnboardingPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    // Validate questionnaire fields based on role
-    if (selectedRole === 'creator') {
-      if (!username) {
-        setError('Please create a username.');
-        setLoading(false);
-        return;
-      }
-      if (selectedDisciplines.length === 0) {
-        setError('Please select at least one main discipline.');
-        setLoading(false);
-        return;
-      }
-    } else if (selectedRole === 'studio') {
-      if (studioDisciplines.length === 0) {
-        setError('Please select at least one discipline.');
-        setLoading(false);
-        return;
-      }
-      if (studioVerificationMethod !== 'social' && !studioVerificationData) {
-        setError('Please complete the verification detail.');
-        setLoading(false);
-        return;
-      }
-    } else if (selectedRole === 'brand') {
-      if (brandDisciplines.length === 0) {
-        setError('Please select at least one discipline you seek to hire.');
-        setLoading(false);
-        return;
-      }
-      if (brandVerificationMethod !== 'social' && !brandVerificationData) {
-        setError('Please complete the verification detail.');
-        setLoading(false);
-        return;
-      }
-    } else if (selectedRole === 'seeker') {
-      if (!username) {
-        setError('Please create a username.');
-        setLoading(false);
-        return;
-      }
-      if (seekerDisciplines.length === 0) {
-        setError('Please select at least one discipline you are looking for.');
-        setLoading(false);
-        return;
-      }
+    const currentDraft = getSignupDraft();
+    if (!currentDraft) {
+      setError('Your session expired. Please start again.');
+      router.replace('/');
+      return;
     }
 
+    setLoading(true);
     try {
-      // Gather metadata structure based on role
-      const customMetadata: any = {
-        name,
-        role: selectedRole,
-      };
-
-      if (selectedRole === 'creator') {
-        customMetadata.username = username;
-        customMetadata.practice = practice;
-        customMetadata.disciplines = selectedDisciplines;
-        customMetadata.availability_status = availabilityStatus;
-        customMetadata.verification_file_url = projectPdfName ? `mock://files/${projectPdfName}` : '';
-      } else if (selectedRole === 'studio') {
-        customMetadata.company_name = studioName || name;
-        customMetadata.company_link = studioLink;
-        customMetadata.disciplines = studioDisciplines;
-        customMetadata.team_size = teamSize;
-        customMetadata.verification_method = studioVerificationMethod;
-        customMetadata.verification_data = studioVerificationData;
-      } else if (selectedRole === 'brand') {
-        customMetadata.company_name = brandName || name;
-        customMetadata.company_link = brandLink;
-        customMetadata.industry = brandIndustry;
-        customMetadata.disciplines_hiring = brandDisciplines;
-        customMetadata.verification_method = brandVerificationMethod;
-        customMetadata.verification_data = brandVerificationData;
-      } else if (selectedRole === 'seeker') {
-        customMetadata.username = username;
-        customMetadata.disciplines_seeking = seekerDisciplines;
-      }
-
-      // 1. Sign up with Supabase
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: customMetadata
-        }
+      const metadata = buildSignupMetadata(currentDraft, {
+        role: selectedRole as 'creator' | 'seeker' | 'studio' | 'brand',
+        careerStage,
+        selectedDisciplines,
+        availabilityStatus: availability,
+        projectPdfName,
+        seekerPractice,
+        seekerDisciplines,
+        username,
+        studioName,
+        studioLink,
+        studioDisciplines,
+        teamSize,
+        studioVerificationMethod,
+        studioVerificationData,
+        brandName,
+        brandLink,
+        brandIndustry,
+        brandDisciplines,
+        brandVerificationMethod,
+        brandVerificationData,
       });
 
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: currentDraft.email,
+        password: currentDraft.password,
+        options: { data: metadata },
+      });
       if (signUpError) throw signUpError;
 
-      if (data.user) {
-        // Try upserting user record in public.profiles table (handles RLS insert policy)
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: data.user.id,
-            username: (selectedRole === 'creator' || selectedRole === 'seeker' ? username : (studioName || brandName || name))
-              .toLowerCase()
-              .trim()
-              .replace(/\s+/g, '_'),
-            full_name: (selectedRole === 'studio' ? studioName || name : selectedRole === 'brand' ? brandName || name : name).trim(),
-            profile_type: selectedRole as ProfileType,
-            bio: null,
-            location: null,
-            website: selectedRole === 'studio' ? (studioLink || null) : selectedRole === 'brand' ? (brandLink || null) : null,
-            disciplines: selectedRole === 'creator' ? selectedDisciplines :
-                         selectedRole === 'studio' ? studioDisciplines :
-                         selectedRole === 'brand' ? brandDisciplines :
-                         selectedRole === 'seeker' ? seekerDisciplines : [],
-            verified: false,
-          });
+      clearSignupDraft();
 
-        if (profileError) {
-          console.warn("Could not insert profile row immediately (normal if email confirmation enabled):", profileError.message);
-        }
-      }
-
-      // Check if we need email confirmation
+      // If email confirmation is enabled, signUp returns a user but no session.
       if (data.user && !data.session) {
         setRegistered(true);
       } else {
         router.push('/');
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'An error occurred during account creation.');
-    } finally {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An error occurred during account creation.';
+      setError(message);
       setLoading(false);
     }
   };
@@ -1285,6 +1301,56 @@ export default function OnboardingPage() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (profileCreated) {
+    return (
+      <main style={{
+        minHeight: '100vh', background: '#fafafa',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '24px', textAlign: 'center',
+      }}>
+        <OnboardingHeader />
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: '#101010', color: '#fafafa',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 24,
+        }}>
+          <Check size={22} strokeWidth={2.5} />
+        </div>
+        <h1 style={{
+          fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400,
+          letterSpacing: '-1px', color: '#101010', margin: '0 0 10px',
+        }}>
+          Welcome to BareFolio
+        </h1>
+        <p style={{
+          fontFamily: 'var(--font-sans)', fontSize: 14, color: '#737373',
+          maxWidth: 300, margin: '0 0 28px', lineHeight: 1.5,
+        }}>
+          Your profile is ready, welcome to your new creative space on BareFolio.
+        </p>
+        {error && (
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#dc2626', margin: '0 0 16px' }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={handleRegister}
+          disabled={loading}
+          style={{
+            width: 266, height: 53, background: '#101010', color: '#fafafa',
+            border: 'none', borderRadius: 10,
+            fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 500,
+            cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1,
+          }}
+        >
+          {loading ? 'Creating…' : 'Enter to BareFolio'}
+        </button>
+      </main>
     );
   }
 
@@ -2209,7 +2275,7 @@ export default function OnboardingPage() {
         {(profileStep === 0 || profileStep === 2 || (profileStep === 4 && !!projectPdfName)) && (
           <button
             type="button"
-            onClick={profileNext}
+            onClick={profileStep === 4 ? profileFinish : profileNext}
             style={{
               position: 'absolute',
               bottom: '40px',
@@ -2309,7 +2375,7 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => {
                     setShowSkipAlert(false);
-                    profileNext();
+                    profileFinish();
                   }}
                   style={{
                     flex: 1,
@@ -2707,6 +2773,11 @@ export default function OnboardingPage() {
           <ProfileVerification
             entityLabel="studio/agency"
             onExitToPrevStep={() => setStudioStep(2)}
+            onComplete={(method, data) => {
+              setStudioVerificationMethod(method);
+              setStudioVerificationData(data);
+              studioFinish();
+            }}
           />
         )}
 
@@ -3182,6 +3253,11 @@ export default function OnboardingPage() {
           <ProfileVerification
             entityLabel="company"
             onExitToPrevStep={() => setCompanyStep(2)}
+            onComplete={(method, data) => {
+              setBrandVerificationMethod(method);
+              setBrandVerificationData(data);
+              companyFinish();
+            }}
           />
         )}
 
@@ -3554,7 +3630,7 @@ export default function OnboardingPage() {
           return (
             <button
               type="button"
-              onClick={seekerNext}
+              onClick={seekerStep === 2 ? seekerFinish : seekerNext}
               disabled={disabled}
               style={{
                 position: 'absolute',
