@@ -950,9 +950,9 @@ export default function OnboardingPage() {
   const [selectedRole, setSelectedRole] = useState('');
   
   // Common fields collected on the landing page, handed off in memory.
+  // (password is read straight from the draft inside handleRegister.)
   const draft = getSignupDraft();
   const email = draft?.email ?? '';
-  const password = draft?.password ?? '';
   const name = draft ? `${draft.firstName} ${draft.lastName}`.trim() : '';
 
   // Creator Profile Questionnaire
