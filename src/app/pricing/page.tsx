@@ -20,7 +20,7 @@ const D = 'var(--font-display), -apple-system, sans-serif';
 const B = 'var(--font-sans),    -apple-system, sans-serif';
 
 /* ── Mobile carousel geometry ─────────────────────────────────── */
-const CARD_VW = 72;                       // card width (vw) — smaller = side cards peek more
+const CARD_VW = 80;                       // card width (vw) — smaller = side cards peek more
 const SIDE_PAD = (100 - CARD_VW) / 2;     // padding that keeps a card snapped to centre
 const CARD_GAP = 12;                      // gap between cards (px)
 const PLAN_NAMES = ['Free Plan', 'Pro Plan', 'Scout Plan'] as const;
@@ -92,13 +92,13 @@ function Chevron({ open }: { open: boolean }) {
 function PlanCard({
   outerBg, nameText, nameColor = '#101010', badge,
   priceAmount, priceUnit, priceSub, desc, dotColor,
-  features, details, roleNote,
+  features, details, roleNote, compact = false,
 }: {
   outerBg: string; nameText: string; nameColor?: string; badge?: string;
   priceAmount: string; priceUnit: string; priceSub: string;
   desc: string; dotColor: string;
   features: readonly string[]; details: readonly string[];
-  roleNote?: string;
+  roleNote?: string; compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -114,12 +114,12 @@ function PlanCard({
         display: 'flex', flexDirection: 'column', flex: 1,
       }}
     >
-      <div style={{ padding: '14px 28px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
+      <div style={{ padding: compact ? '11px 28px' : '14px 28px', minHeight: compact ? 42 : 48, display: 'flex', alignItems: 'center' }}>
         <span style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: nameColor }}>{nameText}</span>
       </div>
       <div style={{
         background: '#fafafa', borderRadius: 18, margin: '0 2px 2px',
-        padding: '20px 26px 24px', display: 'flex', flexDirection: 'column', flex: 1,
+        padding: compact ? '16px 26px 18px' : '20px 26px 24px', display: 'flex', flexDirection: 'column', flex: 1,
       }}>
         {badge && <Badge>{badge}</Badge>}
         <p style={{ margin: '0 0 6px', lineHeight: 0 }}>
@@ -127,9 +127,9 @@ function PlanCard({
           <span style={{ fontFamily: B, fontWeight: 400, fontSize: 15, lineHeight: '19px', color: '#a3a3a3' }}>{priceUnit}</span>
         </p>
         <p style={{ fontFamily: B, fontSize: 13, color: '#525252', margin: '0 0 14px' }}>{priceSub}</p>
-        <p style={{ fontFamily: B, fontSize: 12, lineHeight: '16px', color: '#737373', margin: '0 0 20px' }}>{desc}</p>
+        <p style={{ fontFamily: B, fontSize: 12, lineHeight: '16px', color: '#737373', margin: compact ? '0 0 14px' : '0 0 20px' }}>{desc}</p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 5 : 6, flex: 1, marginBottom: compact ? 14 : 20 }}>
           {features.map(f => <Feat key={f} dot={dotColor}>{f}</Feat>)}
         </div>
 
@@ -165,7 +165,7 @@ function PlanCard({
 }
 
 /* ── Scout card — with seat calculator ───────────────────────── */
-function ScoutCard({ billing, currency }: { billing: 'mo' | 'yr'; currency: 'eur' | 'usd' }) {
+function ScoutCard({ billing, currency, compact = false }: { billing: 'mo' | 'yr'; currency: 'eur' | 'usd'; compact?: boolean }) {
   const [seats, setSeats] = useState(1);
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -217,12 +217,12 @@ function ScoutCard({ billing, currency }: { billing: 'mo' | 'yr'; currency: 'eur
         display: 'flex', flexDirection: 'column', flex: 1,
       }}
     >
-      <div style={{ padding: '14px 28px', minHeight: 48, display: 'flex', alignItems: 'center' }}>
+      <div style={{ padding: compact ? '11px 28px' : '14px 28px', minHeight: compact ? 42 : 48, display: 'flex', alignItems: 'center' }}>
         <span style={{ fontFamily: D, fontWeight: 400, fontSize: 18, lineHeight: '20px', color: '#101010' }}>Scout Plan</span>
       </div>
       <div style={{
         background: '#fafafa', borderRadius: 18, margin: '0 2px 2px',
-        padding: '20px 26px 24px', display: 'flex', flexDirection: 'column', flex: 1,
+        padding: compact ? '16px 26px 18px' : '20px 26px 24px', display: 'flex', flexDirection: 'column', flex: 1,
       }}>
         <Badge>Studios & Brands</Badge>
 
@@ -278,11 +278,11 @@ function ScoutCard({ billing, currency }: { billing: 'mo' | 'yr'; currency: 'eur
 
         </div>
 
-        <p style={{ fontFamily: B, fontSize: 12, lineHeight: '16px', color: '#737373', margin: '0 0 20px' }}>
+        <p style={{ fontFamily: B, fontSize: 12, lineHeight: '16px', color: '#737373', margin: compact ? '0 0 14px' : '0 0 20px' }}>
           For studios with hiring to do. Reach talent directly, post briefs, and read the market as it moves.
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 5 : 6, flex: 1, marginBottom: compact ? 14 : 20 }}>
           {FEATURES.map(f => <Feat key={f} dot="#c4c3ff">{f}</Feat>)}
         </div>
 
@@ -469,13 +469,13 @@ export default function PricingPage() {
 
           {/* Early access notice */}
           <div style={{
-            display: 'inline-flex', alignItems: isMobile ? 'flex-start' : 'center', gap: 8,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
             background: '#efefff', border: '1px solid #dddcff',
             borderRadius: 10, padding: '10px 16px',
           }}>
             <span style={{ color: '#8a88e7', fontSize: 14, lineHeight: 1.4 }}>✦</span>
             <span style={{ fontFamily: B, fontWeight: 500, fontSize: 13, color: '#5b59c4', lineHeight: 1.4 }}>
-              We&apos;re in early access — pricing applies at launch.{isMobile ? <br /> : ' '}Join the waitlist to get in first.
+              We&apos;re in early access — pricing applies at launch. Join the waitlist to get in first.
             </span>
           </div>
         </section>
@@ -532,7 +532,7 @@ export default function PricingPage() {
               }}>
                 {PLAN_NAMES[activeIndex]}
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 {PLAN_NAMES.map((name, i) => (
                   <button
                     key={name}
@@ -572,11 +572,11 @@ export default function PricingPage() {
             >
               {planCards.map((card, i) => (
                 <div key={i} style={{ flex: `0 0 ${CARD_VW}vw`, scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <PlanCard {...card} />
+                  <PlanCard {...card} compact />
                 </div>
               ))}
               <div style={{ flex: `0 0 ${CARD_VW}vw`, scrollSnapAlign: 'center', scrollSnapStop: 'always', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                <ScoutCard billing={billing} currency={currency} />
+                <ScoutCard billing={billing} currency={currency} compact />
               </div>
             </div>
           ) : (
