@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { setSignupDraft } from '@/lib/signupDraft';
+import { dobToBirthYear } from '@/lib/onboardingMappings';
 import PublicFooter from '@/components/PublicFooter';
 import FloatingField from '@/components/FloatingField';
 import DateField from '@/components/DateField';
@@ -198,15 +200,18 @@ function AuthModal({ mode, onClose, onSwitch }: {
           if (password !== confirmPassword) { setError('The passwords do not match.'); return; }
         }
         setError('');
-        if (SIGNUP_PREVIEW) { router.push('/onboarding'); return; }
-        setLoading(true);
-        try {
-          const { error: err } = await supabase.auth.signUp({ email, password });
-          if (err) throw err;
-          router.push('/onboarding');
-        } catch (err: unknown) {
-          setError(err instanceof Error ? err.message : 'Algo salió mal.');
-        } finally { setLoading(false); }
+        // Carry the 6 common fields to onboarding in memory. signUp is deferred
+        // to the end of onboarding ("Enter to BareFolio"). Never persist the
+        // password to disk or the URL.
+        setSignupDraft({
+          email,
+          password,
+          firstName,
+          lastName,
+          country,
+          birthYear: dobToBirthYear(dob),
+        });
+        router.push('/onboarding');
         return;
       }
     }
