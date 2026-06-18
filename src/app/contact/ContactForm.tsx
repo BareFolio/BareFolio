@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import FloatingField from '@/components/FloatingField';
 
 const B = 'var(--font-sans), -apple-system, sans-serif';
 
@@ -42,22 +43,6 @@ const SUBJECTS: Record<AccountType, string[]> = {
     'Other',
   ],
 };
-
-/* ── Shared styles ──────────────────────────────────────────────── */
-const input: React.CSSProperties = {
-  width: '100%', padding: '13px 16px',
-  boxSizing: 'border-box',
-  border: '1.5px solid #e7e7e7', borderRadius: '12px',
-  fontSize: '14px', color: '#101010', background: '#fff',
-  outline: 'none', fontFamily: B, transition: 'border-color 0.15s',
-};
-
-function focusIn(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-  e.currentTarget.style.borderColor = '#101010';
-}
-function focusOut(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
-  e.currentTarget.style.borderColor = '#e7e7e7';
-}
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -136,23 +121,19 @@ export default function ContactForm() {
 
       {/* Name row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <input
-          type="text" placeholder="First name" required
-          value={firstName} onChange={e => setFirstName(e.target.value)}
-          style={input} onFocus={focusIn} onBlur={focusOut}
+        <FloatingField
+          label="First name" value={firstName} onValue={setFirstName}
+          inputProps={{ required: true }}
         />
-        <input
-          type="text" placeholder="Last name (optional)"
-          value={lastName} onChange={e => setLastName(e.target.value)}
-          style={input} onFocus={focusIn} onBlur={focusOut}
+        <FloatingField
+          label="Last name (optional)" value={lastName} onValue={setLastName}
         />
       </div>
 
       {/* Email */}
-      <input
-        type="email" placeholder="Email" required
-        value={email} onChange={e => setEmail(e.target.value)}
-        style={input} onFocus={focusIn} onBlur={focusOut}
+      <FloatingField
+        label="Email" type="email" value={email} onValue={setEmail}
+        inputProps={{ required: true }}
       />
 
       {/* Account type */}
@@ -191,36 +172,41 @@ export default function ContactForm() {
       {/* Subject — only shown once account type is selected */}
       {accountType && (
         <>
-          <select
-            required
+          <FloatingField
+            as="select"
+            label="Subject"
             value={subject}
-            onChange={e => { setSubject(e.target.value); setCustomSubject(''); }}
-            style={{ ...input, appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%23a3a3a3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', paddingRight: '40px', cursor: 'pointer' }}
-            onFocus={focusIn} onBlur={focusOut}
+            onValue={v => { setSubject(v); setCustomSubject(''); }}
+            extraStyle={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%23a3a3a3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 16px center',
+              paddingRight: '40px',
+            }}
+            inputProps={{ required: true }}
           >
             <option value="" disabled>Select a subject</option>
             {subjects.map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
+          </FloatingField>
 
           {/* Custom subject when "Other" is selected */}
           {isOther && (
-            <input
-              type="text" placeholder="Tell us what it's about" required
-              value={customSubject} onChange={e => setCustomSubject(e.target.value)}
-              style={input} onFocus={focusIn} onBlur={focusOut}
+            <FloatingField
+              label="Tell us what it's about" value={customSubject} onValue={setCustomSubject}
+              inputProps={{ required: true }}
             />
           )}
         </>
       )}
 
       {/* Message */}
-      <textarea
-        placeholder="Your message" required rows={5}
-        value={message} onChange={e => setMessage(e.target.value)}
-        style={{ ...input, resize: 'vertical', minHeight: '120px' }}
-        onFocus={focusIn} onBlur={focusOut}
+      <FloatingField
+        as="textarea"
+        label="Your message" value={message} onValue={setMessage} rows={5}
+        extraStyle={{ minHeight: '120px' }}
+        inputProps={{ required: true }}
       />
 
       {status === 'error' && (

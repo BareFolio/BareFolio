@@ -28,6 +28,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
+import FloatingField from '@/components/FloatingField';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -799,45 +800,21 @@ export default function ProfileClient() {
             </button>
             <h2 className="text-xl font-bold text-text-primary mb-6">Edit Profile</h2>
             <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-neutral-400 block mb-1">Name</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  required
-                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-neutral-400 block mb-1">Location</label>
-                <input
-                  type="text"
-                  value={editLocation}
-                  onChange={e => setEditLocation(e.target.value)}
-                  placeholder="e.g. Barcelona, Spain"
-                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-neutral-400 block mb-1">Bio</label>
-                <textarea
-                  value={editBio}
-                  onChange={e => setEditBio(e.target.value)}
-                  rows={3}
-                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400 resize-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-neutral-400 block mb-1">Disciplines (comma separated)</label>
-                <input
-                  type="text"
-                  value={editDisciplines.join(', ')}
-                  onChange={e => setEditDisciplines(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                  placeholder="e.g. Graphic Design, UX/UI"
-                  className="w-full bg-neutral-50 border border-neutral-200 p-3 rounded-xl text-sm text-text-primary focus:outline-none focus:border-neutral-400"
-                />
-              </div>
+              <FloatingField
+                label="Name" value={editName} onValue={setEditName}
+                inputProps={{ required: true }}
+              />
+              <FloatingField
+                label="Location" value={editLocation} onValue={setEditLocation}
+              />
+              <FloatingField
+                as="textarea" label="Bio" value={editBio} onValue={setEditBio} rows={3}
+              />
+              <FloatingField
+                label="Disciplines (comma separated)"
+                value={editDisciplines.join(', ')}
+                onValue={v => setEditDisciplines(v.split(',').map(s => s.trim()).filter(Boolean))}
+              />
               <button
                 type="submit"
                 disabled={saveLoading}

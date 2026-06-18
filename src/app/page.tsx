@@ -4,6 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import PublicFooter from '@/components/PublicFooter';
+import FloatingField from '@/components/FloatingField';
+import DateField from '@/components/DateField';
+import CountrySelect from '@/components/CountrySelect';
+
+/* Preview mode: when on, the create-account flow advances without any data
+   and without touching Supabase — purely to visualise the flow. Toggle with
+   NEXT_PUBLIC_SIGNUP_PREVIEW=true in .env.local. */
+const SIGNUP_PREVIEW = process.env.NEXT_PUBLIC_SIGNUP_PREVIEW === 'true';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function rng(v: number, a: number, b: number) {
@@ -23,6 +31,78 @@ function useIsMobile() {
   return m;
 }
 
+/* ─── 5-digit verification code input ────────────────────────────
+   The whole row behaves like a single entry point: the caret stays on the
+   first empty box, digits fill the boxes left-to-right as you type, and the
+   "0" placeholders vanish as soon as the field is focused. Clicking anywhere
+   in the row drops you onto the active (first empty) box. */
+function CodeInput({ value, onChange, length = 5 }: {
+  value: string; onChange: (v: string) => void; length?: number;
+}) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const [focused, setFocused] = useState(false);
+  const digits = Array.from({ length }, (_, i) => value[i] ?? '');
+  const activeIndex = Math.min(value.length, length - 1);
+
+  // Keep the caret on the active box while the user is entering the code.
+  useEffect(() => {
+    if (focused) refs.current[activeIndex]?.focus();
+  }, [focused, activeIndex]);
+
+  const focusActive = () => refs.current[Math.min(value.length, length - 1)]?.focus();
+
+  return (
+    <div
+      onClick={focusActive}
+      style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}
+    >
+      {digits.map((d, i) => {
+        const isActive = i === activeIndex;
+        return (
+          <input
+            key={i}
+            ref={el => { refs.current[i] = el; }}
+            value={d}
+            inputMode="numeric"
+            maxLength={1}
+            readOnly={!isActive}
+            tabIndex={isActive ? 0 : -1}
+            placeholder={focused || value.length > 0 ? '' : '0'}
+            aria-label={`Digit ${i + 1}`}
+            onChange={e => {
+              const typed = e.target.value.replace(/\D/g, '');
+              if (!typed) return;
+              const next = (value + typed).slice(0, length);
+              onChange(next);
+              refs.current[Math.min(next.length, length - 1)]?.focus();
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Backspace') {
+                e.preventDefault();
+                const next = value.slice(0, -1);
+                onChange(next);
+                refs.current[Math.min(next.length, length - 1)]?.focus();
+              }
+            }}
+            onFocus={() => setFocused(true)}
+            onBlur={e => { if (!refs.current.includes(e.relatedTarget as HTMLInputElement)) setFocused(false); }}
+            style={{
+              width: '39px', height: '45px',
+              border: `1.5px solid ${focused && isActive ? '#101010' : '#e5e5e5'}`,
+              borderRadius: '12px',
+              textAlign: 'center', fontSize: '17px', fontWeight: 500,
+              color: '#101010', background: '#fff',
+              outline: 'none', fontFamily: 'inherit',
+              caretColor: 'transparent', cursor: 'pointer',
+              transition: 'border-color 0.15s',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 /* ─── Auth Modal (slide-in panel) ────────────────────────────── */
 type ModalMode = 'login' | 'signup' | null;
 
@@ -30,19 +110,40 @@ function AuthModal({ mode, onClose, onSwitch }: {
   mode: ModalMode; onClose: () => void; onSwitch: () => void;
 }) {
   const router = useRouter();
-  const [email, setEmail]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [signupStep, setSignupStep] = useState<'email' | 'password'>('email');
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
+  const [email, setEmail]             = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [password, setPassword]       = useState('');
+  const [inviteCode, setInviteCode]   = useState('');
+  const [code, setCode]               = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName]     = useState('');
+  const [lastName, setLastName]       = useState('');
+  const [dob, setDob]                 = useState('');
+  const [country, setCountry]         = useState('');
+  const [signupStep, setSignupStep]   = useState<'invite' | 'email' | 'verify' | 'personal' | 'password'>('invite');
+  const [resendSeconds, setResendSeconds] = useState(120);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
 
   const isOpen  = mode !== null;
   const isLogin = mode === 'login';
 
   // Reset form whenever modal opens or switches mode
   useEffect(() => {
-    if (mode) { setEmail(''); setPassword(''); setError(''); setSignupStep('email'); }
+    if (mode) {
+      setEmail(''); setConfirmEmail(''); setPassword(''); setConfirmPassword('');
+      setInviteCode(''); setCode(''); setFirstName(''); setLastName(''); setDob(''); setCountry('');
+      setError(''); setSignupStep(mode === 'signup' ? 'invite' : 'email');
+    }
   }, [mode]);
+
+  // Resend countdown — restarts whenever we enter the verify step
+  useEffect(() => {
+    if (signupStep !== 'verify') return;
+    setResendSeconds(120);
+    const id = setInterval(() => setResendSeconds(s => (s <= 1 ? 0 : s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [signupStep]);
 
   async function handleOAuth(provider: 'google' | 'apple') {
     try {
@@ -53,31 +154,74 @@ function AuthModal({ mode, onClose, onSwitch }: {
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error.'); }
   }
 
+  // Walk back one signup step (used by the header chevron)
+  function goBack() {
+    setError('');
+    setSignupStep(s =>
+      s === 'password' ? 'personal' :
+      s === 'personal' ? 'verify' :
+      s === 'verify'   ? 'email' : 'invite'
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Signup step 1 → step 2
-    if (!isLogin && signupStep === 'email') { setSignupStep('password'); return; }
+
+    if (!isLogin) {
+      // Step: email + repeat email → verify code
+      if (signupStep === 'email') {
+        if (!SIGNUP_PREVIEW) {
+          if (!email.trim()) { setError('Enter your email.'); return; }
+          if (email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+            setError('The emails do not match.'); return;
+          }
+        }
+        setError(''); setSignupStep('verify'); return;
+      }
+      // Step: verify 5-digit code → personal info
+      if (signupStep === 'verify') {
+        if (!SIGNUP_PREVIEW && code.length < 5) { setError('Enter the 5-digit code.'); return; }
+        // TODO: verify the OTP against Supabase before continuing.
+        setError(''); setSignupStep('personal'); return;
+      }
+      // Step: personal info → create password
+      if (signupStep === 'personal') {
+        if (!SIGNUP_PREVIEW && (!firstName.trim() || !lastName.trim())) {
+          setError('Enter your name.'); return;
+        }
+        setError(''); setSignupStep('password'); return;
+      }
+      // Step: create password (final) → create the account
+      if (signupStep === 'password') {
+        if (!SIGNUP_PREVIEW) {
+          if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+          if (password !== confirmPassword) { setError('The passwords do not match.'); return; }
+        }
+        setError('');
+        if (SIGNUP_PREVIEW) { router.push('/onboarding'); return; }
+        setLoading(true);
+        try {
+          const { error: err } = await supabase.auth.signUp({ email, password });
+          if (err) throw err;
+          router.push('/onboarding');
+        } catch (err: unknown) {
+          setError(err instanceof Error ? err.message : 'Algo salió mal.');
+        } finally { setLoading(false); }
+        return;
+      }
+    }
+
+    // Login
     setLoading(true); setError('');
     try {
-      if (isLogin) {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-        if (err) throw err;
-      } else {
-        const { error: err } = await supabase.auth.signUp({ email, password });
-        if (err) throw err;
-      }
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) throw err;
       router.push('/home');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Algo salió mal.');
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '13px 16px', boxSizing: 'border-box',
-    border: '1.5px solid #e5e5e5', borderRadius: '12px',
-    fontSize: '15px', color: '#101010', background: '#fff', outline: 'none',
-    transition: 'border-color 0.15s',
-  };
   const oauthStyle: React.CSSProperties = {
     width: '100%', padding: '13px 16px',
     border: '1.5px solid #e5e5e5', borderRadius: '12px',
@@ -86,6 +230,16 @@ function AuthModal({ mode, onClose, onSwitch }: {
     fontSize: '15px', fontWeight: 500, color: '#101010',
     transition: 'border-color 0.15s, background 0.15s',
   };
+  /* Primary action button — consistent enabled/disabled styling for all buttons */
+  const primaryBtnStyle = (disabled: boolean): React.CSSProperties => ({
+    width: '100%', padding: '14px',
+    background: disabled ? '#e5e5e5' : '#101010',
+    color: disabled ? '#a3a3a3' : '#fff',
+    border: 'none', borderRadius: '12px',
+    fontSize: '15px', fontWeight: 600,
+    cursor: disabled ? 'default' : 'pointer',
+    transition: 'background 0.15s, color 0.15s',
+  });
 
   return (
     <div style={{
@@ -119,12 +273,27 @@ function AuthModal({ mode, onClose, onSwitch }: {
           display: 'grid', gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center', padding: '20px 24px', flexShrink: 0,
         }}>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none',
-            color: '#101010',
-            cursor: 'pointer', padding: 0, justifySelf: 'start',
-            lineHeight: 1, fontSize: '27px',
-          }}>✕</button>
+          {!isLogin && signupStep !== 'invite' ? (
+            <button
+              onClick={goBack}
+              aria-label="Back"
+              style={{
+                background: 'none', border: 'none', color: '#101010',
+                cursor: 'pointer', padding: 0, justifySelf: 'start',
+                lineHeight: 1, display: 'flex', alignItems: 'center',
+              }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          ) : (
+            <button onClick={onClose} aria-label="Close" style={{
+              background: 'none', border: 'none',
+              color: '#101010',
+              cursor: 'pointer', padding: 0, justifySelf: 'start',
+              lineHeight: 1, fontSize: '27px',
+            }}>✕</button>
+          )}
           <img src="/ISOLOGO BLACK.svg" alt="" style={{ width: 24, height: 24 }} />
           <a href="/contact" style={{
             background: 'none', border: 'none',
@@ -138,8 +307,172 @@ function AuthModal({ mode, onClose, onSwitch }: {
         <div style={{
           flex: 1, padding: '0 32px 40px',
           display: 'flex', flexDirection: 'column',
+          position: 'relative',
         }}>
 
+          {!isLogin && signupStep === 'invite' ? (
+            <>
+              {/* ── Step 0 (signup): invitation code gate ── */}
+              <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
+                <h2 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '28px', fontWeight: 500,
+                  color: '#101010', letterSpacing: '-0.5px', margin: '0 0 10px',
+                }}>
+                  By invitation only
+                </h2>
+                <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
+                  BareFolio is invite-only for now.<br />
+                  Enter the code you received to create your account.
+                </p>
+              </div>
+
+              <div style={{
+                position: 'absolute', top: '50%', left: 0, right: 0,
+                transform: 'translateY(-50%)', padding: '0 32px',
+                display: 'flex', flexDirection: 'column', gap: '12px',
+              }}>
+                <FloatingField
+                  label="Invitation code"
+                  value={inviteCode}
+                  onValue={v => setInviteCode(v.toUpperCase())}
+                  extraStyle={{ letterSpacing: '1px' }}
+                  inputProps={{
+                    onKeyDown: e => { if (e.key === 'Enter' && (SIGNUP_PREVIEW || inviteCode.trim())) setSignupStep('email'); },
+                  }}
+                />
+                <button
+                  onClick={() => { if (SIGNUP_PREVIEW || inviteCode.trim()) setSignupStep('email'); }}
+                  disabled={!SIGNUP_PREVIEW && !inviteCode.trim()}
+                  style={primaryBtnStyle(!SIGNUP_PREVIEW && !inviteCode.trim())}>
+                  Next
+                </button>
+              </div>
+            </>
+          ) : !isLogin && signupStep === 'verify' ? (
+            <>
+              {/* ── Step 2 (signup): email verification code ── */}
+              <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
+                <h2 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '28px', fontWeight: 500,
+                  color: '#101010', letterSpacing: '-0.5px', margin: '0 0 10px',
+                }}>
+                  Verify your email
+                </h2>
+                <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
+                  We&apos;ve sent a verification number to your email.<br />
+                  Please check your inbox to continue.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  paddingBottom: '120px',
+                }}>
+                  <CodeInput value={code} onChange={setCode} />
+                  <p style={{
+                    textAlign: 'center', fontSize: '14px',
+                    color: '#737373', margin: '24px 0 0',
+                  }}>
+                    {resendSeconds > 0 ? (
+                      <>Resend in {String(Math.floor(resendSeconds / 60)).padStart(2, '0')}:{String(resendSeconds % 60).padStart(2, '0')}</>
+                    ) : (
+                      <span
+                        role="button"
+                        onClick={() => setResendSeconds(120)}
+                        style={{ color: '#101010', fontWeight: 600, cursor: 'pointer' }}>
+                        Resend code
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: '0 0 16px', textAlign: 'center' }}>{error}</p>}
+
+                <button type="submit" disabled={loading} style={primaryBtnStyle(loading)}>
+                  {loading ? '…' : 'Next'}
+                </button>
+              </form>
+            </>
+          ) : !isLogin && signupStep === 'personal' ? (
+            <>
+              {/* ── Step 3 (signup): personal information ── */}
+              <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
+                <h2 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '28px', fontWeight: 500,
+                  color: '#101010', letterSpacing: '-0.5px', margin: '0 0 10px',
+                }}>
+                  Tell us about you
+                </h2>
+                <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
+                  Start with your full name and begin<br />
+                  building your space.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  justifyContent: 'center', gap: '14px', paddingBottom: '90px',
+                }}>
+                  <FloatingField label="Name" value={firstName} onValue={setFirstName} inputProps={{ required: !SIGNUP_PREVIEW }} />
+                  <FloatingField label="Surname" value={lastName} onValue={setLastName} inputProps={{ required: !SIGNUP_PREVIEW }} />
+                  <div style={{ alignSelf: 'center', width: '55%', borderTop: '1px solid #e5e5e5', margin: '6px 0' }} />
+                  <DateField label="Date of Birth" value={dob} onValue={setDob} />
+                  <CountrySelect label="Country" value={country} onValue={setCountry} />
+                </div>
+
+                {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: '16px 0 0', textAlign: 'center' }}>{error}</p>}
+
+                <button type="submit" disabled={loading} style={{ ...primaryBtnStyle(loading), marginTop: 'auto' }}>
+                  {loading ? '…' : 'Next'}
+                </button>
+              </form>
+            </>
+          ) : !isLogin && signupStep === 'password' ? (
+            <>
+              {/* ── Step 4 (signup): create a password ── */}
+              <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
+                <h2 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '28px', fontWeight: 500,
+                  color: '#101010', letterSpacing: '-0.5px', margin: '0 0 10px',
+                }}>
+                  Create a password
+                </h2>
+                <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
+                  Choose a password you&apos;ll remember,<br />
+                  make sure it&apos;s secure.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '175px' }}>
+                  <FloatingField
+                    label="Password" type="password"
+                    value={password} onValue={setPassword}
+                    inputProps={{ required: !SIGNUP_PREVIEW, minLength: SIGNUP_PREVIEW ? 0 : 6 }}
+                  />
+                  <FloatingField
+                    label="Repeat Password" type="password"
+                    value={confirmPassword} onValue={setConfirmPassword}
+                    inputProps={{ required: !SIGNUP_PREVIEW }}
+                  />
+                </div>
+
+                {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: '16px 0 0', textAlign: 'center' }}>{error}</p>}
+
+                <button type="submit" disabled={loading} style={{ ...primaryBtnStyle(loading), marginTop: 'auto' }}>
+                  {loading ? '…' : 'Next'}
+                </button>
+              </form>
+            </>
+          ) : (
+          <>
           {/* Title */}
           <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
             <h2 style={{
@@ -181,45 +514,52 @@ function AuthModal({ mode, onClose, onSwitch }: {
 
             {/* Email / password form */}
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="Email" required style={inputStyle}
-                onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
-                onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
+              <FloatingField
+                label="Email"
+                type="email"
+                value={email}
+                onValue={setEmail}
+                inputProps={{ required: !SIGNUP_PREVIEW }}
               />
-              {(isLogin || signupStep === 'password') && (
-                <input
-                  type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Password" required minLength={6} autoFocus={signupStep === 'password'}
-                  style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = '#101010')}
-                  onBlur={e =>  (e.currentTarget.style.borderColor = '#e5e5e5')}
+              {isLogin && (
+                <FloatingField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onValue={setPassword}
+                  inputProps={{ required: !SIGNUP_PREVIEW, minLength: SIGNUP_PREVIEW ? 0 : 6 }}
+                />
+              )}
+              {!isLogin && email.trim().length > 0 && (
+                <FloatingField
+                  label="Repeat email"
+                  type="email"
+                  value={confirmEmail}
+                  onValue={setConfirmEmail}
+                  inputProps={{ required: !SIGNUP_PREVIEW }}
                 />
               )}
               {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: 0, textAlign: 'center' }}>{error}</p>}
-              <button type="submit" disabled={loading} style={{
-                width: '100%', padding: '14px',
-                background: '#101010', color: '#fff',
-                border: 'none', borderRadius: '12px',
-                fontSize: '15px', fontWeight: 600,
-                cursor: loading ? 'default' : 'pointer',
-                opacity: loading ? 0.65 : 1, marginTop: '4px',
-              }}>
-                {loading ? '…' : isLogin ? 'Login' : signupStep === 'email' ? 'Next' : 'Create Account'}
+              <button type="submit" disabled={loading} style={{ ...primaryBtnStyle(loading), marginTop: '4px' }}>
+                {loading ? '…' : isLogin ? 'Login' : 'Next'}
               </button>
             </form>
 
           </div>{/* end middle block */}
+          </>
+          )}
 
-          {/* Bottom: switch link — pinned to bottom */}
-          <button onClick={onSwitch} style={{
-            marginTop: 'auto', background: 'none', border: 'none',
-            fontSize: '14px', color: '#737373',
-            cursor: 'pointer', textAlign: 'center',
-            paddingTop: '24px',
-          }}>
-            {isLogin ? 'Create account' : 'I have an account'}
-          </button>
+          {/* Bottom: switch link — only on the entry screens (login / invite / email) */}
+          {(isLogin || signupStep === 'invite' || signupStep === 'email') && (
+            <button onClick={onSwitch} style={{
+              marginTop: 'auto', background: 'none', border: 'none',
+              fontSize: '14px', color: '#737373',
+              cursor: 'pointer', textAlign: 'center',
+              paddingTop: '24px',
+            }}>
+              {isLogin ? 'Create account' : 'I have an account'}
+            </button>
+          )}
 
         </div>
       </div>

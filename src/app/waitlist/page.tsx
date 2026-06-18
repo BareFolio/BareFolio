@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PublicFooter from '@/components/PublicFooter';
+import FloatingField from '@/components/FloatingField';
 
 /* ── Responsive hook ──────────────────────────────── */
 function useIsMobile() {
@@ -193,22 +194,6 @@ export default function WaitlistPage() {
   /* Each of the 3 role buttons: (450 − 2×9px gap) / 3 = 144px */
   const ROLE_BTN_W = isMobile ? undefined : 144;
 
-  const inputBase: React.CSSProperties = {
-    background: '#f4f4f4',
-    border: '1px solid #e7e7e7',
-    borderRadius: 11,
-    padding: '0 12px',
-    fontFamily: 'var(--font-sans)',
-    fontSize: 16,
-    fontWeight: 400,
-    color: '#101010',
-    letterSpacing: '0.16px',
-    WebkitAppearance: 'none',
-    transition: 'border-color 0.15s',
-    minWidth: 0,
-    boxSizing: 'border-box' as const,
-  };
-
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
 
@@ -388,40 +373,34 @@ export default function WaitlistPage() {
 
           {/* Form fields */}
           <div style={{
-              display: 'flex', flexDirection: 'column', gap: 7,
+              display: 'flex', flexDirection: 'column', gap: 10,
               width: SECTION_W,
             }}>
               {/* Row 1: Name + Surname */}
-              <div style={{ display: 'flex', gap: 7 }}>
-                <input
-                  type="text" placeholder="Name"
-                  value={name} onChange={e => setName(e.target.value)}
-                  className="waitlist-input"
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 46, fontSize: isMobile ? 13 : 16 }}
+              <div style={{ display: 'flex', gap: 9 }}>
+                <FloatingField
+                  label="Name" value={name} onValue={setName}
+                  wrapperStyle={{ flex: 1 }}
                 />
-                <input
-                  type="text" placeholder="Surname"
-                  value={surname} onChange={e => setSurname(e.target.value)}
-                  className="waitlist-input"
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 46, fontSize: isMobile ? 13 : 16 }}
+                <FloatingField
+                  label="Surname" value={surname} onValue={setSurname}
+                  wrapperStyle={{ flex: 1 }}
                 />
               </div>
 
               {/* Row 2: Email + Join Now */}
-              <div style={{ display: 'flex', gap: 7 }}>
-                <input
-                  type="email" placeholder="Email"
-                  value={email} onChange={e => { setEmail(e.target.value); setErrorMsg(null); }}
-                  className="waitlist-input"
-                  required
-                  style={{ ...inputBase, flex: 1, height: isMobile ? 46 : 44, fontSize: isMobile ? 13 : 16 }}
+              <div style={{ display: 'flex', gap: 9, alignItems: 'stretch' }}>
+                <FloatingField
+                  label="Email" type="email" value={email}
+                  onValue={v => { setEmail(v); setErrorMsg(null); }}
+                  wrapperStyle={{ flex: 1 }}
+                  inputProps={{ required: true }}
                 />
                 <button
                   type="submit"
                   disabled={submitting || !role || !name || !newsletter}
                   style={{
                     width: isMobile ? 110 : 120,
-                    height: isMobile ? 46 : 44,
                     flexShrink: 0,
                     background: (submitting || !role || !name || !newsletter) ? '#a3a3a3' : '#101010',
                     border: 'none', borderRadius: 10,

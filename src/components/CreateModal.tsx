@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
-import { Search, ImagePlus } from 'lucide-react';
+import { ImagePlus } from 'lucide-react';
+import FloatingField from '@/components/FloatingField';
 
 const MAX_CHARS = 500;
 const ALLOWED_MIME_TYPES = new Set([
@@ -200,17 +201,10 @@ export default function CreateModal({ isOpen, onClose }: { isOpen: boolean; onCl
 
           {/* Add Link */}
           <div className="px-6 py-4">
-            <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest mb-2">Add Link</p>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-300 pointer-events-none" />
-              <input
-                type="url"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="Add Link (Optional)"
-                className="w-full bg-neutral-50 border border-neutral-100 rounded-xl pl-9 pr-4 py-2.5 text-sm text-text-primary placeholder-neutral-300 focus:outline-none focus:border-neutral-300 transition-colors"
-              />
-            </div>
+            <FloatingField
+              label="Add Link (Optional)" type="url"
+              value={link} onValue={setLink}
+            />
           </div>
 
           <div className="mx-6 border-t border-neutral-100" />

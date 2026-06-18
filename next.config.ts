@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Allow the dev server to be reached from cross-origin hosts (phone on the
+  // LAN, Cloudflare quick-tunnel). Next blocks cross-origin dev-asset/HMR
+  // requests by default, which otherwise serves a blank page through a tunnel.
+  // Dev-only; ignored in production builds.
+  allowedDevOrigins: ['*.trycloudflare.com', '192.168.1.40'],
   async rewrites() {
     if (PLATFORM_LIVE) {
       return { beforeFiles: [], afterFiles: [], fallback: [] };
