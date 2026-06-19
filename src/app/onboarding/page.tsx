@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
-import { ChevronLeft, Search, Download, Check } from 'lucide-react';
+import { ChevronLeft, Search, Download, Check, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -1022,6 +1022,12 @@ export default function OnboardingPage() {
   const [registered, setRegistered] = useState(false);
   // Flipped by the last step of each role flow → shows the confirmation screen.
   const [profileCreated, setProfileCreated] = useState(false);
+  // Business Document path: account is created pending manual review; the user
+  // sees the Review screen instead of entering the app.
+  const [pendingReview, setPendingReview] = useState(false);
+  // Guards the auto-fired signUp on the Review screen against React StrictMode
+  // double-invocation in dev.
+  const reviewFired = useRef(false);
 
   const router = useRouter();
 
@@ -1201,8 +1207,8 @@ export default function OnboardingPage() {
     setProjectPdfName(file.name);
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegister = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError('');
 
     const currentDraft = getSignupDraft();
@@ -1246,6 +1252,13 @@ export default function OnboardingPage() {
 
       clearSignupDraft();
 
+      // Business Document path: account is created pending review — stay on the
+      // Review screen, do not enter the app.
+      if (pendingReview) {
+        setLoading(false);
+        return;
+      }
+
       // If email confirmation is enabled, signUp returns a user but no session.
       if (data.user && !data.session) {
         setRegistered(true);
@@ -1258,6 +1271,20 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
+  // When the Business Document path flips pendingReview on, fire the (single)
+  // signUp once so the pending account + organization_verifications row are
+  // persisted for the team to review. handleRegister keeps the user on the
+  // Review screen instead of navigating (see its success branch).
+  useEffect(() => {
+    if (pendingReview && !reviewFired.current) {
+      reviewFired.current = true;
+      void handleRegister();
+    }
+    // handleRegister is intentionally omitted: it is recreated each render and
+    // the reviewFired ref guarantees this fires exactly once when pendingReview flips.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingReview]);
 
   // Render Confirmation Email screen
   if (registered) {
@@ -1305,6 +1332,61 @@ export default function OnboardingPage() {
   }
 
   if (profileCreated) {
+    // Business Document path → Review screen (24h). Account is created pending;
+    // the user does NOT enter the app. The signUp is fired by the effect that
+    // watches pendingReview (see Task 3).
+    if (pendingReview) {
+      const entityLabel = selectedRole === 'studio' ? 'Studio / Agency' : 'Company / Brand';
+      return (
+        <main style={{
+          minHeight: '100vh', background: '#fafafa',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '24px', textAlign: 'center',
+        }}>
+          <OnboardingHeader />
+          <div style={{
+            width: 56, height: 56, borderRadius: '50%',
+            background: '#101010', color: '#fafafa',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 24,
+          }}>
+            <Clock size={22} strokeWidth={2.5} />
+          </div>
+          <h1 style={{
+            fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400,
+            letterSpacing: '-1px', color: '#101010', margin: '0 0 10px',
+          }}>
+            We&rsquo;re reviewing your account
+          </h1>
+          <p style={{
+            fontFamily: 'var(--font-sans)', fontSize: 14, color: '#737373',
+            maxWidth: 320, margin: '0 0 28px', lineHeight: 1.5,
+          }}>
+            We&rsquo;re verifying that you own this {entityLabel}. You&rsquo;ll receive a confirmation within 24 hours.
+          </p>
+          {error && (
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#dc2626', margin: '0 0 16px' }}>
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            style={{
+              width: 266, height: 53, background: 'transparent', color: '#101010',
+              border: '0.5px solid #101010', borderRadius: 10,
+              fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Back to home
+          </button>
+        </main>
+      );
+    }
+
+    // Welcome screen — creator (both paths), seeker, studio/brand via email/LinkedIn.
+    const showProjectTag = selectedRole === 'creator' && projectPdfName !== '';
     return (
       <main style={{
         minHeight: '100vh', background: '#fafafa',
@@ -1328,10 +1410,24 @@ export default function OnboardingPage() {
         </h1>
         <p style={{
           fontFamily: 'var(--font-sans)', fontSize: 14, color: '#737373',
-          maxWidth: 300, margin: '0 0 28px', lineHeight: 1.5,
+          maxWidth: 300, margin: '0 0 20px', lineHeight: 1.5,
         }}>
           Your profile is ready, welcome to your new creative space on BareFolio.
         </p>
+        {showProjectTag && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: '#e7f6ec', borderRadius: 999, padding: '6px 14px',
+            margin: '0 0 24px',
+          }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#157347' }} />
+            <span style={{
+              fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500, color: '#157347',
+            }}>
+              Project under review
+            </span>
+          </div>
+        )}
         {error && (
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#dc2626', margin: '0 0 16px' }}>
             {error}
@@ -2776,7 +2872,12 @@ export default function OnboardingPage() {
             onComplete={(method, data) => {
               setStudioVerificationMethod(method);
               setStudioVerificationData(data);
-              studioFinish();
+              if (method === 'document') {
+                setPendingReview(true);
+                setProfileCreated(true);
+              } else {
+                studioFinish();
+              }
             }}
           />
         )}
@@ -3256,7 +3357,12 @@ export default function OnboardingPage() {
             onComplete={(method, data) => {
               setBrandVerificationMethod(method);
               setBrandVerificationData(data);
-              companyFinish();
+              if (method === 'document') {
+                setPendingReview(true);
+                setProfileCreated(true);
+              } else {
+                companyFinish();
+              }
             }}
           />
         )}
