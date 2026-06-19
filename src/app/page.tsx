@@ -592,10 +592,15 @@ function BottomNav({ onLogin, onGetAccess, hidden }: {
           border: '1px solid rgba(255,255,255,0.55)',
           boxShadow: '0 4px 24px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.6)',
         }}>
-        <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Back to top"
+          className="flex items-center gap-2.5 bg-transparent border-none p-0 cursor-pointer"
+        >
           <img src="/ISOLOGO BLACK.svg" alt="" className="h-6 w-6 object-contain flex-shrink-0" />
           <img src="/Logotipo Black.svg" alt="BareFolio" className="h-4 w-auto object-contain flex-shrink-0" />
-        </div>
+        </button>
         <div className="w-px h-5 mx-1" style={{ background: 'rgba(0,0,0,0.15)' }} />
         <button onClick={onLogin}
           className="text-[13px] font-medium px-2 py-1 rounded-full transition-all"
@@ -617,33 +622,73 @@ function BottomNav({ onLogin, onGetAccess, hidden }: {
    ═══════════════════════════════════════════════════════════════════ */
 function Block02() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [p, setP] = useState(0);
   const isMobile = useIsMobile();
 
+  // Each entry: [ref, rangeStart, rangeEnd, slideDistancePx].
+  // The animation is driven imperatively (writing opacity/transform straight to
+  // the DOM inside the scroll handler) instead of through React state. Routing
+  // it through useState made every frame re-render the whole block one frame
+  // late; with the shorter (200vh) scroll each frame's opacity jump is larger,
+  // so that one-frame lag was visible as images "trailing" the scroll and not
+  // finishing their disappearance on the way up. Imperative writes track scroll
+  // exactly, at any scroll length.
+  const centroLRef = useRef<HTMLDivElement>(null);
+  const centroRRef = useRef<HTMLDivElement>(null);
+  const arribaLRef = useRef<HTMLDivElement>(null);
+  const arribaRRef = useRef<HTMLDivElement>(null);
+  const abajoLRef  = useRef<HTMLDivElement>(null);
+  const abajoRRef  = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const onScroll = () => {
+    const layers: [React.RefObject<HTMLDivElement | null>, number, number, number][] = [
+      [centroLRef, 0.24, 0.42, 80],
+      [centroRRef, 0.28, 0.46, -80],
+      [arribaLRef, 0.36, 0.54, isMobile ? -60 : -200],
+      [arribaRRef, 0.40, 0.58, isMobile ? 60 : 200],
+      [abajoLRef,  0.48, 0.66, -200],
+      [abajoRRef,  0.52, 0.70, 200],
+    ];
+    // Drive the animation from BOTH a requestAnimationFrame loop and the scroll
+    // event. Safari coalesces/defers scroll events during momentum (inertia)
+    // scrolling, so a scroll-only handler left images frozen at a partial
+    // opacity on the way up; the rAF loop samples the real scroll position
+    // every frame so the fade always tracks the scroll and reaches 0 cleanly.
+    // The scroll listener is a cheap fallback in case rAF is ever throttled.
+    // The `p !== lastP` guard makes the double trigger free when nothing moved.
+    let raf = 0;
+    let lastP = -1;
+    const render = () => {
       const el = containerRef.current;
       if (!el) return;
       const scrolled   = -(el.getBoundingClientRect().top);
       const scrollable = el.offsetHeight - window.innerHeight;
-      setP(Math.max(0, Math.min(1, scrolled / scrollable)));
+      const p = Math.max(0, Math.min(1, scrolled / scrollable));
+      if (p === lastP) return;
+      lastP = p;
+      for (const [ref, a, b, dx] of layers) {
+        const node = ref.current;
+        if (!node) continue;
+        const v = eo(rng(p, a, b));
+        node.style.opacity = String(v);
+        // translate3d (not translateX) forces each image onto its own GPU
+        // layer so Safari reliably repaints the opacity change. With a plain
+        // 2D transform Safari sometimes skips the repaint, leaving the image
+        // as a faint "ghost" that never reaches 0 on the way up.
+        node.style.transform = `translate3d(${(1 - v) * dx}px, 0, 0)`;
+      }
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const phoneP   = eo(rng(p, 0.00, 0.20));
-  const textP    = eo(rng(p, 0.12, 0.28));
-  const centroLP = eo(rng(p, 0.24, 0.42));
-  const centroRP = eo(rng(p, 0.28, 0.46));
-  const arribaLP = eo(rng(p, 0.36, 0.54));
-  const arribaRP = eo(rng(p, 0.40, 0.58));
-  const abajoLP  = eo(rng(p, 0.48, 0.66));
-  const abajoRP  = eo(rng(p, 0.52, 0.70));
+    const tick = () => { render(); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    window.addEventListener('scroll', render, { passive: true });
+    render();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', render);
+    };
+  }, [isMobile]);
 
   return (
-    <div ref={containerRef} style={{ height: '400vh', background: '#fafafa' }}>
+    <div ref={containerRef} style={{ height: '200vh', background: '#fafafa' }}>
       <div style={{ position: 'sticky', top: 0, height: '100vh', background: '#fafafa' }}>
 
         {/* Headline */}
@@ -700,23 +745,25 @@ function Block02() {
 
         {/* Centro pair — repositioned on mobile to flank the phone */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 20, pointerEvents: 'none', overflow: 'hidden' }}>
-          <div style={{
+          <div ref={centroLRef} style={{
             position: 'absolute',
             left: isMobile ? 'calc(50% - 240px)' : 'calc(50% - 470px)',
             top: isMobile ? '40%' : '26%',
-            transform: `translateX(${(1 - centroLP) * 80}px)`,
-            opacity: centroLP,
+            transform: 'translate3d(80px, 0, 0)',
+            opacity: 0,
+            willChange: 'opacity, transform',
             width: isMobile ? '110px' : '230px',
           }}>
             <img src="/landing/recursos/Bloque 2_Centro Izquierda.png" alt=""
               style={{ width: '100%', borderRadius: '16px', boxShadow: '0 8px 28px rgba(0,0,0,0.12)' }} />
           </div>
-          <div style={{
+          <div ref={centroRRef} style={{
             position: 'absolute',
             right: isMobile ? 'calc(50% - 240px)' : 'calc(50% - 470px)',
             top: isMobile ? '44%' : '30%',
-            transform: `translateX(${(1 - centroRP) * -80}px)`,
-            opacity: centroRP,
+            transform: 'translate3d(-80px, 0, 0)',
+            opacity: 0,
+            willChange: 'opacity, transform',
             width: isMobile ? '110px' : '230px',
           }}>
             <img src="/landing/recursos/Bloque 2_centro derecha.png" alt=""
@@ -727,23 +774,25 @@ function Block02() {
         {/* Arriba (desktop only) + Abajo (both, smaller on mobile) */}
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 10, pointerEvents: 'none' }}>
           <>
-            <div style={{
+            <div ref={arribaLRef} style={{
               position: 'absolute',
               left: isMobile ? '4px' : '44px',
               top: isMobile ? '22%' : '6%',
-              transform: `translateX(${(1 - arribaLP) * (isMobile ? -60 : -200)}px)`,
-              opacity: arribaLP,
+              transform: `translate3d(${isMobile ? -60 : -200}px, 0, 0)`,
+              opacity: 0,
+              willChange: 'opacity, transform',
               width: isMobile ? '72px' : '234px',
             }}>
               <img src="/landing/recursos/Bloque 2_Arriba Izquierda.png" alt=""
                 style={{ width: '100%', borderRadius: '12px', boxShadow: '0 8px 28px rgba(0,0,0,0.10)' }} />
             </div>
-            <div style={{
+            <div ref={arribaRRef} style={{
               position: 'absolute',
               right: isMobile ? '4px' : '-6px',
               top: isMobile ? '18%' : '1%',
-              transform: `translateX(${(1 - arribaRP) * (isMobile ? 60 : 200)}px)`,
-              opacity: arribaRP,
+              transform: `translate3d(${isMobile ? 60 : 200}px, 0, 0)`,
+              opacity: 0,
+              willChange: 'opacity, transform',
               width: isMobile ? '72px' : '248px',
             }}>
               <img src="/landing/recursos/Bloque 2_Arriba derecha.png" alt=""
@@ -751,23 +800,25 @@ function Block02() {
             </div>
           </>
 
-          <div style={{
+          <div ref={abajoLRef} style={{
             position: 'absolute',
             left: isMobile ? '-5px' : '10px',
             bottom: isMobile ? '10%' : '2%',
-            transform: `translateX(${(1 - abajoLP) * -200}px)`,
-            opacity: abajoLP,
+            transform: 'translate3d(-200px, 0, 0)',
+            opacity: 0,
+            willChange: 'opacity, transform',
             width: isMobile ? '120px' : '200px',
           }}>
             <img src="/landing/recursos/Bloque 2_Abajo izquierda.png" alt=""
               style={{ width: '100%', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.09)' }} />
           </div>
-          <div style={{
+          <div ref={abajoRRef} style={{
             position: 'absolute',
             right: isMobile ? '-5px' : '80px',
             bottom: isMobile ? '12%' : '4%',
-            transform: `translateX(${(1 - abajoRP) * 200}px)`,
-            opacity: abajoRP,
+            transform: 'translate3d(200px, 0, 0)',
+            opacity: 0,
+            willChange: 'opacity, transform',
             width: isMobile ? '120px' : '230px',
           }}>
             <img src="/landing/recursos/Bloque 2_Abajo derecha.png" alt=""
