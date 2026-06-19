@@ -25,6 +25,14 @@ const SIDE_PAD = (100 - CARD_VW) / 2;     // padding that keeps a card snapped t
 const CARD_GAP = 12;                      // gap between cards (px)
 const PLAN_NAMES = ['Free Plan', 'Pro Plan', 'Scout Plan'] as const;
 
+/* ── Communities copy (no pricing, no figures — function only) ── */
+const COMMUNITY_POINTS: readonly (readonly [string, string])[] = [
+  ['Organised into channels', 'Each community is split into channels, so conversations, references, and projects stay sorted by topic instead of buried in a single feed.'],
+  ['Join or start your own', 'Step into communities that already exist, or create one yourself and invite exactly the people you want in it.'],
+  ['Open or invite-only', 'Some are open to the whole network; others stay private — built for a studio, a class, or a close circle of collaborators.'],
+  ['Different levels', 'Communities come in different levels. As you move up, they grow in reach, open up more channels, and gain richer tools for organising members and moderating the space.'],
+] as const;
+
 /* ── Feature item ─────────────────────────────────────────────── */
 function Feat({ dot, children }: { dot: string; children: React.ReactNode }) {
   return (
@@ -586,8 +594,17 @@ export default function PricingPage() {
             </div>
           )}
 
-          {/* ─── PLATFORM PREVIEW ─── */}
-          <div style={{ marginTop: isMobile ? 40 : 56 }}>
+          {/* ─── COMMUNITIES ─── */}
+          <div
+            style={{
+              marginTop: isMobile ? 40 : 56,
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap: isMobile ? 28 : 56,
+              alignItems: 'center',
+            }}
+          >
+            {/* Column 1 — image */}
             <img
               src="/pricing-preview.jpg"
               alt="BareFolio app shown on a phone"
@@ -599,6 +616,90 @@ export default function PricingPage() {
                 aspectRatio: '2000 / 1116', borderRadius: 20, objectFit: 'cover',
               }}
             />
+
+            {/* Column 2 — how communities work */}
+            <div>
+              <p style={{
+                margin: 0,
+                fontFamily: B,
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: '#737373',
+              }}>
+                Communities
+              </p>
+
+              <h2 style={{
+                margin: '12px 0 0',
+                fontFamily: D,
+                fontSize: isMobile ? 26 : 32,
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
+                color: '#101010',
+              }}>
+                Where the work finds its people
+              </h2>
+
+              <p style={{
+                margin: '14px 0 0',
+                fontFamily: B,
+                fontSize: 15,
+                lineHeight: 1.6,
+                color: '#525252',
+              }}>
+                Communities are the spaces where creatives gather around a shared
+                craft, studio, or scene. Each one runs a little differently — here is
+                how they work.
+              </p>
+
+              <ul style={{ listStyle: 'none', margin: '22px 0 0', padding: 0 }}>
+                {COMMUNITY_POINTS.map(([title, body], i) => (
+                  <li
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      gap: 12,
+                      marginTop: i === 0 ? 0 : 18,
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        flex: '0 0 auto',
+                        width: 8,
+                        height: 8,
+                        marginTop: 7,
+                        borderRadius: '50%',
+                        backgroundColor: '#101010',
+                      }}
+                    />
+                    <span>
+                      <span style={{
+                        display: 'block',
+                        fontFamily: B,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: '#101010',
+                      }}>
+                        {title}
+                      </span>
+                      <span style={{
+                        display: 'block',
+                        marginTop: 3,
+                        fontFamily: B,
+                        fontSize: 14,
+                        lineHeight: 1.55,
+                        color: '#737373',
+                      }}>
+                        {body}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
