@@ -58,6 +58,19 @@ export function teamSizeToEnum(label: string): string | null {
   }
 }
 
+/**
+ * ProfileVerification onComplete (method,data) → org_verification method_check.
+ * Live constraint allows: email_domain | social_instagram | social_linkedin | documentation.
+ */
+export function orgVerificationMethodToEnum(method: string, data: string): string | null {
+  switch (method) {
+    case 'email':    return 'email_domain';
+    case 'document': return 'documentation';
+    case 'social':   return data === 'instagram' ? 'social_instagram' : 'social_linkedin';
+    default:         return null;
+  }
+}
+
 /** Lowercase, trim, collapse whitespace to underscores; strip non handle chars. */
 export function slugifyHandle(raw: string): string {
   return raw
@@ -154,7 +167,7 @@ export function buildSignupMetadata(
     disciplines: orgDisciplines,
     industries,
     team_size: teamSizeToEnum(inputs.teamSize ?? ''),
-    verification_method: method ?? '',
+    verification_method: method ? (orgVerificationMethodToEnum(method, data ?? '') ?? '') : '',
     verification_data: data ? { detail: data } : null,
   };
 }
