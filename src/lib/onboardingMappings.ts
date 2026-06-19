@@ -102,7 +102,7 @@ export type OnboardingInputs = {
   studioVerificationData?: string;
   brandName?: string;
   brandLink?: string;
-  brandIndustry?: string;
+  brandIndustries?: string[];
   brandDisciplines?: string[];
   brandVerificationMethod?: string;
   brandVerificationData?: string;
@@ -155,7 +155,7 @@ export function buildSignupMetadata(
   const orgName = (isStudio ? inputs.studioName : inputs.brandName) ?? '';
   const orgLink = (isStudio ? inputs.studioLink : inputs.brandLink) ?? '';
   const orgDisciplines = (isStudio ? inputs.studioDisciplines : inputs.brandDisciplines) ?? [];
-  const industries = !isStudio && inputs.brandIndustry ? [inputs.brandIndustry] : [];
+  const industries = !isStudio ? (inputs.brandIndustries ?? []) : [];
   const method = isStudio ? inputs.studioVerificationMethod : inputs.brandVerificationMethod;
   const data = isStudio ? inputs.studioVerificationData : inputs.brandVerificationData;
 

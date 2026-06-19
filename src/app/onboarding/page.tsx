@@ -1,16 +1,22 @@
 'use client';
 
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
-import { ChevronLeft, Search, Download, Check, Clock } from 'lucide-react';
+import { ChevronLeft, Search, Download, Check, Clock, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { gatePlatform } from '@/lib/platformGate';
-import { getSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
+import { getSignupDraft, setSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
 import { buildSignupMetadata } from '@/lib/onboardingMappings';
 import FloatingField, { SHARED_FIELD_STYLE } from '@/components/FloatingField';
 import { DISCIPLINES as ALL_DISCIPLINES, SUGGESTED_DISCIPLINES } from '@/lib/disciplines';
-import { INDUSTRIES as ALL_INDUSTRIES, SUGGESTED_INDUSTRIES } from '@/lib/industries';
+import { INDUSTRIES as ALL_INDUSTRIES } from '@/lib/industries';
+
+// ⚠️ TEMP DEV BYPASS — lets you click through every onboarding screen without
+// filling any field (skips required-field gates and finish validations). This is
+// for visual screen review ONLY. Set to false (or delete this + its guards)
+// before running real Supabase signup tests.
+const DEV_BYPASS: boolean = true;
 
 /* Number of screens in the shared Creator/Seeker profile sub-flow. Bumped as
    each new Figma screen is added.
@@ -64,15 +70,25 @@ function isCorporateEmail(email: string): boolean {
 const STUDIO_OTP_LENGTH = 5;
 const STUDIO_OTP_RESEND_SECONDS = 120;
 
-/* Accepted business-ownership documents, shown as a two-column checklist. */
+/* Accepted business documents. Mobile shows them as a single-column checklist
+   (Figma order); desktop keeps the original two-column split. The bank-statement
+   entry is entity-specific ("…with <entity> name"), so the verification
+   component appends it from its `entityLabel` prop. */
+const BUSINESS_DOC_TYPES = [
+  'Business Registration Certificate',
+  'Tax ID / VAT Certificate',
+  'Business License',
+  'Company Registration Document',
+  'Articles of Incorporation',
+  'Official Letterhead',
+];
+/* Desktop two-column layout (original composition). */
 const BUSINESS_DOC_TYPES_LEFT = [
   'Tax ID / VAT Certificate',
   'Articles of Incorporation',
   'Official Letterhead',
   'Business License',
 ];
-/* The bank-statement entry is entity-specific ("…with <entity> name"), so the
-   verification component appends it from its `entityLabel` prop. */
 const BUSINESS_DOC_TYPES_RIGHT = [
   'Business Registration Certificate',
   'Company Registration Document',
@@ -80,6 +96,9 @@ const BUSINESS_DOC_TYPES_RIGHT = [
 
 /* The studio discipline picker is multi-select with a hard cap of three. */
 const STUDIO_MAX_DISCIPLINES = 3;
+
+/* The company/brand industry picker is multi-select: at least one, up to three. */
+const MAX_INDUSTRIES = 3;
 
 /* Team-size options for the "How many people work?" studio screen. */
 const TEAM_SIZE_OPTIONS = [
@@ -174,53 +193,60 @@ const ROLES = [
   },
 ];
 
-const DISCIPLINES = [
-  'Graphic Design',
-  'Photography',
-  'Fashion Design',
-  'Video Editing',
-  'Branding',
-  'Filmmaker',
-  'Art Direction',
-  'Packaging',
-  'Interior Design',
-  'Motion Design',
-  'Creative Direction',
-  'Animation'
-];
-
-const PRACTICES = [
-  { id: 'student', title: 'Student', desc: 'Currently studying' },
-  { id: 'starting_career', title: 'Starting Career', desc: 'Early career / junior' },
-  { id: 'freelance', title: 'Freelance', desc: 'Independent contractor' },
-  { id: 'employee', title: 'Employee', desc: 'Full-time at a studio/agency' },
-];
-
-const AVAILABILITY_OPTIONS = [
-  { id: 'yes', label: 'Yes, looking for opportunities' },
-  { id: 'depends', label: 'Depends on the project' },
-  { id: 'not_now', label: 'Not open right now' },
-  { id: 'dont_know', label: "I don't know yet" },
-];
-
-const TEAM_SIZES = ['1-3', '4-10', '11-25', '26-50', '50+'];
-
-const INDUSTRIES = [
-  'Fashion & Lifestyle',
-  'Tech & Startups',
-  'Restaurants & Food',
-  'Entertainment & Media',
-  'E-commerce & Retail',
-  'Real Estate & Architecture',
-  'Creative Services',
-  'Other'
-];
-
 /* Persistent onboarding header — same logo, same place, same size on every
    onboarding screen. Top-left isologo + wordmark, no other controls. */
+/* Tracks a (max-width) media query so inline-style screens can branch a mobile
+   layout without CSS media queries. Desktop-first: renders `false` on the server
+   and the first client paint, then flips on mount (acceptable flash for the
+   onboarding flow). */
+function useIsMobile(breakpoint = 768): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 function OnboardingHeader() {
+  const isMobile = useIsMobile();
+  // Mobile (Figma): the isologo mark alone, centered at the top — the back
+  // chevron each screen already renders sits to its left.
+  if (isMobile) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          padding: '28px 32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          zIndex: 10,
+        }}
+      >
+        {/* Tapping the mark leaves onboarding and returns to the landing page. */}
+        <Link
+          href="/"
+          aria-label="Back to home"
+          style={{ display: 'inline-flex', alignItems: 'center', pointerEvents: 'auto' }}
+        >
+          <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 24, width: 24, objectFit: 'contain' }} />
+        </Link>
+      </div>
+    );
+  }
+  // Desktop: top-left isologo + wordmark (unchanged).
   return (
-    <div
+    <Link
+      href="/"
+      aria-label="Back to home"
       style={{
         position: 'absolute',
         top: 0,
@@ -234,8 +260,58 @@ function OnboardingHeader() {
     >
       <img src="/ISOLOGO BLACK.svg" alt="" style={{ height: 20, width: 20, objectFit: 'contain' }} />
       <img src="/Logotipo Black.svg" alt="BareFolio" style={{ height: 17, width: 'auto', objectFit: 'contain' }} />
-    </div>
+    </Link>
   );
+}
+
+/* Top-left back control. Desktop: "‹ Back". Mobile (Figma): a bare chevron
+   raised to sit on the centered-logo line. */
+function BackButton({ onClick }: { onClick: () => void }) {
+  const isMobile = useIsMobile();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Back"
+      style={{
+        position: 'absolute',
+        top: isMobile ? '22px' : '104px',
+        left: isMobile ? '20px' : '48px',
+        zIndex: 20,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        padding: '10px',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '16px',
+        fontWeight: 500,
+        letterSpacing: '-0.32px',
+        color: '#101010',
+      }}
+    >
+      <ChevronLeft size={24} strokeWidth={2} />
+      {!isMobile && 'Back'}
+    </button>
+  );
+}
+
+/* Positioning for the solid bottom CTA. Desktop: fixed 266px pinned bottom-right.
+   Mobile (Figma): full-width, centered between 32px side margins. */
+function bottomCtaPos(isMobile: boolean): CSSProperties {
+  return isMobile
+    ? { position: 'absolute', bottom: '32px', left: '32px', right: '32px', width: 'auto', height: '53px' }
+    : { position: 'absolute', bottom: '40px', right: '40px', width: '266px', height: '53px' };
+}
+
+/* Positioning for the tertiary "Skip"/"I don't want to say it" text button.
+   Desktop: bottom-right. Mobile (Figma): centered. */
+function skipBtnPos(isMobile: boolean): CSSProperties {
+  return isMobile
+    ? { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)' }
+    : { position: 'absolute', bottom: '48px', right: '48px' };
 }
 
 /* ─── Shared profile-ownership verification ───────────────────────────────
@@ -268,6 +344,7 @@ function ProfileVerification({
   const [docError, setDocError] = useState('');
   const [isDraggingDoc, setIsDraggingDoc] = useState(false);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   // Tick the resend cooldown down to zero while the code screen is open.
   useEffect(() => {
@@ -322,7 +399,12 @@ function ProfileVerification({
     setDocName(file.name);
   };
 
-  // Accepted-document checklist; the bank-statement line carries the entity noun.
+  // Mobile: single-column checklist; the bank-statement line carries the entity noun.
+  const docChecklist = [
+    ...BUSINESS_DOC_TYPES,
+    `Bank Statement (with ${entityLabel} name)`,
+  ];
+  // Desktop: original two-column split (bank statement appended to the right).
   const docColumns = [
     BUSINESS_DOC_TYPES_LEFT,
     [...BUSINESS_DOC_TYPES_RIGHT, `Bank Statement (with ${entityLabel} name)`],
@@ -331,30 +413,7 @@ function ProfileVerification({
   return (
     <>
       {/* Back */}
-      <button
-        type="button"
-        onClick={back}
-        style={{
-          position: 'absolute',
-          top: '104px',
-          left: '48px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          border: 'none',
-          background: 'transparent',
-          cursor: 'pointer',
-          padding: '10px',
-          fontFamily: 'var(--font-sans)',
-          fontSize: '16px',
-          fontWeight: 500,
-          letterSpacing: '-0.32px',
-          color: '#101010',
-        }}
-      >
-        <ChevronLeft size={24} strokeWidth={2} />
-        Back
-      </button>
+      <BackButton onClick={back} />
 
       {/* Method chooser */}
       {screen === 'choose' && (
@@ -487,7 +546,7 @@ function ProfileVerification({
           <button
             type="button"
             onClick={startEmailVerification}
-            disabled={!corporateEmail}
+            disabled={!DEV_BYPASS && !isCorporateEmail(corporateEmail)}
             style={{
               width: '266px',
               height: '53px',
@@ -499,8 +558,8 @@ function ProfileVerification({
               fontFamily: 'var(--font-sans)',
               fontSize: '16px',
               fontWeight: 500,
-              cursor: corporateEmail ? 'pointer' : 'not-allowed',
-              opacity: corporateEmail ? 1 : 0.4,
+              cursor: isCorporateEmail(corporateEmail) ? 'pointer' : 'not-allowed',
+              opacity: isCorporateEmail(corporateEmail) ? 1 : 0.4,
               transition: 'opacity .12s ease',
             }}
           >
@@ -677,9 +736,235 @@ function ProfileVerification({
         </div>
       )}
 
-      {/* Business document — manually reviewed proof of ownership. The drop
-          zone mirrors the Creator project-verification zone exactly. */}
-      {screen === 'document' && (
+      {/* Business document — manually reviewed proof of ownership (Figma:
+          Studio/Company Business Document), laid out to fit the viewport. The
+          accepted-docs list + "Select Document" stay together near the top; the
+          submit action and confidentiality note sit pinned near the bottom. */}
+      {screen === 'document' && (isMobile ? (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              top: '120px',
+              left: 0,
+              right: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              padding: '0 32px',
+            }}
+          >
+            <h1
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 400,
+                fontSize: '24px',
+                lineHeight: '26px',
+                letterSpacing: '-1px',
+                color: '#101010',
+                margin: 0,
+              }}
+            >
+              Business document
+            </h1>
+            <p
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '14px',
+                fontWeight: 400,
+                lineHeight: '16px',
+                color: '#737373',
+                maxWidth: '276px',
+                margin: '12px 0 0',
+              }}
+            >
+              Upload an official document that proves {entityLabel} ownership.
+            </p>
+
+            {/* Accepted documents — single column, faithful to Figma. */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '9px',
+                marginTop: '28px',
+                alignItems: 'flex-start',
+                textAlign: 'left',
+              }}
+            >
+              {docChecklist.map(doc => (
+                <div
+                  key={doc}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                >
+                  <Check size={15} strokeWidth={2.5} color="#101010" />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: '16px',
+                      color: '#101010',
+                    }}
+                  >
+                    {doc}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <input
+              ref={docInputRef}
+              type="file"
+              accept={ACCEPTED_PROJECT_TYPES}
+              style={{ display: 'none' }}
+              onChange={e => handleDoc(e.target.files?.[0])}
+            />
+
+            {/* Picked file — compact name + remove (no drop zone). */}
+            {docName && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginTop: '24px',
+                  maxWidth: '100%',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#101010',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {docName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDocName('');
+                    setDocError('');
+                    if (docInputRef.current) docInputRef.current.value = '';
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    color: '#737373',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    flexShrink: 0,
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {/* Empty state: pick a document — stays attached to the checklist. */}
+            {!docName && (
+              <button
+                type="button"
+                onClick={() => docInputRef.current?.click()}
+                style={{
+                  width: '266px',
+                  height: '53px',
+                  marginTop: '28px',
+                  background: '#101010',
+                  color: '#fafafa',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  letterSpacing: '-0.32px',
+                  cursor: 'pointer',
+                }}
+              >
+                Select Document
+              </button>
+            )}
+          </div>
+
+          {/* Submit + confidentiality note — pinned toward the bottom. */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '40px',
+              left: 0,
+              right: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '0 32px',
+            }}
+          >
+            {/* Submit — appears only once a document is selected. */}
+            {docName && (
+              <button
+                type="button"
+                onClick={() => onComplete('document', docName)}
+                style={{
+                  width: '266px',
+                  height: '53px',
+                  background: '#101010',
+                  color: '#fafafa',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  letterSpacing: '-0.32px',
+                  cursor: 'pointer',
+                }}
+              >
+                Submit document
+              </button>
+            )}
+
+            {docError && (
+              <p
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '13px',
+                  fontWeight: 400,
+                  lineHeight: '16px',
+                  color: '#b91c1c',
+                  margin: 0,
+                }}
+              >
+                {docError}
+              </p>
+            )}
+
+            {/* Confidentiality note (faithful to Figma footer). */}
+            <p
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '12px',
+                fontWeight: 400,
+                lineHeight: '16px',
+                color: '#a3a3a3',
+                maxWidth: '320px',
+                margin: 0,
+                textAlign: 'center',
+              }}
+            >
+              Your document will be reviewed by our team (24–48 hours), kept
+              confidential and secure, never shared, and deleted after verification.
+            </p>
+          </div>
+        </>
+      ) : (
+        /* Desktop — original composition with the drag-file drop zone. */
         <div
           style={{
             display: 'flex',
@@ -717,24 +1002,11 @@ function ProfileVerification({
             Upload an official document that proves {entityLabel} ownership.
           </p>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '32px',
-              marginTop: '24px',
-              textAlign: 'left',
-            }}
-          >
+          <div style={{ display: 'flex', gap: '32px', marginTop: '24px', textAlign: 'left' }}>
             {docColumns.map((col, ci) => (
-              <div
-                key={ci}
-                style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
-              >
+              <div key={ci} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {col.map(doc => (
-                  <div
-                    key={doc}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                  >
+                  <div key={doc} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Check size={15} strokeWidth={2} color="#101010" />
                     <span
                       style={{
@@ -845,7 +1117,6 @@ function ProfileVerification({
             style={{ display: 'none' }}
             onChange={e => handleDoc(e.target.files?.[0])}
           />
-
           <button
             type="button"
             onClick={() => docInputRef.current?.click()}
@@ -866,7 +1137,6 @@ function ProfileVerification({
           >
             Select document
           </button>
-
           <p
             style={{
               fontFamily: 'var(--font-sans)',
@@ -879,7 +1149,6 @@ function ProfileVerification({
           >
             {docError || 'Maximum file size: 50 MB.'}
           </p>
-
           {docName && (
             <button
               type="button"
@@ -902,37 +1171,8 @@ function ProfileVerification({
             </button>
           )}
         </div>
-      )}
+      ))}
 
-      {/* Solid bottom-right "Next" — only the corporate-email screen needs an
-          explicit advance; it stays disabled until a valid corporate email. */}
-      {screen === 'email' && (
-        <button
-          type="button"
-          onClick={startEmailVerification}
-          disabled={!isCorporateEmail(corporateEmail)}
-          style={{
-            position: 'absolute',
-            bottom: '40px',
-            right: '40px',
-            width: '266px',
-            height: '53px',
-            background: '#101010',
-            color: '#fafafa',
-            border: 'none',
-            borderRadius: '10px',
-            fontFamily: 'var(--font-sans)',
-            fontSize: '16px',
-            fontWeight: 500,
-            letterSpacing: '-0.32px',
-            cursor: isCorporateEmail(corporateEmail) ? 'pointer' : 'not-allowed',
-            opacity: isCorporateEmail(corporateEmail) ? 1 : 0.4,
-            transition: 'opacity .12s ease',
-          }}
-        >
-          Next
-        </button>
-      )}
     </>
   );
 }
@@ -964,15 +1204,12 @@ export default function OnboardingPage() {
   const [disciplineFocused, setDisciplineFocused] = useState(false);
   // Collected here; read when the profile is submitted to the backend.
   const [availability, setAvailability] = useState('');
-  const [practice, setPractice] = useState('freelance');
-  const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>([]);
-  const [availabilityStatus, setAvailabilityStatus] = useState('yes');
   const [projectPdfName, setProjectPdfName] = useState('');
-  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   // Verification-upload UI state (drag highlight + validation message).
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [fileError, setFileError] = useState('');
   const projectFileInputRef = useRef<HTMLInputElement>(null);
+  const brandIndustryInputRef = useRef<HTMLInputElement>(null);
   // Confirmation alert shown when skipping the (eventually required) upload step.
   const [showSkipAlert, setShowSkipAlert] = useState(false);
 
@@ -996,7 +1233,7 @@ export default function OnboardingPage() {
   const [brandName, setBrandName] = useState('');
   const [brandLink, setBrandLink] = useState('');
   // Single-select industry (empty until the user picks one).
-  const [brandIndustry, setBrandIndustry] = useState('');
+  const [brandIndustries, setBrandIndustries] = useState<string[]>([]);
   const [brandIndustryQuery, setBrandIndustryQuery] = useState('');
   const [brandIndustryFocused, setBrandIndustryFocused] = useState(false);
   const [brandDisciplines, setBrandDisciplines] = useState<string[]>([]);
@@ -1030,11 +1267,27 @@ export default function OnboardingPage() {
   const reviewFired = useRef(false);
 
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   // Without the landing handoff we cannot register (hard refresh or direct
   // navigation to /onboarding). Send the user back to start.
   useEffect(() => {
-    if (!getSignupDraft()) router.replace('/');
+    if (!getSignupDraft()) {
+      if (DEV_BYPASS) {
+        // Seed a throwaway draft so the screens render on direct navigation /
+        // hard refresh during visual review. Never fires when DEV_BYPASS is off.
+        setSignupDraft({
+          email: 'dev@barefolio.test',
+          password: 'devbypass',
+          firstName: 'Dev',
+          lastName: 'User',
+          country: 'Spain',
+          birthYear: 1990,
+        });
+        return;
+      }
+      router.replace('/');
+    }
   }, [router]);
 
   // Fade the intro copy out (opacity) before swapping to the role screen.
@@ -1126,9 +1379,14 @@ export default function OnboardingPage() {
       return [...prev, discipline];
     });
   };
-  // Single-select the industry; tapping the active one clears it.
+  // Multi-select the industries (1–3): tapping an active one removes it, and new
+  // selections are ignored once the three-industry cap is reached.
   const chooseIndustry = (industry: string) => {
-    setBrandIndustry(prev => (prev === industry ? '' : industry));
+    setBrandIndustries(prev => {
+      if (prev.includes(industry)) return prev.filter(i => i !== industry);
+      if (prev.length >= MAX_INDUSTRIES) return prev;
+      return [...prev, industry];
+    });
   };
   // Pick a career stage (or skip with '') and move to the next profile screen.
   const chooseStage = (stage: string) => {
@@ -1147,44 +1405,20 @@ export default function OnboardingPage() {
 
   // Creator: last questionnaire step → show confirmation.
   const profileFinish = () => {
-    if (!username) { setError('Please create a username.'); return; }
-    if (selectedDisciplines.length === 0) { setError('Please select at least one main discipline.'); return; }
+    if (!DEV_BYPASS && !username) { setError('Please create a username.'); return; }
+    if (!DEV_BYPASS && !mainDiscipline) { setError('Please select at least one main discipline.'); return; }
     setError('');
     setProfileCreated(true);
   };
   // Seeker: last step ("Finish") → show confirmation.
   const seekerFinish = () => {
-    if (!username) { setError('Please create a username.'); return; }
-    if (seekerDisciplines.length === 0) { setError('Please select at least one discipline you are looking for.'); return; }
+    if (!DEV_BYPASS && !username) { setError('Please create a username.'); return; }
+    if (!DEV_BYPASS && seekerDisciplines.length === 0) { setError('Please select at least one discipline you are looking for.'); return; }
     setError('');
     setProfileCreated(true);
   };
   const studioFinish = () => { setError(''); setProfileCreated(true); };
   const companyFinish = () => { setError(''); setProfileCreated(true); };
-
-  const toggleDiscipline = (disc: string, type: 'creator' | 'studio' | 'brand') => {
-    if (type === 'creator') {
-      setSelectedDisciplines(prev => 
-        prev.includes(disc) ? prev.filter(d => d !== disc) : [...prev, disc]
-      );
-    } else if (type === 'studio') {
-      setStudioDisciplines(prev => 
-        prev.includes(disc) ? prev.filter(d => d !== disc) : [...prev, disc]
-      );
-    } else {
-      setBrandDisciplines(prev => 
-        prev.includes(disc) ? prev.filter(d => d !== disc) : [...prev, disc]
-      );
-    }
-  };
-
-  const handleSimulatedPdfUpload = () => {
-    setIsUploadingPdf(true);
-    setTimeout(() => {
-      setProjectPdfName('Creative_Portfolio_Project.pdf');
-      setIsUploadingPdf(false);
-    }, 1500);
-  };
 
   // Validate and accept a project file from either the picker or a drop. Only
   // a single PDF/image up to MAX_PROJECT_FILE_BYTES is allowed; anything else
@@ -1209,6 +1443,13 @@ export default function OnboardingPage() {
 
   const handleRegister = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    // ⚠️ TEMP DEV BYPASS: during the visual screen walkthrough we skip the real
+    // signUp so empty/garbage accounts aren't written to Supabase. Remove with
+    // the DEV_BYPASS flag before the real registration test.
+    if (DEV_BYPASS) {
+      console.warn('[DEV_BYPASS] handleRegister skipped — no real signUp fired.');
+      return;
+    }
     setError('');
 
     const currentDraft = getSignupDraft();
@@ -1223,7 +1464,7 @@ export default function OnboardingPage() {
       const metadata = buildSignupMetadata(currentDraft, {
         role: selectedRole as 'creator' | 'seeker' | 'studio' | 'brand',
         careerStage,
-        selectedDisciplines,
+        selectedDisciplines: mainDiscipline ? [mainDiscipline] : [],
         availabilityStatus: availability,
         projectPdfName,
         seekerPractice,
@@ -1237,7 +1478,7 @@ export default function OnboardingPage() {
         studioVerificationData,
         brandName,
         brandLink,
-        brandIndustry,
+        brandIndustries,
         brandDisciplines,
         brandVerificationMethod,
         brandVerificationData,
@@ -1395,12 +1636,10 @@ export default function OnboardingPage() {
       }}>
         <OnboardingHeader />
         <div style={{
-          width: 56, height: 56, borderRadius: '50%',
-          background: '#101010', color: '#fafafa',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 24,
         }}>
-          <Check size={22} strokeWidth={2.5} />
+          <Check size={40} strokeWidth={2.5} color="#101010" />
         </div>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400,
@@ -1763,30 +2002,7 @@ export default function OnboardingPage() {
         <OnboardingHeader />
 
         {/* Back */}
-        <button
-          type="button"
-          onClick={profileBack}
-          style={{
-            position: 'absolute',
-            top: '104px',
-            left: '48px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            padding: '10px',
-            fontFamily: 'var(--font-sans)',
-            fontSize: '16px',
-            fontWeight: 500,
-            letterSpacing: '-0.32px',
-            color: '#101010',
-          }}
-        >
-          <ChevronLeft size={24} strokeWidth={2} />
-          Back
-        </button>
+        <BackButton onClick={profileBack} />
 
         {/* Screen 0 — Your creative identity */}
         {profileStep === 0 && (
@@ -2211,6 +2427,9 @@ export default function OnboardingPage() {
             </p>
 
             {/* Drop zone — drag a PDF/image in, or use the button below. */}
+            {/* Drag-and-drop box — desktop only. On mobile you can't drag a
+                file, so the box is dropped and only the picker button remains. */}
+            {!isMobile && (
             <div
               onDragOver={e => {
                 e.preventDefault();
@@ -2294,6 +2513,54 @@ export default function OnboardingPage() {
                 </>
               )}
             </div>
+            )}
+
+            {/* Mobile: the picked file shows as plain text (no drop box). */}
+            {isMobile && projectPdfName && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginTop: '24px',
+                  maxWidth: '100%',
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#101010',
+                    margin: 0,
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {projectPdfName}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProjectPdfName('');
+                    setFileError('');
+                    if (projectFileInputRef.current) projectFileInputRef.current.value = '';
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    color: '#737373',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    flexShrink: 0,
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
 
             {/* Hidden picker driven by the "Select project" button. */}
             <input
@@ -2348,9 +2615,7 @@ export default function OnboardingPage() {
             type="button"
             onClick={() => (profileStep === 3 ? chooseAvailability('') : setShowSkipAlert(true))}
             style={{
-              position: 'absolute',
-              bottom: '48px',
-              right: '48px',
+              ...skipBtnPos(isMobile),
               border: 'none',
               background: 'transparent',
               fontFamily: 'var(--font-sans)',
@@ -2373,11 +2638,7 @@ export default function OnboardingPage() {
             type="button"
             onClick={profileStep === 4 ? profileFinish : profileNext}
             style={{
-              position: 'absolute',
-              bottom: '40px',
-              right: '40px',
-              width: '266px',
-              height: '53px',
+              ...bottomCtaPos(isMobile),
               background: '#101010',
               color: '#fafafa',
               border: 'none',
@@ -2462,7 +2723,7 @@ export default function OnboardingPage() {
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'row',
+                  flexDirection: 'column',
                   gap: '12px',
                   marginTop: '24px',
                 }}
@@ -2474,7 +2735,7 @@ export default function OnboardingPage() {
                     profileFinish();
                   }}
                   style={{
-                    flex: 1,
+                    width: '100%',
                     height: '44px',
                     padding: '0 16px',
                     background: '#101010',
@@ -2494,12 +2755,12 @@ export default function OnboardingPage() {
                   type="button"
                   onClick={() => setShowSkipAlert(false)}
                   style={{
-                    flex: 1,
+                    width: '100%',
                     height: '44px',
                     padding: '0 16px',
                     background: 'transparent',
                     color: '#101010',
-                    border: '0.5px solid #101010',
+                    border: '1px solid #101010',
                     borderRadius: '12px',
                     fontFamily: 'var(--font-sans)',
                     fontSize: '15px',
@@ -2538,32 +2799,7 @@ export default function OnboardingPage() {
         <OnboardingHeader />
 
         {/* Back — hidden on the verification step, which renders its own. */}
-        {studioStep !== 3 && (
-          <button
-            type="button"
-            onClick={studioBack}
-            style={{
-              position: 'absolute',
-              top: '104px',
-              left: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              padding: '10px',
-              fontFamily: 'var(--font-sans)',
-              fontSize: '16px',
-              fontWeight: 500,
-              letterSpacing: '-0.32px',
-              color: '#101010',
-            }}
-          >
-            <ChevronLeft size={24} strokeWidth={2} />
-            Back
-          </button>
-        )}
+        {studioStep !== 3 && <BackButton onClick={studioBack} />}
 
         {/* Screen 0 — What's the name? */}
         {studioStep === 0 && (
@@ -2888,18 +3124,14 @@ export default function OnboardingPage() {
             on selection and the verification step has its own Next. It stays
             disabled until the disciplines minimum is met. */}
         {(studioStep === 0 || studioStep === 1) && (() => {
-          const disabled = studioStep === 1 && studioDisciplines.length === 0;
+          const disabled = !DEV_BYPASS && studioStep === 1 && studioDisciplines.length === 0;
           return (
             <button
               type="button"
               onClick={studioNext}
               disabled={disabled}
               style={{
-                position: 'absolute',
-                bottom: '40px',
-                right: '40px',
-                width: '266px',
-                height: '53px',
+                ...bottomCtaPos(isMobile),
                 background: '#101010',
                 color: '#fafafa',
                 border: 'none',
@@ -2941,32 +3173,7 @@ export default function OnboardingPage() {
         <OnboardingHeader />
 
         {/* Back — hidden on the verification step, which renders its own. */}
-        {companyStep !== 3 && (
-          <button
-            type="button"
-            onClick={companyBack}
-            style={{
-              position: 'absolute',
-              top: '104px',
-              left: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              padding: '10px',
-              fontFamily: 'var(--font-sans)',
-              fontSize: '16px',
-              fontWeight: 500,
-              letterSpacing: '-0.32px',
-              color: '#101010',
-            }}
-          >
-            <ChevronLeft size={24} strokeWidth={2} />
-            Back
-          </button>
-        )}
+        {companyStep !== 3 && <BackButton onClick={companyBack} />}
 
         {/* Screen 0 — What's the name? */}
         {companyStep === 0 && (
@@ -3203,17 +3410,18 @@ export default function OnboardingPage() {
         {/* Screen 2 — What industry are you in? (single-select) */}
         {companyStep === 2 && (() => {
           const q = brandIndustryQuery.trim().toLowerCase();
-          const matches = q === ''
-            ? SUGGESTED_INDUSTRIES
-            : ALL_INDUSTRIES.filter(d => d.toLowerCase().includes(q)).sort((a, b) => {
+          const searching = q !== '';
+          // No predefined options: while searching, list every industry that
+          // matches the query; when idle, the list shows only what's picked.
+          const matches = searching
+            ? ALL_INDUSTRIES.filter(d => d.toLowerCase().includes(q)).sort((a, b) => {
                 const sa = a.toLowerCase().startsWith(q) ? 0 : 1;
                 const sb = b.toLowerCase().startsWith(q) ? 0 : 1;
                 return sa - sb || a.localeCompare(b);
-              });
-          // Keep the chosen industry visible even if it falls outside the
-          // current pill set (e.g. picked via search, then search cleared).
-          const extras = brandIndustry && !matches.includes(brandIndustry) ? [brandIndustry] : [];
-          const pills = [...extras, ...matches];
+              })
+            : [];
+          // Idle rows = the already-picked industries (kept visible, in order).
+          const rows = searching ? matches : brandIndustries;
 
           return (
             <div
@@ -3255,8 +3463,9 @@ export default function OnboardingPage() {
               </p>
 
               {/* Search — uses the shared predefined text-field style. */}
-              <div style={{ position: 'relative', width: '314px', marginTop: '40px' }}>
+              <div style={{ position: 'relative', width: '314px', maxWidth: '100%', marginTop: '40px' }}>
                 <input
+                  ref={brandIndustryInputRef}
                   type="text"
                   value={brandIndustryQuery}
                   onChange={e => setBrandIndustryQuery(e.target.value)}
@@ -3285,64 +3494,130 @@ export default function OnboardingPage() {
                 />
               </div>
 
-              {/* Industry pills (single-select). */}
+              {/* Industry list — searchable, multi-select. Picked rows show a
+                  filled purple check; "Add industry" focuses the search. */}
               <div
                 style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '10px',
-                  justifyContent: 'center',
-                  alignContent: 'flex-start',
-                  marginTop: '24px',
-                  width: '100%',
+                  width: '314px',
+                  maxWidth: '100%',
+                  marginTop: '20px',
+                  border: '1px solid #ececec',
+                  borderRadius: '14px',
+                  background: '#fff',
+                  overflow: 'hidden',
+                  textAlign: 'left',
                 }}
               >
-                {pills.length === 0 ? (
+                {searching && rows.length === 0 ? (
                   <p
                     style={{
                       fontFamily: 'var(--font-sans)',
                       fontSize: '14px',
                       color: '#a3a3a3',
                       margin: 0,
+                      padding: '14px 16px',
                     }}
                   >
                     No matches
                   </p>
                 ) : (
-                  pills.map(industry => {
-                    const active = brandIndustry === industry;
+                  rows.map((industry, i) => {
+                    const active = brandIndustries.includes(industry);
+                    // Once three are chosen, unselected rows dim and stop responding.
+                    const capped = !active && brandIndustries.length >= MAX_INDUSTRIES;
                     return (
                       <button
                         key={industry}
                         type="button"
                         onClick={() => chooseIndustry(industry)}
+                        disabled={capped}
                         style={{
-                          height: '33px',
-                          padding: '5px 10px 6px',
-                          borderRadius: '9px',
-                          border: '0.75px solid #101010',
-                          background: active ? '#101010' : 'transparent',
-                          color: active ? '#fafafa' : '#101010',
-                          fontFamily: 'var(--font-sans)',
-                          fontSize: '14px',
-                          lineHeight: '16px',
-                          whiteSpace: 'nowrap',
-                          cursor: 'pointer',
-                          transition: 'background .12s ease, color .12s ease',
-                        }}
-                        onMouseEnter={e => {
-                          if (!active)
-                            (e.currentTarget as HTMLButtonElement).style.background = '#f4f4f4';
-                        }}
-                        onMouseLeave={e => {
-                          if (!active)
-                            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          width: '100%',
+                          padding: '13px 16px',
+                          border: 'none',
+                          borderTop: i === 0 ? 'none' : '1px solid #f0f0f0',
+                          background: 'transparent',
+                          cursor: capped ? 'not-allowed' : 'pointer',
+                          opacity: capped ? 0.4 : 1,
+                          textAlign: 'left',
                         }}
                       >
-                        {industry}
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            flexShrink: 0,
+                            borderRadius: '6px',
+                            border: active ? 'none' : '1.5px solid #d4d4d4',
+                            background: active ? '#6C5CE7' : 'transparent',
+                            transition: 'background .12s ease',
+                          }}
+                        >
+                          {active && <Check size={14} strokeWidth={3} color="#fff" />}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: '14px',
+                            color: '#101010',
+                          }}
+                        >
+                          {industry}
+                        </span>
                       </button>
                     );
                   })
+                )}
+
+                {/* Add-industry row — focuses the search field. Hidden while
+                    searching (the list itself is the picker then). */}
+                {!searching && (
+                  <button
+                    type="button"
+                    onClick={() => brandIndustryInputRef.current?.focus()}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      width: '100%',
+                      padding: '13px 16px',
+                      border: 'none',
+                      borderTop: brandIndustries.length === 0 ? 'none' : '1px solid #f0f0f0',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '22px',
+                        height: '22px',
+                        flexShrink: 0,
+                        borderRadius: '6px',
+                        background: '#f0f0f0',
+                      }}
+                    >
+                      <Plus size={14} strokeWidth={2.5} color="#737373" />
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: '14px',
+                        color: '#737373',
+                      }}
+                    >
+                      Add industry
+                    </span>
+                  </button>
                 )}
               </div>
             </div>
@@ -3371,20 +3646,16 @@ export default function OnboardingPage() {
             disciplines and industry screens; the verification step has its own
             Next. Disabled until the disciplines minimum / an industry pick. */}
         {(companyStep === 0 || companyStep === 1 || companyStep === 2) && (() => {
-          const disabled =
+          const disabled = !DEV_BYPASS && (
             (companyStep === 1 && brandDisciplines.length === 0) ||
-            (companyStep === 2 && !brandIndustry);
+            (companyStep === 2 && brandIndustries.length === 0));
           return (
             <button
               type="button"
               onClick={companyNext}
               disabled={disabled}
               style={{
-                position: 'absolute',
-                bottom: '40px',
-                right: '40px',
-                width: '266px',
-                height: '53px',
+                ...bottomCtaPos(isMobile),
                 background: '#101010',
                 color: '#fafafa',
                 border: 'none',
@@ -3426,30 +3697,7 @@ export default function OnboardingPage() {
         <OnboardingHeader />
 
         {/* Back */}
-        <button
-          type="button"
-          onClick={seekerBack}
-          style={{
-            position: 'absolute',
-            top: '104px',
-            left: '48px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            padding: '10px',
-            fontFamily: 'var(--font-sans)',
-            fontSize: '16px',
-            fontWeight: 500,
-            letterSpacing: '-0.32px',
-            color: '#101010',
-          }}
-        >
-          <ChevronLeft size={24} strokeWidth={2} />
-          Back
-        </button>
+        <BackButton onClick={seekerBack} />
 
         {/* Screen 0 — Your creative identity (same as Creator) */}
         {seekerStep === 0 && (
@@ -3732,18 +3980,14 @@ export default function OnboardingPage() {
             The disciplines screen is the last — "Finish", disabled until at
             least one discipline is picked. */}
         {(seekerStep === 0 || seekerStep === 2) && (() => {
-          const disabled = seekerStep === 2 && seekerDisciplines.length === 0;
+          const disabled = !DEV_BYPASS && seekerStep === 2 && seekerDisciplines.length === 0;
           return (
             <button
               type="button"
               onClick={seekerStep === 2 ? seekerFinish : seekerNext}
               disabled={disabled}
               style={{
-                position: 'absolute',
-                bottom: '40px',
-                right: '40px',
-                width: '266px',
-                height: '53px',
+                ...bottomCtaPos(isMobile),
                 background: '#101010',
                 color: '#fafafa',
                 border: 'none',
@@ -3765,439 +4009,5 @@ export default function OnboardingPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-bg-primary p-6 flex flex-col justify-center max-w-4xl mx-auto py-12 md:py-24 relative">
-      <OnboardingHeader />
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-display font-black tracking-tight text-neutral-900 dark:text-white mb-2">
-          Join <span className="text-accent font-display font-black">BareFolio</span>
-        </h1>
-        <p className="text-neutral-500 dark:text-neutral-400 font-sans max-w-md mx-auto text-sm">
-          A visual showcase hub for creators, studios, and marcas looking to scout verified premium designers.
-        </p>
-      </div>
-
-      {error && (
-        <div className="bg-red-500/10 text-red-500 border border-red-500/20 p-4 rounded-2xl mb-6 text-sm text-center font-medium max-w-md mx-auto w-full">
-          {error}
-        </div>
-      )}
-
-      {/* STEP 2: Role-Based Questionnaires */}
-      {step === 2 && (
-        <form onSubmit={handleRegister} className="glass p-8 rounded-3xl max-w-xl mx-auto w-full space-y-6 border border-borderGlass">
-          <div className="flex justify-between items-center border-b border-borderGlass pb-4">
-            <h2 className="text-xl font-display font-black text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
-              <span className="text-xs px-2 py-0.5 bg-accent/15 text-accent rounded uppercase tracking-wider font-bold">Step 2 of 2</span>
-              {selectedRole === 'creator' ? 'Creator Profile' : selectedRole === 'studio' ? 'Studio Profile' : selectedRole === 'brand' ? 'Brand Profile' : 'Seeker Profile'}
-            </h2>
-            <button 
-              type="button"
-              onClick={() => setStep(1)}
-              className="text-xs font-semibold text-neutral-400 hover:text-accent cursor-pointer transition-all"
-            >
-              ← Go Back
-            </button>
-          </div>
-
-          {/* CREATOR ONBOARDING FORM */}
-          {selectedRole === 'creator' && (
-            <div className="space-y-5">
-              {/* Username */}
-              <div>
-                <FloatingField
-                  label="Username"
-                  value={username}
-                  onValue={v => setUsername(v.toLowerCase().replace(/\s+/g, ''))}
-                  prefix="barefolio.com/"
-                  inputProps={{ required: true }}
-                />
-                <p className="text-[10px] text-neutral-400 mt-1">Unique handle for your public portfolios and visual feed link.</p>
-              </div>
-
-              {/* Practice */}
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-2 font-bold uppercase tracking-wider">Current practice</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PRACTICES.map((p) => (
-                    <div 
-                      key={p.id}
-                      onClick={() => setPractice(p.id)}
-                      className={`cursor-pointer border rounded-xl p-3 text-center transition hover:scale-[1.01] ${
-                        practice === p.id 
-                          ? 'border-accent bg-accent/[0.03] text-accent ring-1 ring-accent' 
-                          : 'border-borderGlass hover:border-neutral-400 text-neutral-600 dark:text-neutral-300'
-                      }`}
-                    >
-                      <h4 className="text-xs font-bold">{p.title}</h4>
-                      <p className="text-[9px] text-neutral-400 mt-0.5">{p.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Disciplines */}
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-2 font-bold uppercase tracking-wider">Main Disciplines (Select all that apply)</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DISCIPLINES.map((disc) => {
-                    const isSel = selectedDisciplines.includes(disc);
-                    return (
-                      <button
-                        type="button"
-                        key={disc}
-                        onClick={() => toggleDiscipline(disc, 'creator')}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition cursor-pointer active:scale-95 ${
-                          isSel 
-                            ? 'bg-accent/15 border-accent text-accent font-semibold' 
-                            : 'bg-neutral-100 dark:bg-neutral-900 border-borderGlass text-neutral-500 hover:border-neutral-400'
-                        }`}
-                      >
-                        {disc} {isSel && '✓'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Availability (skippable) */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">Availability for Opportunities</label>
-                  <span className="text-[9px] text-neutral-400 uppercase font-semibold">Optional</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {AVAILABILITY_OPTIONS.map((opt) => (
-                    <div
-                      key={opt.id}
-                      onClick={() => setAvailabilityStatus(opt.id)}
-                      className={`cursor-pointer border rounded-xl p-3 text-center transition hover:scale-[1.01] text-xs font-semibold ${
-                        availabilityStatus === opt.id
-                          ? 'border-accent bg-accent/[0.03] text-accent ring-1 ring-accent'
-                          : 'border-borderGlass hover:border-neutral-400 text-neutral-600 dark:text-neutral-300'
-                      }`}
-                    >
-                      {opt.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* PDF Verification Upload */}
-              <div className="border-t border-borderGlass pt-4">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">Profile Verification</label>
-                  <span className="text-[9px] text-neutral-400 uppercase font-semibold">Optional</span>
-                </div>
-                <div className="border border-dashed border-borderGlass rounded-2xl p-6 text-center space-y-2 bg-neutral-100/50 dark:bg-neutral-900/30 flex flex-col items-center">
-                  <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                  </svg>
-                  <div>
-                    <h5 className="text-xs font-bold text-neutral-700 dark:text-neutral-300">Upload a Project PDF</h5>
-                    <p className="text-[10px] text-neutral-400">Share your latest client pitch, slides, or brand deck</p>
-                  </div>
-                  {projectPdfName ? (
-                    <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5">
-                      ✓ {projectPdfName}
-                      <button type="button" onClick={() => setProjectPdfName('')} className="text-red-500 hover:text-red-700 font-bold ml-1">×</button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={isUploadingPdf}
-                      onClick={handleSimulatedPdfUpload}
-                      className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-accent font-bold text-[10px] px-4 py-2 rounded-lg border border-borderGlass cursor-pointer active:scale-95 transition-all disabled:opacity-50"
-                    >
-                      {isUploadingPdf ? 'Uploading...' : 'Browse PDF File'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STUDIO / AGENCY ONBOARDING FORM */}
-          {selectedRole === 'studio' && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <FloatingField
-                  label="Studio / Agency Name" value={studioName} onValue={setStudioName}
-                />
-                <FloatingField
-                  label="Website URL" type="url" value={studioLink} onValue={setStudioLink}
-                />
-              </div>
-
-              {/* Disciplines */}
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-2 font-bold uppercase tracking-wider">Working Disciplines (Select all that apply)</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DISCIPLINES.map((disc) => {
-                    const isSel = studioDisciplines.includes(disc);
-                    return (
-                      <button
-                        type="button"
-                        key={disc}
-                        onClick={() => toggleDiscipline(disc, 'studio')}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition cursor-pointer active:scale-95 ${
-                          isSel 
-                            ? 'bg-accent/15 border-accent text-accent font-semibold' 
-                            : 'bg-neutral-100 dark:bg-neutral-900 border-borderGlass text-neutral-500 hover:border-neutral-400'
-                        }`}
-                      >
-                        {disc} {isSel && '✓'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Team Size */}
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-2 font-bold uppercase tracking-wider">Team Size</label>
-                <div className="flex gap-2 flex-wrap">
-                  {TEAM_SIZES.map((size) => (
-                    <button
-                      type="button"
-                      key={size}
-                      onClick={() => setTeamSize(size)}
-                      className={`text-xs px-4 py-2.5 rounded-xl border transition flex-1 font-bold cursor-pointer active:scale-95 ${
-                        teamSize === size 
-                          ? 'border-accent bg-accent/[0.04] text-accent font-extrabold ring-1 ring-accent' 
-                          : 'border-borderGlass hover:border-neutral-400 text-neutral-500'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Studio Verification */}
-              <div className="border-t border-borderGlass pt-4 space-y-3">
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block font-bold uppercase tracking-wider">Verify Agency Account</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'email', label: 'Corporate Email' },
-                    { id: 'social', label: 'Social Accounts' },
-                    { id: 'document', label: 'Legal Document' },
-                  ].map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      onClick={() => { setStudioVerificationMethod(m.id); setStudioVerificationData(''); }}
-                      className={`text-[10px] uppercase tracking-wider font-bold py-2 rounded-lg border transition ${
-                        studioVerificationMethod === m.id
-                          ? 'bg-neutral-200 dark:bg-neutral-800 text-accent border-accent'
-                          : 'border-borderGlass text-neutral-400'
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                {studioVerificationMethod === 'email' && (
-                  <div className="space-y-1">
-                    <FloatingField
-                      label="Official Corporate Email Address" type="email"
-                      value={studioVerificationData} onValue={setStudioVerificationData}
-                    />
-                    <p className="text-[9px] text-neutral-400">We will send a validation code to verify your agency status.</p>
-                  </div>
-                )}
-
-                {studioVerificationMethod === 'social' && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] text-neutral-400 font-semibold block">Link Connected Handle</label>
-                    <div className="flex gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => setStudioVerificationData('Connected to Instagram')}
-                        className={`text-xs px-4 py-2 border rounded-xl flex-1 font-bold ${
-                          studioVerificationData.includes('Instagram') ? 'border-accent text-accent bg-accent/5' : 'border-borderGlass text-neutral-400'
-                        }`}
-                      >
-                        Instagram
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setStudioVerificationData('Connected to LinkedIn')}
-                        className={`text-xs px-4 py-2 border rounded-xl flex-1 font-bold ${
-                          studioVerificationData.includes('LinkedIn') ? 'border-accent text-accent bg-accent/5' : 'border-borderGlass text-neutral-400'
-                        }`}
-                      >
-                        LinkedIn
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {studioVerificationMethod === 'document' && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] text-neutral-400 font-semibold block">Drop Official Invoice / Registration File</label>
-                    <div className="border border-dashed border-borderGlass rounded-xl p-4 text-center text-xs">
-                      {studioVerificationData ? (
-                        <span className="text-emerald-500 font-bold">✓ {studioVerificationData}</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setStudioVerificationData('Corporate_Registration.pdf')}
-                          className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-borderGlass cursor-pointer"
-                        >
-                          Select Business PDF
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* BRAND / COMPANY ONBOARDING FORM */}
-          {selectedRole === 'brand' && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <FloatingField
-                  label="Brand Name" value={brandName} onValue={setBrandName}
-                />
-                <FloatingField
-                  label="Website URL" type="url" value={brandLink} onValue={setBrandLink}
-                />
-              </div>
-
-              {/* Industry Selector */}
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-1 font-bold uppercase tracking-wider">Industry</label>
-                <select
-                  value={brandIndustry}
-                  onChange={(e) => setBrandIndustry(e.target.value)}
-                  className="w-full bg-neutral-100 dark:bg-neutral-800 border border-borderGlass p-3 rounded-xl focus:outline-none focus:border-accent text-xs font-sans font-semibold text-neutral-800 dark:text-neutral-100"
-                >
-                  {INDUSTRIES.map((ind) => (
-                    <option key={ind} value={ind}>{ind}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Disciplines Seeking to Hire */}
-              <div>
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block mb-2 font-bold uppercase tracking-wider">Disciplines looking to Hire</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DISCIPLINES.map((disc) => {
-                    const isSel = brandDisciplines.includes(disc);
-                    return (
-                      <button
-                        type="button"
-                        key={disc}
-                        onClick={() => toggleDiscipline(disc, 'brand')}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition cursor-pointer active:scale-95 ${
-                          isSel 
-                            ? 'bg-accent/15 border-accent text-accent font-semibold' 
-                            : 'bg-neutral-100 dark:bg-neutral-900 border-borderGlass text-neutral-500 hover:border-neutral-400'
-                        }`}
-                      >
-                        {disc} {isSel && '✓'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Brand Verification */}
-              <div className="border-t border-borderGlass pt-4 space-y-3">
-                <label className="text-xs text-neutral-500 dark:text-neutral-400 block font-bold uppercase tracking-wider">Verify Brand Account</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'email', label: 'Corporate Email' },
-                    { id: 'social', label: 'Social Accounts' },
-                    { id: 'document', label: 'Legal Document' },
-                  ].map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      onClick={() => { setBrandVerificationMethod(m.id); setBrandVerificationData(''); }}
-                      className={`text-[10px] uppercase tracking-wider font-bold py-2 rounded-lg border transition ${
-                        brandVerificationMethod === m.id
-                          ? 'bg-neutral-200 dark:bg-neutral-800 text-accent border-accent'
-                          : 'border-borderGlass text-neutral-400'
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                {brandVerificationMethod === 'email' && (
-                  <div className="space-y-1">
-                    <FloatingField
-                      label="Official Corporate Email Address" type="email"
-                      value={brandVerificationData} onValue={setBrandVerificationData}
-                    />
-                    <p className="text-[9px] text-neutral-400">We will send a validation code to verify your brand status.</p>
-                  </div>
-                )}
-
-                {brandVerificationMethod === 'social' && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] text-neutral-400 font-semibold block">Link Connected Handle</label>
-                    <div className="flex gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => setBrandVerificationData('Connected to Instagram')}
-                        className={`text-xs px-4 py-2 border rounded-xl flex-1 font-bold ${
-                          brandVerificationData.includes('Instagram') ? 'border-accent text-accent bg-accent/5' : 'border-borderGlass text-neutral-400'
-                        }`}
-                      >
-                        Instagram
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setBrandVerificationData('Connected to LinkedIn')}
-                        className={`text-xs px-4 py-2 border rounded-xl flex-1 font-bold ${
-                          brandVerificationData.includes('LinkedIn') ? 'border-accent text-accent bg-accent/5' : 'border-borderGlass text-neutral-400'
-                        }`}
-                      >
-                        LinkedIn
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {brandVerificationMethod === 'document' && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] text-neutral-400 font-semibold block">Drop Official Brand Invoice / Registration File</label>
-                    <div className="border border-dashed border-borderGlass rounded-xl p-4 text-center text-xs">
-                      {brandVerificationData ? (
-                        <span className="text-emerald-500 font-bold">✓ {brandVerificationData}</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setBrandVerificationData('Brand_Registration.pdf')}
-                          className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-bold text-[10px] px-3 py-1.5 rounded-lg border border-borderGlass cursor-pointer"
-                        >
-                          Select Business PDF
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3 rounded-xl transition duration-200 cursor-pointer disabled:opacity-50 text-sm shadow-md active:scale-95"
-          >
-            {loading ? 'Registering Account...' : 'Complete Profile & Register'}
-          </button>
-        </form>
-      )}
-    </div>
-  );
+  return null;
 }
