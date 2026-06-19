@@ -2293,7 +2293,7 @@ export default function OnboardingPage() {
               cursor: 'pointer',
             }}
           >
-            {profileStep === 4 ? 'Send' : 'Next'}
+            Next
           </button>
         )}
 
