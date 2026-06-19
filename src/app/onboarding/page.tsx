@@ -486,7 +486,7 @@ function ProfileVerification({
 
           <button
             type="button"
-            onClick={() => onComplete('email', corporateEmail)}
+            onClick={startEmailVerification}
             disabled={!corporateEmail}
             style={{
               width: '266px',
