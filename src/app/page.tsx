@@ -115,14 +115,13 @@ function AuthModal({ mode, onClose, onSwitch }: {
   const [email, setEmail]             = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword]       = useState('');
-  const [inviteCode, setInviteCode]   = useState('');
   const [code, setCode]               = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName]     = useState('');
   const [lastName, setLastName]       = useState('');
   const [dob, setDob]                 = useState('');
   const [country, setCountry]         = useState('');
-  const [signupStep, setSignupStep]   = useState<'invite' | 'email' | 'verify' | 'personal' | 'password'>('invite');
+  const [signupStep, setSignupStep]   = useState<'email' | 'verify' | 'personal' | 'password'>('email');
   const [resendSeconds, setResendSeconds] = useState(120);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState('');
@@ -134,8 +133,8 @@ function AuthModal({ mode, onClose, onSwitch }: {
   useEffect(() => {
     if (mode) {
       setEmail(''); setConfirmEmail(''); setPassword(''); setConfirmPassword('');
-      setInviteCode(''); setCode(''); setFirstName(''); setLastName(''); setDob(''); setCountry('');
-      setError(''); setSignupStep(mode === 'signup' ? 'invite' : 'email');
+      setCode(''); setFirstName(''); setLastName(''); setDob(''); setCountry('');
+      setError(''); setSignupStep('email');
     }
   }, [mode]);
 
@@ -161,8 +160,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
     setError('');
     setSignupStep(s =>
       s === 'password' ? 'personal' :
-      s === 'personal' ? 'verify' :
-      s === 'verify'   ? 'email' : 'invite'
+      s === 'personal' ? 'verify' : 'email'
     );
   }
 
@@ -278,7 +276,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
           display: 'grid', gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center', padding: '20px 24px', flexShrink: 0,
         }}>
-          {!isLogin && signupStep !== 'invite' ? (
+          {!isLogin && signupStep !== 'email' ? (
             <button
               onClick={goBack}
               aria-label="Back"
@@ -315,46 +313,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
           position: 'relative',
         }}>
 
-          {!isLogin && signupStep === 'invite' ? (
-            <>
-              {/* ── Step 0 (signup): invitation code gate ── */}
-              <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
-                <h2 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '28px', fontWeight: 500,
-                  color: '#101010', letterSpacing: '-0.5px', margin: '0 0 10px',
-                }}>
-                  By invitation only
-                </h2>
-                <p style={{ fontSize: '14px', color: '#737373', margin: 0, lineHeight: 1.55 }}>
-                  BareFolio is invite-only for now.<br />
-                  Enter the code you received to create your account.
-                </p>
-              </div>
-
-              <div style={{
-                position: 'absolute', top: '50%', left: 0, right: 0,
-                transform: 'translateY(-50%)', padding: '0 32px',
-                display: 'flex', flexDirection: 'column', gap: '12px',
-              }}>
-                <FloatingField
-                  label="Invitation code"
-                  value={inviteCode}
-                  onValue={v => setInviteCode(v.toUpperCase())}
-                  extraStyle={{ letterSpacing: '1px' }}
-                  inputProps={{
-                    onKeyDown: e => { if (e.key === 'Enter' && (SIGNUP_PREVIEW || inviteCode.trim())) setSignupStep('email'); },
-                  }}
-                />
-                <button
-                  onClick={() => { if (SIGNUP_PREVIEW || inviteCode.trim()) setSignupStep('email'); }}
-                  disabled={!SIGNUP_PREVIEW && !inviteCode.trim()}
-                  style={primaryBtnStyle(!SIGNUP_PREVIEW && !inviteCode.trim())}>
-                  Next
-                </button>
-              </div>
-            </>
-          ) : !isLogin && signupStep === 'verify' ? (
+          {!isLogin && signupStep === 'verify' ? (
             <>
               {/* ── Step 2 (signup): email verification code ── */}
               <div style={{ textAlign: 'center', padding: '28px 0 24px' }}>
@@ -554,8 +513,8 @@ function AuthModal({ mode, onClose, onSwitch }: {
           </>
           )}
 
-          {/* Bottom: switch link — only on the entry screens (login / invite / email) */}
-          {(isLogin || signupStep === 'invite' || signupStep === 'email') && (
+          {/* Bottom: switch link — only on the entry screens (login / email) */}
+          {(isLogin || signupStep === 'email') && (
             <button onClick={onSwitch} style={{
               marginTop: 'auto', background: 'none', border: 'none',
               fontSize: '14px', color: '#737373',
