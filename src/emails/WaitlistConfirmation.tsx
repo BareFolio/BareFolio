@@ -91,13 +91,12 @@ export default function WaitlistConfirmation({ name }: Props) {
             <Img
               src={HERO}
               width={632}
-              height={380}
               alt="BareFolio"
               style={{
                 display: 'block',
                 width: '100%',
-                height: 380,
-                objectFit: 'cover',
+                maxWidth: 632,
+                height: 'auto',
                 borderRadius: 16,
               }}
             />
