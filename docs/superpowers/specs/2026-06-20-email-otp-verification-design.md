@@ -1,10 +1,10 @@
-# BareFolio — Verificación real de email por OTP (Resend) + creación de cuenta en servidor
+# BareFolio — Verificación real de email por OTP (Resend) + códigos de invitación + creación de cuenta en servidor
 
 **Fecha:** 2026-06-20
 **Rama:** `develop` (luego espejo a `main` / Vercel)
 **Estado:** Diseño aprobado por el usuario; pendiente de su revisión escrita antes del plan.
 
-> Continuación de `2026-06-19-onboarding-registration-wiring-design.md`, que dejó la verificación del OTP **fuera de alcance** (su §9). Este spec la implementa.
+> Continuación de `2026-06-19-onboarding-registration-wiring-design.md`, que dejó la verificación del OTP **fuera de alcance** (su §9). Este spec la implementa, y además convierte el gate "By invitation only" del landing en una **validación real de códigos de un solo uso**.
 
 ---
 
@@ -16,8 +16,9 @@ Sustituir el paso de OTP **falso** del landing (hoy solo comprueba que el códig
 2. El correo con el código se envía por **Resend** (no por el OTP de Supabase, cuyo límite y comportamiento no nos sirven), con una plantilla con la marca BareFolio.
 3. La **creación de la cuenta se mueve del cliente al servidor**: una API route con la *service-role key* crea la cuenta ya confirmada (`admin.createUser({ email_confirm: true })`) solo si el email ha sido verificado. El trigger `handle_new_user` (ya existente) sigue creando todas las filas de perfil a partir del `user_metadata`.
 4. Se eliminan los flags de desarrollo que permiten saltarse la validación: `DEV_BYPASS` (onboarding) y `NEXT_PUBLIC_SIGNUP_PREVIEW` (landing).
+5. El gate **"By invitation only"** del landing pasa a validar **códigos reales de un solo uso** contra una tabla en Supabase. Sin un código válido y disponible **no se puede crear la cuenta**.
 
-**Nivel de seguridad elegido:** estricto (servidor). Es **imposible** crear la cuenta sin que el servidor haya verificado el código.
+**Nivel de seguridad elegido:** estricto (servidor). Es **imposible** crear la cuenta sin que el servidor haya verificado el email **y** consumido un código de invitación válido.
 
 ---
 
@@ -58,14 +59,15 @@ ONBOARDING (pasos sin cambios)
    ...último paso "Enter to BareFolio":
         ▼
    handleRegister:
-   POST /api/auth/register {email,password,metadata} ─► ¿email_otps verificado,
-                                                         reciente, sin consumir?
-                                                         │ sí
-                                                         ▼
-                                                       admin.createUser(
-                                                         email_confirm:true,
-                                                         user_metadata:metadata) ─► trigger handle_new_user
-                                                       marca consumed_at  ────────► users+accounts+perfil
+   POST /api/auth/register                        ─► ¿email_otps verificado,
+        {email,password,metadata,inviteCode}         reciente, sin consumir?
+                                                     │ sí → reclama invite_code
+                                                     │      (atómico, un solo uso)
+                                                     ▼
+                                                   admin.createUser(
+                                                     email_confirm:true,
+                                                     user_metadata:metadata) ─► trigger handle_new_user
+                                                   marca consumed_at + used_by ──► users+accounts+perfil
         │ éxito
         ▼
    supabase.auth.signInWithPassword(email,password) → sesión → router.push('/')
@@ -107,6 +109,38 @@ ALTER TABLE public.email_otps ENABLE ROW LEVEL SECURITY;
 - **`code_hash`:** SHA-256 hex del código en texto. Nunca se guarda el código en claro.
 - **RLS sin políticas:** bloqueo total para el cliente; el servidor entra con service-role.
 - El `email` se normaliza siempre a `trim().toLowerCase()` antes de escribir/consultar.
+
+### 4.2 Tabla `invite_codes` (códigos de invitación de un solo uso)
+
+```sql
+CREATE TABLE public.invite_codes (
+  code       text PRIMARY KEY,                 -- normalizado a MAYÚSCULAS, sin espacios
+  used_at    timestamptz,                      -- NULL = disponible
+  used_by    uuid REFERENCES auth.users(id),   -- quién lo consumió
+  note       text,                             -- etiqueta libre (p. ej. "amigos", "press")
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
+-- Sin políticas: solo la service-role key accede desde el servidor.
+```
+
+- **Un solo uso:** `used_at IS NULL` ⇒ disponible. Al consumirse se fija `used_at` + `used_by`.
+- El código se **normaliza** siempre a `trim().toUpperCase()` al validar/consumir (el landing ya pasa a mayúsculas al escribir).
+
+**Generación de códigos (gestión por el usuario).** Dos vías, ambas desde el SQL editor / Table Editor de Supabase:
+
+```sql
+-- (a) Lote de 100 códigos aleatorios de 8 caracteres hex en MAYÚSCULAS:
+INSERT INTO public.invite_codes (code, note)
+SELECT upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)), 'phase2'
+FROM generate_series(1, 100);
+
+-- (b) Código manual concreto:
+INSERT INTO public.invite_codes (code, note) VALUES ('BAREFOLIO2026', 'partner X');
+```
+
+`gen_random_uuid()` se reevalúa por fila → 100 códigos distintos. Para revisar disponibilidad: `SELECT code FROM public.invite_codes WHERE used_at IS NULL;`.
 
 ---
 
@@ -178,17 +212,30 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
    - Igual → `UPDATE … SET verified_at = now()` → `{ success: true }`.
    - Distinto → `{ error: 'invalid', attemptsLeft }`.
 
-**`POST /api/auth/register`** — body `{ email, password, metadata }`
-1. `normalizeEmail`.
-2. Busca fila válida: `WHERE email=$1 AND verified_at IS NOT NULL AND consumed_at IS NULL AND verified_at > now()-1h ORDER BY created_at DESC LIMIT 1`.
-3. Si no hay → `403 { error: 'not_verified' }`.
+**`POST /api/invite/validate`** — body `{ code }`
+1. Rate-limit por IP (reutiliza `rateLimit`, p. ej. 10/min) → 429 si excede (frena fuerza bruta de códigos).
+2. `normalizeCode` = `trim().toUpperCase()`.
+3. `SELECT used_at FROM invite_codes WHERE code=$1`:
+   - No existe → `{ valid: false, reason: 'not_found' }`.
+   - `used_at` no nulo → `{ valid: false, reason: 'used' }`.
+   - Disponible → `{ valid: true }`.
+
+> Esto solo **comprueba** disponibilidad para dar feedback en el paso `invite`. **No** consume el código (el usuario podría abandonar). El consumo real ocurre en `/api/auth/register`.
+
+**`POST /api/auth/register`** — body `{ email, password, metadata, inviteCode }`
+1. `normalizeEmail` + `normalizeCode`.
+2. **Gate OTP:** busca fila válida en `email_otps`: `WHERE email=$1 AND verified_at IS NOT NULL AND consumed_at IS NULL AND verified_at > now()-1h ORDER BY created_at DESC LIMIT 1`. Si no hay → `403 { error: 'not_verified' }`.
+3. **Reclamar el código (atómico, un solo uso):**
+   `UPDATE invite_codes SET used_at = now() WHERE code=$1 AND used_at IS NULL RETURNING code`.
+   - Si no devuelve fila → el código no existe o ya se usó → `409 { error: 'invite_invalid' }` (no se crea cuenta).
 4. `supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: metadata })`.
-   - Error de email duplicado → `409 { error: 'email_exists' }`.
-   - Otro error → `500`.
-5. `UPDATE email_otps SET consumed_at = now() WHERE id = <fila>`.
+   - **Si falla** (email duplicado u otro error): **liberar el código** → `UPDATE invite_codes SET used_at = NULL WHERE code=$1` para no malgastarlo. Devolver `409 { error: 'email_exists' }` o `500` según el caso.
+5. Éxito: `UPDATE invite_codes SET used_by = <userId> WHERE code=$1` y `UPDATE email_otps SET consumed_at = now() WHERE id = <fila>`.
 6. Responde `{ success: true, userId }`.
 
-> `metadata` es el objeto que ya produce `buildSignupMetadata` (datos de perfil, no sensibles). Lo construye el cliente y lo envía. El único gate de seguridad es la verificación del email en BD.
+> Orden deliberado: se reclama el código **antes** de crear la cuenta (para garantizar atomicidad del único uso) y se **libera** si la creación falla. El email verificado se consume **al final**, solo en el camino de éxito.
+
+> `metadata` es el objeto que ya produce `buildSignupMetadata` (datos de perfil, no sensibles). Lo construye el cliente y lo envía. Los gates de seguridad son la verificación del email **y** el código de invitación, ambos comprobados en BD por el servidor.
 
 ---
 
@@ -196,7 +243,11 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 
 ### 7.1 Landing (`src/app/page.tsx`)
 - **Eliminar `SIGNUP_PREVIEW`** y todos sus usos (las validaciones pasan a estar siempre activas).
-- **Código de invitación (paso `invite`):** hoy ese paso solo exige texto no vacío (`inviteCode.trim()`), **no** se valida contra ningún backend. Al quitar `SIGNUP_PREVIEW`, el paso pasa a ser **obligatorio** (cualquier texto sirve, pero hay que escribir algo). Validar de verdad los códigos de invitación queda **fuera de alcance** de este spec (ver §11). Decisión a confirmar con el usuario: mantener el gate obligatorio-sin-validar, o dejar el paso saltable por ahora.
+- **Código de invitación (paso `invite`):** al pulsar "Next" → `POST /api/invite/validate { code }`.
+  - `valid:true` → guardar el código en el estado (`inviteCode`, ya existe) y avanzar a `email`.
+  - `valid:false` → mensaje inline según `reason`: `not_found` → "Invalid invitation code." · `used` → "This code has already been used."
+  - El campo ya pasa a mayúsculas al escribir (`v.toUpperCase()`); se mantiene.
+- **Arrastrar el código hasta el final:** añadir `inviteCode: string` al tipo `SignupDraft` (`src/lib/signupDraft.ts`). En el paso `password`, `setSignupDraft({ ..., inviteCode })`. Así `/onboarding` lo tiene disponible para enviarlo a `/api/auth/register`.
 - Al **entrar al paso `verify`** (tras validar email + coincidencia): llamar a `POST /api/otp/send`. Manejar 429 (cooldown → arrancar `otpSeconds`).
 - Botón **"Resend"**: re-llama a `/api/otp/send`; deshabilitado durante el cooldown (la UI ya tiene `otpSeconds`).
 - En el paso `verify`, al pulsar continuar: `POST /api/otp/verify { email, code }`.
@@ -208,7 +259,8 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - **Eliminar `DEV_BYPASS`** y todos sus usos → validaciones activas + sin seed de draft falso (si no hay draft, redirige a `/`, ya implementado).
 - `handleRegister`:
   - Construye `metadata` con `buildSignupMetadata` (igual que hoy).
-  - **Sustituye** `supabase.auth.signUp(...)` por `fetch('/api/auth/register', { method:'POST', body: JSON.stringify({ email, password, metadata }) })`.
+  - **Sustituye** `supabase.auth.signUp(...)` por `fetch('/api/auth/register', { method:'POST', body: JSON.stringify({ email, password, metadata, inviteCode }) })`, tomando `inviteCode` del `signupDraft`.
+  - Error `invite_invalid` → mensaje "This invitation code is invalid or already used." y devolver al inicio del flujo (el código del draft ya no sirve).
   - Éxito y **no** `pendingReview`: `supabase.auth.signInWithPassword({ email, password })` → `clearSignupDraft()` → `router.push('/')`.
   - Éxito y `pendingReview` (ruta de documento de negocio): no iniciar sesión, quedarse en la pantalla de revisión (igual que hoy).
   - Error `email_exists` → mensaje "An account with this email already exists."; `not_verified` → mensaje + devolver al inicio.
@@ -227,6 +279,9 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 | Reenvío < 60 s | 429 + `retryAfter` | botón deshabilitado con cuenta atrás |
 | Email ya registrado | 409 `email_exists` | "An account with this email already exists." |
 | Registro sin verificar | 403 `not_verified` | "Verify your email first." → volver al paso verify |
+| Código de invitación inexistente (paso `invite`) | `{valid:false, reason:'not_found'}` | "Invalid invitation code." |
+| Código de invitación ya usado (paso `invite`) | `{valid:false, reason:'used'}` | "This code has already been used." |
+| Código inválido/usado al registrar | 409 `invite_invalid` | "This invitation code is invalid or already used." → volver al paso `invite` |
 | Falta service-role key | 500 (log servidor) | error genérico; nunca expone config |
 
 ---
@@ -236,7 +291,9 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - Código **hasheado** (SHA-256) en reposo; nunca en claro en BD ni en logs de producción.
 - Tabla `email_otps` bajo **RLS sin políticas**: inaccesible para el cliente.
 - **Rate-limit** en `send` (5/min/IP) y **cooldown** por email (60 s); `verify` limitado por `attempts` (5) + caducidad (10 min) → fuerza bruta online inviable (100 000 combinaciones, máx. 5 intentos por código).
-- La cuenta **solo** se crea tras verificación confirmada en BD; el cliente no puede saltarse el gate.
+- La cuenta **solo** se crea tras verificación confirmada en BD **y** consumo de un código de invitación válido; el cliente no puede saltarse ninguno de los dos gates.
+- **Códigos de invitación:** `invite_codes` también bajo **RLS sin políticas** (solo service-role). `/api/invite/validate` lleva rate-limit por IP (10/min) para frenar la enumeración/fuerza bruta de códigos. La entropía depende de cómo los genere el usuario: los códigos hex de 8 caracteres del lote por defecto dan ~4 300 millones de combinaciones; para lotes pequeños conviene mantenerlos así de largos (no usar códigos cortos o predecibles).
+- El consumo del código es **atómico** (`UPDATE … WHERE used_at IS NULL RETURNING code`): dos registros simultáneos con el mismo código no pueden ambos ganar la fila.
 - La `service_role` key vive solo en el servidor; nunca se expone con `NEXT_PUBLIC`.
 - La contraseña viaja a `/api/auth/register` por HTTPS (igual que iría a Supabase); nunca se persiste en disco ni en la URL.
 
@@ -258,7 +315,7 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - Internacionalización de los textos de error (quedan en inglés, como el resto del onboarding).
 - Subida real de archivos de verificación a Storage (sigue fuera, como en el spec previo).
 - Limpieza programada (cron) de `email_otps`: solo limpieza oportunista en `send`.
-- **Validación real de códigos de invitación** contra un backend (el paso `invite` del landing). Tras quitar `SIGNUP_PREVIEW` queda como gate obligatorio sin validar; verificarlos de verdad es una tarea aparte.
+- **UI de administración** para generar/listar/revocar códigos de invitación. La gestión se hace por ahora desde el SQL/Table editor de Supabase (ver §4.2). Un panel propio queda fuera de alcance.
 
 ---
 
@@ -268,3 +325,6 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - **Doble disparo (StrictMode):** el envío de OTP al entrar al paso `verify` debe protegerse contra el doble montaje de React en dev (guard con `useRef`, como ya hace `reviewFired`).
 - **`admin.createUser` e idempotencia:** si el trigger ya insertó filas con `ON CONFLICT DO NOTHING`, un reintento no duplica. Pero `admin.createUser` con email existente devuelve error → lo mapeamos a `email_exists`.
 - **Migración a Vercel:** recordar añadir `SUPABASE_SERVICE_ROLE_KEY` en las env de Vercel antes de desplegar a producción, o `/api/auth/register` fallará con 500.
+- **Ventana validate → register en los códigos de invitación:** `/api/invite/validate` solo comprueba disponibilidad (no reserva). Entre validar en el paso `invite` y registrar al final del onboarding, otro usuario podría consumir el mismo código. El consumo real es atómico en `/api/auth/register`, así que como mucho uno de los dos gana; al perdedor se le devuelve `invite_invalid` y vuelve al paso `invite`. Aceptable: el código sigue siendo de un solo uso garantizado.
+- **Liberación del código si falla `createUser`:** si el código se reclama (`used_at = now()`) pero `admin.createUser` falla, se libera (`used_at = NULL`). Riesgo residual: un crash del servidor justo entre ambos pasos dejaría un código marcado como usado sin cuenta asociada. Es raro y recuperable manualmente (`UPDATE invite_codes SET used_at = NULL, used_by = NULL WHERE code = …`). No se añade transacción distribuida por simplicidad.
+- **Fuerza bruta de códigos:** mitigada por el rate-limit de `/api/invite/validate` (10/min/IP) y por exigir códigos largos/aleatorios (§9). No hay bloqueo permanente por IP; si se detectara abuso real, endurecer el límite es trivial.
