@@ -97,11 +97,14 @@ CROSS JOIN LATERAL (
            '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
            (floor(random() * 62)::int) + 1, 1
          ) AS ch,
-         s AS ord
+         s + g.i * 0 AS ord   -- references g.i: forces per-row re-evaluation
   FROM generate_series(1, 7) AS s
 ) chars
-GROUP BY g.i;
+GROUP BY g.i
+ON CONFLICT (code) DO NOTHING;
 ```
+
+> ⚠️ The `s + g.i * 0` correlates the lateral subquery with the outer row. Without it, Postgres may cache `random()` and emit the SAME code for every row (duplicate-key error). `ON CONFLICT DO NOTHING` is a safety net.
 
 - [ ] **Step 4: Read back a code to use for manual testing later**
 

@@ -141,16 +141,17 @@ CROSS JOIN LATERAL (
            '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
            (floor(random() * 62)::int) + 1, 1
          ) AS ch,
-         s AS ord
+         s + g.i * 0 AS ord   -- referencia g.i: fuerza reevaluación por fila
   FROM generate_series(1, 7) AS s
 ) chars
-GROUP BY g.i;
+GROUP BY g.i
+ON CONFLICT (code) DO NOTHING;
 
 -- (b) Código manual concreto:
 INSERT INTO public.invite_codes (code, note) VALUES ('BF-Partner1', 'partner X');
 ```
 
-El `LATERAL` con `random()` (VOLATILE) se reevalúa por cada fila `g.i` → 100 códigos distintos, cada uno con 7 caracteres aleatorios. Para revisar disponibilidad: `SELECT code FROM public.invite_codes WHERE used_at IS NULL;`.
+⚠️ **Importante:** el `s + g.i * 0 AS ord` **correlaciona** el subquery lateral con la fila externa `g.i`. Sin esa referencia, el planner de Postgres puede cachear el resultado de `random()` y generar el **mismo** código para todas las filas (provoca `duplicate key`). El `ON CONFLICT (code) DO NOTHING` es una red de seguridad extra. Para revisar disponibilidad: `SELECT code FROM public.invite_codes WHERE used_at IS NULL;`.
 
 ---
 
