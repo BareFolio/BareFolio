@@ -10,11 +10,6 @@ import FloatingField from '@/components/FloatingField';
 import DateField from '@/components/DateField';
 import CountrySelect from '@/components/CountrySelect';
 
-/* Preview mode: when on, the create-account flow advances without any data
-   and without touching Supabase — purely to visualise the flow. Toggle with
-   NEXT_PUBLIC_SIGNUP_PREVIEW=true in .env.local. */
-const SIGNUP_PREVIEW = process.env.NEXT_PUBLIC_SIGNUP_PREVIEW === 'true';
-
 /* ─── helpers ──────────────────────────────────────────────────── */
 function rng(v: number, a: number, b: number) {
   return Math.max(0, Math.min(1, (v - a) / (b - a)));
@@ -126,6 +121,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
   const [resendSeconds, setResendSeconds] = useState(120);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState('');
+  const otpSentRef = useRef(false);
 
   const isOpen  = mode !== null;
   const isLogin = mode === 'login';
@@ -139,12 +135,15 @@ function AuthModal({ mode, onClose, onSwitch }: {
     }
   }, [mode]);
 
-  // Resend countdown — restarts whenever we enter the verify step
+  // Resend countdown + one-time OTP send whenever we enter the verify step.
   useEffect(() => {
-    if (signupStep !== 'verify') return;
+    if (signupStep !== 'verify') { otpSentRef.current = false; return; }
     setResendSeconds(120);
+    if (!otpSentRef.current) { otpSentRef.current = true; void sendOtp(); }
     const id = setInterval(() => setResendSeconds(s => (s <= 1 ? 0 : s - 1)), 1000);
     return () => clearInterval(id);
+    // sendOtp reads the latest email/state on each call; the ref guards StrictMode double-mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signupStep]);
 
   async function handleOAuth(provider: 'google' | 'apple') {
@@ -166,43 +165,95 @@ function AuthModal({ mode, onClose, onSwitch }: {
     );
   }
 
+  // Validate the invitation code against the backend before leaving the invite step.
+  async function submitInvite() {
+    if (!inviteCode.trim()) { setError('Enter your invitation code.'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch('/api/invite/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: inviteCode }),
+      });
+      const data = await res.json();
+      if (data.valid) { setSignupStep('email'); return; }
+      setError(data.reason === 'used'
+        ? 'This code has already been used.'
+        : 'Invalid invitation code.');
+    } catch {
+      setError('Something went wrong. Try again.');
+    } finally { setLoading(false); }
+  }
+
+  // Ask the server to issue + email a fresh OTP. Used on entering verify and on Resend.
+  async function sendOtp() {
+    setError('');
+    try {
+      const res = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({}));
+        if (typeof data.retryAfter === 'number') setResendSeconds(data.retryAfter);
+      }
+    } catch {
+      setError('Could not send the code. Try Resend.');
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (!isLogin) {
       // Step: email + repeat email → verify code
       if (signupStep === 'email') {
-        if (!SIGNUP_PREVIEW) {
-          if (!email.trim()) { setError('Enter your email.'); return; }
-          if (email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
-            setError('The emails do not match.'); return;
-          }
+        if (!email.trim()) { setError('Enter your email.'); return; }
+        if (email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+          setError('The emails do not match.'); return;
         }
         setError(''); setSignupStep('verify'); return;
       }
       // Step: verify 5-digit code → personal info
       if (signupStep === 'verify') {
-        if (!SIGNUP_PREVIEW && code.length < 5) { setError('Enter the 5-digit code.'); return; }
-        // TODO: verify the OTP against Supabase before continuing.
-        setError(''); setSignupStep('personal'); return;
+        if (code.length < 5) { setError('Enter the 5-digit code.'); return; }
+        setLoading(true); setError('');
+        try {
+          const res = await fetch('/api/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code }),
+          });
+          const data = await res.json();
+          if (data.success) { setSignupStep('personal'); return; }
+          setError(
+            data.error === 'invalid'           ? `Incorrect code. ${data.attemptsLeft} attempts left.` :
+            data.error === 'too_many_attempts' ? 'Too many attempts. Request a new code.' :
+            data.error === 'expired'           ? 'This code expired. Request a new one.' :
+            data.error === 'no_code'           ? 'Request a code first.' :
+                                                 'Could not verify the code. Try again.'
+          );
+        } catch {
+          setError('Something went wrong. Try again.');
+        } finally { setLoading(false); }
+        return;
       }
       // Step: personal info → create password
       if (signupStep === 'personal') {
-        if (!SIGNUP_PREVIEW && (!firstName.trim() || !lastName.trim())) {
+        if (!firstName.trim() || !lastName.trim()) {
           setError('Enter your name.'); return;
         }
         setError(''); setSignupStep('password'); return;
       }
-      // Step: create password (final) → create the account
+      // Step: create password (final) → hand off to onboarding
       if (signupStep === 'password') {
-        if (!SIGNUP_PREVIEW) {
-          if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
-          if (password !== confirmPassword) { setError('The passwords do not match.'); return; }
-        }
+        if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+        if (password !== confirmPassword) { setError('The passwords do not match.'); return; }
         setError('');
-        // Carry the 6 common fields to onboarding in memory. signUp is deferred
-        // to the end of onboarding ("Enter to BareFolio"). Never persist the
-        // password to disk or the URL.
+        // Carry the common fields + invite code to onboarding in memory. The account
+        // is created at the end of onboarding ("Enter to BareFolio"). Never persist
+        // the password to disk or the URL.
         setSignupDraft({
           email,
           password,
@@ -210,6 +261,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
           lastName,
           country,
           birthYear: dobToBirthYear(dob),
+          inviteCode,
         });
         router.push('/onboarding');
         return;
@@ -340,17 +392,18 @@ function AuthModal({ mode, onClose, onSwitch }: {
                 <FloatingField
                   label="Invitation code"
                   value={inviteCode}
-                  onValue={v => setInviteCode(v.toUpperCase())}
+                  onValue={setInviteCode}
                   extraStyle={{ letterSpacing: '1px' }}
                   inputProps={{
-                    onKeyDown: e => { if (e.key === 'Enter' && (SIGNUP_PREVIEW || inviteCode.trim())) setSignupStep('email'); },
+                    onKeyDown: e => { if (e.key === 'Enter') { e.preventDefault(); void submitInvite(); } },
                   }}
                 />
+                {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: 0, textAlign: 'center' }}>{error}</p>}
                 <button
-                  onClick={() => { if (SIGNUP_PREVIEW || inviteCode.trim()) setSignupStep('email'); }}
-                  disabled={!SIGNUP_PREVIEW && !inviteCode.trim()}
-                  style={primaryBtnStyle(!SIGNUP_PREVIEW && !inviteCode.trim())}>
-                  Next
+                  onClick={() => void submitInvite()}
+                  disabled={loading || !inviteCode.trim()}
+                  style={primaryBtnStyle(loading || !inviteCode.trim())}>
+                  {loading ? '…' : 'Next'}
                 </button>
               </div>
             </>
@@ -387,7 +440,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
                     ) : (
                       <span
                         role="button"
-                        onClick={() => setResendSeconds(120)}
+                        onClick={() => { setResendSeconds(120); void sendOtp(); }}
                         style={{ color: '#101010', fontWeight: 600, cursor: 'pointer' }}>
                         Resend code
                       </span>
@@ -424,8 +477,8 @@ function AuthModal({ mode, onClose, onSwitch }: {
                   flex: 1, display: 'flex', flexDirection: 'column',
                   justifyContent: 'center', gap: '14px', paddingBottom: '90px',
                 }}>
-                  <FloatingField label="Name" value={firstName} onValue={setFirstName} inputProps={{ required: !SIGNUP_PREVIEW }} />
-                  <FloatingField label="Surname" value={lastName} onValue={setLastName} inputProps={{ required: !SIGNUP_PREVIEW }} />
+                  <FloatingField label="Name" value={firstName} onValue={setFirstName} inputProps={{ required: true }} />
+                  <FloatingField label="Surname" value={lastName} onValue={setLastName} inputProps={{ required: true }} />
                   <div style={{ alignSelf: 'center', width: '55%', borderTop: '1px solid #e5e5e5', margin: '6px 0' }} />
                   <DateField label="Date of Birth" value={dob} onValue={setDob} />
                   <CountrySelect label="Country" value={country} onValue={setCountry} />
@@ -460,12 +513,12 @@ function AuthModal({ mode, onClose, onSwitch }: {
                   <FloatingField
                     label="Password" type="password"
                     value={password} onValue={setPassword}
-                    inputProps={{ required: !SIGNUP_PREVIEW, minLength: SIGNUP_PREVIEW ? 0 : 6 }}
+                    inputProps={{ required: true, minLength: 6 }}
                   />
                   <FloatingField
                     label="Repeat Password" type="password"
                     value={confirmPassword} onValue={setConfirmPassword}
-                    inputProps={{ required: !SIGNUP_PREVIEW }}
+                    inputProps={{ required: true }}
                   />
                 </div>
 
@@ -524,7 +577,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
                 type="email"
                 value={email}
                 onValue={setEmail}
-                inputProps={{ required: !SIGNUP_PREVIEW }}
+                inputProps={{ required: true }}
               />
               {isLogin && (
                 <FloatingField
@@ -532,7 +585,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
                   type="password"
                   value={password}
                   onValue={setPassword}
-                  inputProps={{ required: !SIGNUP_PREVIEW, minLength: SIGNUP_PREVIEW ? 0 : 6 }}
+                  inputProps={{ required: true, minLength: 6 }}
                 />
               )}
               {!isLogin && email.trim().length > 0 && (
@@ -541,7 +594,7 @@ function AuthModal({ mode, onClose, onSwitch }: {
                   type="email"
                   value={confirmEmail}
                   onValue={setConfirmEmail}
-                  inputProps={{ required: !SIGNUP_PREVIEW }}
+                  inputProps={{ required: true }}
                 />
               )}
               {error && <p style={{ fontSize: '13px', color: '#dc2626', margin: 0, textAlign: 'center' }}>{error}</p>}
