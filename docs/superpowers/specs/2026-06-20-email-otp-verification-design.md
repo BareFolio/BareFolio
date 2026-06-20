@@ -234,6 +234,7 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 > Esto solo **comprueba** disponibilidad para dar feedback en el paso `invite`. **No** consume el código (el usuario podría abandonar). El consumo real ocurre en `/api/auth/register`.
 
 **`POST /api/auth/register`** — body `{ email, password, metadata, inviteCode }`
+0. **Rate-limit por IP** (reutiliza `rateLimit`, 5/min) → 429 si excede. Aunque haya gate OTP, esto acota la fuerza bruta de códigos de invitación una vez que un atacante posee una fila OTP verificada.
 1. `normalizeEmail` + `normalizeCode`.
 2. **Gate OTP:** busca fila válida en `email_otps`: `WHERE email=$1 AND verified_at IS NOT NULL AND consumed_at IS NULL AND verified_at > now()-1h ORDER BY created_at DESC LIMIT 1`. Si no hay → `403 { error: 'not_verified' }`.
 3. **Reclamar el código (atómico, un solo uso):**
@@ -338,4 +339,4 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - **Migración a Vercel:** recordar añadir `SUPABASE_SERVICE_ROLE_KEY` en las env de Vercel antes de desplegar a producción, o `/api/auth/register` fallará con 500.
 - **Ventana validate → register en los códigos de invitación:** `/api/invite/validate` solo comprueba disponibilidad (no reserva). Entre validar en el paso `invite` y registrar al final del onboarding, otro usuario podría consumir el mismo código. El consumo real es atómico en `/api/auth/register`, así que como mucho uno de los dos gana; al perdedor se le devuelve `invite_invalid` y vuelve al paso `invite`. Aceptable: el código sigue siendo de un solo uso garantizado.
 - **Liberación del código si falla `createUser`:** si el código se reclama (`used_at = now()`) pero `admin.createUser` falla, se libera (`used_at = NULL`). Riesgo residual: un crash del servidor justo entre ambos pasos dejaría un código marcado como usado sin cuenta asociada. Es raro y recuperable manualmente (`UPDATE invite_codes SET used_at = NULL, used_by = NULL WHERE code = …`). No se añade transacción distribuida por simplicidad.
-- **Fuerza bruta de códigos:** mitigada por el rate-limit de `/api/invite/validate` (10/min/IP) y por exigir códigos largos/aleatorios (§9). No hay bloqueo permanente por IP; si se detectara abuso real, endurecer el límite es trivial.
+- **Fuerza bruta de códigos:** mitigada por el rate-limit de `/api/invite/validate` (10/min/IP) **y** de `/api/auth/register` (5/min/IP), y por exigir códigos largos/aleatorios (§9). No hay bloqueo permanente por IP; si se detectara abuso real, endurecer el límite es trivial.

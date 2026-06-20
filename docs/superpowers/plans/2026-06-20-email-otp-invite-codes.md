@@ -678,6 +678,7 @@ git commit -m "feat: add POST /api/invite/validate (availability check)"
 
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, clientIp } from '@/lib/rateLimit';
 import { supabaseAdmin, hasServiceRole } from '@/lib/supabaseAdmin';
 import { normalizeEmail, normalizeInviteCode, OTP_VERIFIED_WINDOW_MS } from '@/lib/otp';
 
@@ -685,6 +686,16 @@ export async function POST(req: NextRequest) {
   if (!hasServiceRole) {
     console.error('[auth/register] Missing service-role key.');
     return NextResponse.json({ error: 'server_misconfigured' }, { status: 500 });
+  }
+
+  // Rate limit: 5 attempts / minute / IP. Even behind the OTP gate, this caps
+  // invite-code brute-forcing once an attacker holds one verified OTP row.
+  const rl = rateLimit(`auth-register:${clientIp(req)}`, 5, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    );
   }
 
   let body: {
