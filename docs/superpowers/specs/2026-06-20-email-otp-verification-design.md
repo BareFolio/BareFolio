@@ -114,7 +114,7 @@ ALTER TABLE public.email_otps ENABLE ROW LEVEL SECURITY;
 
 ```sql
 CREATE TABLE public.invite_codes (
-  code       text PRIMARY KEY,                 -- normalizado a MAYÚSCULAS, sin espacios
+  code       text PRIMARY KEY,                 -- formato BF-XXXXXXX, case-sensitive
   used_at    timestamptz,                      -- NULL = disponible
   used_by    uuid REFERENCES auth.users(id),   -- quién lo consumió
   note       text,                             -- etiqueta libre (p. ej. "amigos", "press")
@@ -125,22 +125,32 @@ ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
 -- Sin políticas: solo la service-role key accede desde el servidor.
 ```
 
+- **Formato:** prefijo fijo `BF-` + **7 caracteres** alfanuméricos en mayúscula y minúscula (alfabeto base62: `0-9A-Za-z`). Ej.: `BF-a7Kp2Xq`.
+- **Case-sensitive:** los códigos **distinguen mayúsculas de minúsculas** (`BF-a7Kp2Xq` ≠ `BF-A7KP2XQ`). Por eso la normalización es solo `trim()` (sin `toUpperCase`), tanto al validar como al consumir, y el campo del landing **no** transforma a mayúsculas.
 - **Un solo uso:** `used_at IS NULL` ⇒ disponible. Al consumirse se fija `used_at` + `used_by`.
-- El código se **normaliza** siempre a `trim().toUpperCase()` al validar/consumir (el landing ya pasa a mayúsculas al escribir).
 
-**Generación de códigos (gestión por el usuario).** Dos vías, ambas desde el SQL editor / Table Editor de Supabase:
+**Generación de códigos (gestión por el usuario).** Desde el SQL editor de Supabase:
 
 ```sql
--- (a) Lote de 100 códigos aleatorios de 8 caracteres hex en MAYÚSCULAS:
+-- (a) Lote de 100 códigos BF- + 7 chars base62 (mayúsculas, minúsculas y dígitos):
 INSERT INTO public.invite_codes (code, note)
-SELECT upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)), 'phase2'
-FROM generate_series(1, 100);
+SELECT 'BF-' || string_agg(ch, '' ORDER BY ord), 'phase2'
+FROM generate_series(1, 100) AS g(i)
+CROSS JOIN LATERAL (
+  SELECT substr(
+           '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+           (floor(random() * 62)::int) + 1, 1
+         ) AS ch,
+         s AS ord
+  FROM generate_series(1, 7) AS s
+) chars
+GROUP BY g.i;
 
 -- (b) Código manual concreto:
-INSERT INTO public.invite_codes (code, note) VALUES ('BAREFOLIO2026', 'partner X');
+INSERT INTO public.invite_codes (code, note) VALUES ('BF-Partner1', 'partner X');
 ```
 
-`gen_random_uuid()` se reevalúa por fila → 100 códigos distintos. Para revisar disponibilidad: `SELECT code FROM public.invite_codes WHERE used_at IS NULL;`.
+El `LATERAL` con `random()` (VOLATILE) se reevalúa por cada fila `g.i` → 100 códigos distintos, cada uno con 7 caracteres aleatorios. Para revisar disponibilidad: `SELECT code FROM public.invite_codes WHERE used_at IS NULL;`.
 
 ---
 
@@ -214,7 +224,7 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 
 **`POST /api/invite/validate`** — body `{ code }`
 1. Rate-limit por IP (reutiliza `rateLimit`, p. ej. 10/min) → 429 si excede (frena fuerza bruta de códigos).
-2. `normalizeCode` = `trim().toUpperCase()`.
+2. `normalizeCode` = `trim()` (sin cambiar mayúsculas/minúsculas: los códigos son case-sensitive).
 3. `SELECT used_at FROM invite_codes WHERE code=$1`:
    - No existe → `{ valid: false, reason: 'not_found' }`.
    - `used_at` no nulo → `{ valid: false, reason: 'used' }`.
@@ -246,7 +256,7 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - **Código de invitación (paso `invite`):** al pulsar "Next" → `POST /api/invite/validate { code }`.
   - `valid:true` → guardar el código en el estado (`inviteCode`, ya existe) y avanzar a `email`.
   - `valid:false` → mensaje inline según `reason`: `not_found` → "Invalid invitation code." · `used` → "This code has already been used."
-  - El campo ya pasa a mayúsculas al escribir (`v.toUpperCase()`); se mantiene.
+  - **Quitar** el `v.toUpperCase()` del `onValue` del campo (los códigos `BF-XXXXXXX` son case-sensitive y mezclan mayúsculas/minúsculas; forzar mayúsculas rompería la validación). El input pasa el texto tal cual.
 - **Arrastrar el código hasta el final:** añadir `inviteCode: string` al tipo `SignupDraft` (`src/lib/signupDraft.ts`). En el paso `password`, `setSignupDraft({ ..., inviteCode })`. Así `/onboarding` lo tiene disponible para enviarlo a `/api/auth/register`.
 - Al **entrar al paso `verify`** (tras validar email + coincidencia): llamar a `POST /api/otp/send`. Manejar 429 (cooldown → arrancar `otpSeconds`).
 - Botón **"Resend"**: re-llama a `/api/otp/send`; deshabilitado durante el cooldown (la UI ya tiene `otpSeconds`).
@@ -292,7 +302,7 @@ export const supabaseAdmin = createClient(url, serviceKey, { auth: { autoRefresh
 - Tabla `email_otps` bajo **RLS sin políticas**: inaccesible para el cliente.
 - **Rate-limit** en `send` (5/min/IP) y **cooldown** por email (60 s); `verify` limitado por `attempts` (5) + caducidad (10 min) → fuerza bruta online inviable (100 000 combinaciones, máx. 5 intentos por código).
 - La cuenta **solo** se crea tras verificación confirmada en BD **y** consumo de un código de invitación válido; el cliente no puede saltarse ninguno de los dos gates.
-- **Códigos de invitación:** `invite_codes` también bajo **RLS sin políticas** (solo service-role). `/api/invite/validate` lleva rate-limit por IP (10/min) para frenar la enumeración/fuerza bruta de códigos. La entropía depende de cómo los genere el usuario: los códigos hex de 8 caracteres del lote por defecto dan ~4 300 millones de combinaciones; para lotes pequeños conviene mantenerlos así de largos (no usar códigos cortos o predecibles).
+- **Códigos de invitación:** `invite_codes` también bajo **RLS sin políticas** (solo service-role). `/api/invite/validate` lleva rate-limit por IP (10/min) para frenar la enumeración/fuerza bruta de códigos. Formato `BF-` + 7 caracteres base62 (case-sensitive) ⇒ 62⁷ ≈ **3,5 billones** de combinaciones; con el rate-limit, adivinar uno por fuerza bruta es inviable. El prefijo `BF-` es fijo y público (no aporta entropía, solo formato).
 - El consumo del código es **atómico** (`UPDATE … WHERE used_at IS NULL RETURNING code`): dos registros simultáneos con el mismo código no pueden ambos ganar la fila.
 - La `service_role` key vive solo en el servidor; nunca se expone con `NEXT_PUBLIC`.
 - La contraseña viaja a `/api/auth/register` por HTTPS (igual que iría a Supabase); nunca se persiste en disco ni en la URL.
