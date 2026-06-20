@@ -11,6 +11,7 @@ export type SignupDraft = {
   lastName: string;
   country: string;          // label from CountrySelect
   birthYear: number | null; // derived from the landing's dob (DD/MM/YYYY)
+  inviteCode: string;       // single-use code, consumed at account creation
 };
 
 let draft: SignupDraft | null = null;
