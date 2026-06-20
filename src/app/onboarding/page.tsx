@@ -6,17 +6,11 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { gatePlatform } from '@/lib/platformGate';
-import { getSignupDraft, setSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
+import { getSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
 import { buildSignupMetadata } from '@/lib/onboardingMappings';
 import FloatingField, { SHARED_FIELD_STYLE } from '@/components/FloatingField';
 import { DISCIPLINES as ALL_DISCIPLINES, SUGGESTED_DISCIPLINES } from '@/lib/disciplines';
 import { INDUSTRIES as ALL_INDUSTRIES } from '@/lib/industries';
-
-// ⚠️ TEMP DEV BYPASS — lets you click through every onboarding screen without
-// filling any field (skips required-field gates and finish validations). This is
-// for visual screen review ONLY. Set to false (or delete this + its guards)
-// before running real Supabase signup tests.
-const DEV_BYPASS: boolean = true;
 
 /* Number of screens in the shared Creator/Seeker profile sub-flow. Bumped as
    each new Figma screen is added.
@@ -546,7 +540,7 @@ function ProfileVerification({
           <button
             type="button"
             onClick={startEmailVerification}
-            disabled={!DEV_BYPASS && !isCorporateEmail(corporateEmail)}
+            disabled={!isCorporateEmail(corporateEmail)}
             style={{
               width: '266px',
               height: '53px',
@@ -1256,7 +1250,6 @@ export default function OnboardingPage() {
   // Status States
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [registered, setRegistered] = useState(false);
   // Flipped by the last step of each role flow → shows the confirmation screen.
   const [profileCreated, setProfileCreated] = useState(false);
   // Business Document path: account is created pending manual review; the user
@@ -1273,19 +1266,6 @@ export default function OnboardingPage() {
   // navigation to /onboarding). Send the user back to start.
   useEffect(() => {
     if (!getSignupDraft()) {
-      if (DEV_BYPASS) {
-        // Seed a throwaway draft so the screens render on direct navigation /
-        // hard refresh during visual review. Never fires when DEV_BYPASS is off.
-        setSignupDraft({
-          email: 'dev@barefolio.test',
-          password: 'devbypass',
-          firstName: 'Dev',
-          lastName: 'User',
-          country: 'Spain',
-          birthYear: 1990,
-        });
-        return;
-      }
       router.replace('/');
     }
   }, [router]);
@@ -1405,15 +1385,15 @@ export default function OnboardingPage() {
 
   // Creator: last questionnaire step → show confirmation.
   const profileFinish = () => {
-    if (!DEV_BYPASS && !username) { setError('Please create a username.'); return; }
-    if (!DEV_BYPASS && !mainDiscipline) { setError('Please select at least one main discipline.'); return; }
+    if (!username) { setError('Please create a username.'); return; }
+    if (!mainDiscipline) { setError('Please select at least one main discipline.'); return; }
     setError('');
     setProfileCreated(true);
   };
   // Seeker: last step ("Finish") → show confirmation.
   const seekerFinish = () => {
-    if (!DEV_BYPASS && !username) { setError('Please create a username.'); return; }
-    if (!DEV_BYPASS && seekerDisciplines.length === 0) { setError('Please select at least one discipline you are looking for.'); return; }
+    if (!username) { setError('Please create a username.'); return; }
+    if (seekerDisciplines.length === 0) { setError('Please select at least one discipline you are looking for.'); return; }
     setError('');
     setProfileCreated(true);
   };
@@ -1443,13 +1423,6 @@ export default function OnboardingPage() {
 
   const handleRegister = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    // ⚠️ TEMP DEV BYPASS: during the visual screen walkthrough we skip the real
-    // signUp so empty/garbage accounts aren't written to Supabase. Remove with
-    // the DEV_BYPASS flag before the real registration test.
-    if (DEV_BYPASS) {
-      console.warn('[DEV_BYPASS] handleRegister skipped — no real signUp fired.');
-      return;
-    }
     setError('');
 
     const currentDraft = getSignupDraft();
@@ -1484,28 +1457,49 @@ export default function OnboardingPage() {
         brandVerificationData,
       });
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: currentDraft.email,
-        password: currentDraft.password,
-        options: { data: metadata },
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentDraft.email,
+          password: currentDraft.password,
+          metadata,
+          inviteCode: currentDraft.inviteCode,
+        }),
       });
-      if (signUpError) throw signUpError;
+      const data = await res.json().catch(() => ({}));
 
-      clearSignupDraft();
+      if (!res.ok || !data.success) {
+        const message =
+          data.error === 'email_exists'   ? 'An account with this email already exists.' :
+          data.error === 'invite_invalid' ? 'This invitation code is invalid or already used.' :
+          data.error === 'not_verified'   ? 'Please verify your email first.' :
+                                            'An error occurred during account creation.';
+        setError(message);
+        setLoading(false);
+        if (data.error === 'not_verified' || data.error === 'invite_invalid') {
+          clearSignupDraft();
+          router.replace('/');
+        }
+        return;
+      }
 
-      // Business Document path: account is created pending review — stay on the
-      // Review screen, do not enter the app.
+      // Business Document path: account created pending review — stay on the
+      // Review screen, do not enter the app and do not sign in.
       if (pendingReview) {
+        clearSignupDraft();
         setLoading(false);
         return;
       }
 
-      // If email confirmation is enabled, signUp returns a user but no session.
-      if (data.user && !data.session) {
-        setRegistered(true);
-      } else {
-        router.push('/');
-      }
+      // Standard path: sign in with the just-created (already-confirmed) account.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentDraft.email,
+        password: currentDraft.password,
+      });
+      clearSignupDraft();
+      if (signInError) throw signInError;
+      router.push('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred during account creation.';
       setError(message);
@@ -1526,51 +1520,6 @@ export default function OnboardingPage() {
     // the reviewFired ref guarantees this fires exactly once when pendingReview flips.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingReview]);
-
-  // Render Confirmation Email screen
-  if (registered) {
-    return (
-      <div className="min-h-screen bg-bg-primary p-6 flex flex-col justify-center max-w-md mx-auto py-12 md:py-24 animate-fade-in relative">
-        <OnboardingHeader />
-        <div className="glass p-8 rounded-3xl border border-borderGlass shadow-xl space-y-6 text-center">
-          <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto shadow-inner">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 19v-8.93a2 2 0 01.89-1.664l8-5.333a2 2 0 012.22 0l8 5.333A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-2.25-1.5a2 2 0 00-2.22 0l-2.25 1.5" />
-            </svg>
-          </div>
-          
-          <h2 className="text-2xl font-display font-black text-neutral-900 dark:text-white">
-            Verify your Email
-          </h2>
-          
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 leading-relaxed font-sans">
-            We created an account for <span className="font-semibold text-neutral-900 dark:text-white">{name}</span> ({email}).
-            Please click the confirmation link sent to your inbox to activate your account.
-          </p>
-
-          <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 p-4 rounded-2xl text-xs text-left leading-relaxed">
-            <span className="font-bold block mb-1">🛠️ Local Development Tip:</span>
-            To skip email confirmations, disable "Confirm email" inside your Supabase console:
-            <ol className="list-decimal pl-4 mt-1.5 space-y-1">
-              <li>Visit your <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-accent">Supabase Dashboard</a>.</li>
-              <li>Navigate to <strong>Authentication</strong> ➔ <strong>Providers</strong> ➔ <strong>Email</strong>.</li>
-              <li>Toggle off <strong>Confirm email</strong>.</li>
-              <li>Click <strong>Save</strong>.</li>
-            </ol>
-          </div>
-
-          <div className="pt-2">
-            <Link 
-              href="/login?pending_email=true" 
-              className="block w-full bg-accent hover:bg-accent-hover text-white font-medium py-3 rounded-xl transition duration-200 text-sm shadow-md"
-            >
-              Back to Login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (profileCreated) {
     // Business Document path → Review screen (24h). Account is created pending;
@@ -3124,7 +3073,7 @@ export default function OnboardingPage() {
             on selection and the verification step has its own Next. It stays
             disabled until the disciplines minimum is met. */}
         {(studioStep === 0 || studioStep === 1) && (() => {
-          const disabled = !DEV_BYPASS && studioStep === 1 && studioDisciplines.length === 0;
+          const disabled = studioStep === 1 && studioDisciplines.length === 0;
           return (
             <button
               type="button"
@@ -3646,7 +3595,7 @@ export default function OnboardingPage() {
             disciplines and industry screens; the verification step has its own
             Next. Disabled until the disciplines minimum / an industry pick. */}
         {(companyStep === 0 || companyStep === 1 || companyStep === 2) && (() => {
-          const disabled = !DEV_BYPASS && (
+          const disabled = (
             (companyStep === 1 && brandDisciplines.length === 0) ||
             (companyStep === 2 && brandIndustries.length === 0));
           return (
@@ -3980,7 +3929,7 @@ export default function OnboardingPage() {
             The disciplines screen is the last — "Finish", disabled until at
             least one discipline is picked. */}
         {(seekerStep === 0 || seekerStep === 2) && (() => {
-          const disabled = !DEV_BYPASS && seekerStep === 2 && seekerDisciplines.length === 0;
+          const disabled = seekerStep === 2 && seekerDisciplines.length === 0;
           return (
             <button
               type="button"
