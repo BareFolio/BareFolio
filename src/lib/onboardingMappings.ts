@@ -3,7 +3,20 @@
 // The Supabase trigger handle_new_user reads these keys verbatim, so the
 // values here MUST match the live enums (see plan "Confirmed schema facts").
 
-import type { SignupDraft } from './signupDraft';
+/**
+ * The common signup fields collected before role selection. Carried in component
+ * state through the consolidated /onboarding flow (never persisted to disk: the
+ * password must never touch localStorage/sessionStorage or the URL).
+ */
+export type SignupDraft = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  country: string;          // label from CountrySelect
+  birthYear: number | null; // derived from the landing's dob (DD/MM/YYYY)
+  inviteCode: string;       // single-use code, consumed at account creation
+};
 
 /** Landing dob is "DD/MM/YYYY"; backend stores only birth_year (int). */
 export function dobToBirthYear(dob: string): number | null {
