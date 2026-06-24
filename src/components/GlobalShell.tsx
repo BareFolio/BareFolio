@@ -10,22 +10,20 @@ import CreatePicker from "./CreatePicker";
 import TasteBuilder from "./TasteBuilder";
 import FilterDrawer from "./FilterDrawer";
 
-/* Preview mode lets us walk into /onboarding without a real account (visualisation only). */
-const SIGNUP_PREVIEW = process.env.NEXT_PUBLIC_SIGNUP_PREVIEW === 'true';
-
 export default function GlobalShell({ children }: { children: React.ReactNode }) {
   const { currentUser, loading, createPickerOpen, setCreatePickerOpen, newPostOpen, setNewPostOpen, tasteBuilderOpen, setTasteBuilderOpen, filterDrawerOpen, setFilterDrawerOpen, globalDiscipline, setGlobalDiscipline } = useApp();
   const router = useRouter();
   const pathname = usePathname();
 
-  const PUBLIC_PATHS = ['/', '/waitlist', '/waitlist/confirmed', '/pricing', '/about', '/privacy', '/terms', '/cookies', '/contact', '/faqs'];
+  // '/onboarding' now hosts the entire (unauthenticated) account-creation flow,
+  // so it must be reachable without a session — same allowance as the marketing pages.
+  const PUBLIC_PATHS = ['/', '/onboarding', '/waitlist', '/waitlist/confirmed', '/pricing', '/about', '/privacy', '/terms', '/cookies', '/contact', '/faqs'];
 
   useEffect(() => {
     if (!loading) {
-      // Unauthenticated users can only access public paths
-      // (preview mode also allows /onboarding so we can visualise the flow)
-      const previewAllowed = SIGNUP_PREVIEW && pathname === '/onboarding';
-      if (!currentUser && !PUBLIC_PATHS.includes(pathname) && !previewAllowed) {
+      // Unauthenticated users can only access public paths (including /onboarding,
+      // which hosts the whole account-creation flow).
+      if (!currentUser && !PUBLIC_PATHS.includes(pathname)) {
         router.push('/');
       }
       // "/" handles auth redirect in page.tsx (→ /home for authenticated users)
