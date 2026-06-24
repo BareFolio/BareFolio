@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import PublicFooter from '@/components/PublicFooter';
 import AuthModal, { type ModalMode } from '@/components/AuthModal';
+import { setSignupDraft } from '@/lib/signupDraft';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function rng(v: number, a: number, b: number) {
@@ -1103,7 +1104,8 @@ function LandingPage() {
       <AuthModal
         mode={modal}
         onClose={() => setModal(null)}
-        onSwitch={() => router.push('/onboarding')}
+        onSwitch={() => setModal(modal === 'login' ? 'signup' : 'login')}
+        onSignupComplete={(v) => { setSignupDraft(v); router.push('/onboarding'); }}
       />
       <BottomNav
         onLogin={() => setModal('login')}

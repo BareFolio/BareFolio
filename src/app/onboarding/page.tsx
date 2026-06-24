@@ -6,9 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { gatePlatform } from '@/lib/platformGate';
-import { buildSignupMetadata, type SignupDraft } from '@/lib/onboardingMappings';
+import { buildSignupMetadata } from '@/lib/onboardingMappings';
+import { getSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
 import FloatingField, { SHARED_FIELD_STYLE } from '@/components/FloatingField';
-import AuthModal from '@/components/AuthModal';
 import { DISCIPLINES as ALL_DISCIPLINES, SUGGESTED_DISCIPLINES } from '@/lib/disciplines';
 import { INDUSTRIES as ALL_INDUSTRIES } from '@/lib/industries';
 
@@ -1182,11 +1182,6 @@ export default function OnboardingPage() {
   // Sub-step inside the Studio/Agency flow (0-indexed).
   const [studioStep, setStudioStep] = useState(0);
   const [selectedRole, setSelectedRole] = useState('');
-  // Consolidated signup phase: the slide-in AuthModal (invite → password) runs
-  // first, in this same route. signupValues holds the collected fields in memory
-  // (the password is never persisted to disk/sessionStorage/URL).
-  const [signupDone, setSignupDone] = useState(false);
-  const [signupValues, setSignupValues] = useState<SignupDraft | null>(null);
 
   // Creator Profile Questionnaire
   const [username, setUsername] = useState('');
@@ -1260,6 +1255,14 @@ export default function OnboardingPage() {
 
   const router = useRouter();
   const isMobile = useIsMobile();
+
+  // Without the landing handoff we cannot register (hard refresh or direct
+  // navigation to /onboarding). Send the user back to start.
+  useEffect(() => {
+    if (!getSignupDraft()) {
+      router.replace('/');
+    }
+  }, [router]);
 
   // Fade the intro copy out (opacity) before swapping to the role screen.
   const leaveIntro = () => {
@@ -1416,10 +1419,10 @@ export default function OnboardingPage() {
     e?.preventDefault();
     setError('');
 
-    const currentDraft = signupValues;
+    const currentDraft = getSignupDraft();
     if (!currentDraft) {
       setError('Your session expired. Please start again.');
-      setSignupDone(false);
+      router.replace('/');
       return;
     }
 
@@ -1469,6 +1472,7 @@ export default function OnboardingPage() {
         setError(message);
         setLoading(false);
         if (data.error === 'not_verified' || data.error === 'invite_invalid') {
+          clearSignupDraft();
           router.replace('/');
         }
         return;
@@ -1477,6 +1481,7 @@ export default function OnboardingPage() {
       // Business Document path: account created pending review — stay on the
       // Review screen, do not enter the app and do not sign in.
       if (pendingReview) {
+        clearSignupDraft();
         setLoading(false);
         return;
       }
@@ -1486,6 +1491,7 @@ export default function OnboardingPage() {
         email: currentDraft.email,
         password: currentDraft.password,
       });
+      clearSignupDraft();
       if (signInError) throw signInError;
       router.push('/');
     } catch (err) {
@@ -1508,22 +1514,6 @@ export default function OnboardingPage() {
     // the reviewFired ref guarantees this fires exactly once when pendingReview flips.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingReview]);
-
-  // Phase 0: collect the common signup fields in the slide-in panel, in this
-  // same route. On completion we keep the values in memory and reveal the
-  // existing role flow — no navigation, so nothing is lost across routes.
-  if (!signupDone) {
-    return (
-      <main style={{ minHeight: '100vh', background: '#fafafa' }}>
-        <AuthModal
-          mode="signup"
-          onClose={() => router.push('/')}
-          onSwitch={() => router.push('/')}
-          onSignupComplete={(v) => { setSignupValues(v); setSignupDone(true); }}
-        />
-      </main>
-    );
-  }
 
   if (profileCreated) {
     // Business Document path → Review screen (24h). Account is created pending;
