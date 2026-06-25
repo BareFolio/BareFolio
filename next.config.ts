@@ -71,7 +71,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/r',
-        destination: '/waitlist',
+        destination: '/',
         permanent: false,
       },
     ];
