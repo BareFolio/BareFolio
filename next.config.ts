@@ -61,6 +61,21 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // ─── Owned QR redirect ────────────────────────────────────────────────
+  // Self-hosted "dynamic QR" hop. Printed/stickered QR codes encode
+  // https://barefolio.com/r — this redirect decides where they actually land,
+  // so the destination can be changed here anytime WITHOUT reprinting.
+  // `permanent: false` → 307 (temporary, NOT cached by browsers), which is
+  // essential: a 308/301 would be cached forever and freeze the destination.
+  async redirects() {
+    return [
+      {
+        source: '/r',
+        destination: '/waitlist',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 if (process.env.NEXT_CAPACITOR === "1") {
