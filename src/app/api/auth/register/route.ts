@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, clientIp } from '@/lib/rateLimit';
 import { supabaseAdmin, hasServiceRole } from '@/lib/supabaseAdmin';
 import { normalizeEmail, normalizeInviteCode, OTP_VERIFIED_WINDOW_MS } from '@/lib/otp';
+import { slugifyHandle } from '@/lib/onboardingMappings';
+import { validateUsernameFormat, isReservedHandle } from '@/lib/username';
 
 export async function POST(req: NextRequest) {
   if (!hasServiceRole) {
@@ -50,6 +52,27 @@ export async function POST(req: NextRequest) {
   }
   const otpRow = otpRows?.[0];
   if (!otpRow) return NextResponse.json({ error: 'not_verified' }, { status: 403 });
+
+  // Gate 1.5: username must be valid, non-reserved, and free for ALL roles.
+  // Runs before the invite claim so a taken/invalid name never burns a code.
+  const handle = slugifyHandle(
+    String((body.metadata as Record<string, unknown>).username ?? ''),
+  );
+  const fmt = validateUsernameFormat(handle);
+  if (!fmt.ok) return NextResponse.json({ error: 'username_invalid' }, { status: 400 });
+  if (isReservedHandle(handle)) return NextResponse.json({ error: 'username_reserved' }, { status: 409 });
+  const { data: handleRows, error: handleErr } = await supabaseAdmin
+    .from('accounts')
+    .select('id')
+    .eq('handle', handle)
+    .limit(1);
+  if (handleErr) {
+    console.error('[auth/register] handle select error:', handleErr.message);
+    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+  }
+  if (handleRows && handleRows.length > 0) {
+    return NextResponse.json({ error: 'username_taken' }, { status: 409 });
+  }
 
   // Gate 2: atomically claim the invite code (single-use).
   const { data: claimed, error: claimErr } = await supabaseAdmin

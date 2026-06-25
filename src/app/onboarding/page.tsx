@@ -1491,15 +1491,31 @@ export default function OnboardingPage() {
 
       if (!res.ok || !data.success) {
         const message =
-          data.error === 'email_exists'   ? 'An account with this email already exists.' :
-          data.error === 'invite_invalid' ? 'This invitation code is invalid or already used.' :
-          data.error === 'not_verified'   ? 'Please verify your email first.' :
-                                            'An error occurred during account creation.';
+          data.error === 'email_exists'      ? 'An account with this email already exists.' :
+          data.error === 'invite_invalid'    ? 'This invitation code is invalid or already used.' :
+          data.error === 'not_verified'      ? 'Please verify your email first.' :
+          data.error === 'username_taken'    ? 'That username is already taken. Please choose another.' :
+          data.error === 'username_reserved' ? "That username isn't available. Please choose another." :
+          data.error === 'username_invalid'  ? 'That username is invalid. Please choose another.' :
+                                               'An error occurred during account creation.';
         setError(message);
         setLoading(false);
         if (data.error === 'not_verified' || data.error === 'invite_invalid') {
           clearSignupDraft();
           router.replace('/');
+        }
+        if (
+          data.error === 'username_taken' ||
+          data.error === 'username_reserved' ||
+          data.error === 'username_invalid'
+        ) {
+          // Bounce back to the identity screen; keep the draft so they only
+          // need to change the name.
+          setProfileCreated(false);
+          if (selectedRole === 'creator') setProfileStep(0);
+          else if (selectedRole === 'seeker') setSeekerStep(0);
+          else if (selectedRole === 'studio') setStudioStep(0);
+          else if (selectedRole === 'brand') setCompanyStep(0);
         }
         return;
       }
