@@ -11,6 +11,7 @@ import { getSignupDraft, clearSignupDraft } from '@/lib/signupDraft';
 import FloatingField, { SHARED_FIELD_STYLE } from '@/components/FloatingField';
 import { DISCIPLINES as ALL_DISCIPLINES, SUGGESTED_DISCIPLINES } from '@/lib/disciplines';
 import { INDUSTRIES as ALL_INDUSTRIES } from '@/lib/industries';
+import { useHandleAvailability, type HandleStatus } from '@/lib/useHandleAvailability';
 
 /* Number of screens in the shared Creator/Seeker profile sub-flow. Bumped as
    each new Figma screen is added.
@@ -203,6 +204,18 @@ function useIsMobile(breakpoint = 768): boolean {
     return () => mq.removeEventListener('change', update);
   }, [breakpoint]);
   return isMobile;
+}
+
+function handleStatusMessage(status: HandleStatus): { text: string; color: string } | null {
+  switch (status) {
+    case 'checking':  return { text: 'Checking availability…', color: '#737373' };
+    case 'available': return { text: 'Available', color: '#16a34a' };
+    case 'taken':     return { text: 'That name is already taken, try another', color: '#dc2626' };
+    case 'reserved':  return { text: "That name isn't available", color: '#dc2626' };
+    case 'invalid':   return { text: 'Invalid name (3–30 chars: letters, numbers, _ or .)', color: '#dc2626' };
+    case 'error':     return { text: "Couldn't check right now, try again", color: '#dc2626' };
+    default:          return null; // 'idle'
+  }
 }
 
 function OnboardingHeader() {
@@ -1256,6 +1269,19 @@ export default function OnboardingPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
 
+  // The identity value depends on the active role: creator/seeker type a username;
+  // studio/brand derive their handle from the org name.
+  const identityRaw =
+    selectedRole === 'studio' ? studioName :
+    selectedRole === 'brand'  ? brandName  :
+    username;
+  const onIdentityStep =
+    (selectedRole === 'creator' && profileStep === 0) ||
+    (selectedRole === 'seeker'  && seekerStep === 0) ||
+    (selectedRole === 'studio'  && studioStep === 0) ||
+    (selectedRole === 'brand'   && companyStep === 0);
+  const handleStatus = useHandleAvailability(identityRaw, onIdentityStep);
+
   // Without the landing handoff we cannot register (hard refresh or direct
   // navigation to /onboarding). Send the user back to start.
   useEffect(() => {
@@ -1990,6 +2016,21 @@ export default function OnboardingPage() {
               wrapperStyle={{ marginTop: '40px', width: '266px' }}
               inputProps={{ autoComplete: 'off' }}
             />
+            {(() => {
+              const msg = handleStatusMessage(handleStatus);
+              return msg ? (
+                <p style={{
+                  width: '266px',
+                  margin: '8px auto 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12px',
+                  color: msg.color,
+                  textAlign: 'left',
+                }}>
+                  {msg.text}
+                </p>
+              ) : null;
+            })()}
           </div>
         )}
 
@@ -2576,10 +2617,13 @@ export default function OnboardingPage() {
 
         {/* Solid bottom-right button — "Next" advances the username/discipline
             screens; "Send" submits the attached verification file. */}
-        {(profileStep === 0 || profileStep === 2 || (profileStep === 4 && !!projectPdfName)) && (
+        {(profileStep === 0 || profileStep === 2 || (profileStep === 4 && !!projectPdfName)) && (() => {
+          const ctaDisabled = profileStep === 0 && handleStatus !== 'available';
+          return (
           <button
             type="button"
             onClick={profileStep === 4 ? profileFinish : profileNext}
+            disabled={ctaDisabled}
             style={{
               ...bottomCtaPos(isMobile),
               background: '#101010',
@@ -2590,12 +2634,15 @@ export default function OnboardingPage() {
               fontSize: '16px',
               fontWeight: 500,
               letterSpacing: '-0.32px',
-              cursor: 'pointer',
+              cursor: ctaDisabled ? 'not-allowed' : 'pointer',
+              opacity: ctaDisabled ? 0.4 : 1,
+              transition: 'opacity .12s ease',
             }}
           >
             Next
           </button>
-        )}
+          );
+        })()}
 
         {/* Skip-confirmation alert — clean solid dialog. Warns that the upload
             is required later, then lets the user skip ("Skip", solid button on
@@ -2788,6 +2835,21 @@ export default function OnboardingPage() {
               wrapperStyle={{ marginTop: '40px', width: '266px' }}
               inputProps={{ autoComplete: 'off' }}
             />
+            {(() => {
+              const msg = handleStatusMessage(handleStatus);
+              return msg ? (
+                <p style={{
+                  width: '266px',
+                  margin: '8px auto 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12px',
+                  color: msg.color,
+                  textAlign: 'left',
+                }}>
+                  {msg.text}
+                </p>
+              ) : null;
+            })()}
 
             <h5
               style={{
@@ -3067,7 +3129,9 @@ export default function OnboardingPage() {
             on selection and the verification step has its own Next. It stays
             disabled until the disciplines minimum is met. */}
         {(studioStep === 0 || studioStep === 1) && (() => {
-          const disabled = studioStep === 1 && studioDisciplines.length === 0;
+          const disabled =
+            (studioStep === 0 && handleStatus !== 'available') ||
+            (studioStep === 1 && studioDisciplines.length === 0);
           return (
             <button
               type="button"
@@ -3162,6 +3226,21 @@ export default function OnboardingPage() {
               wrapperStyle={{ marginTop: '40px', width: '266px' }}
               inputProps={{ autoComplete: 'off' }}
             />
+            {(() => {
+              const msg = handleStatusMessage(handleStatus);
+              return msg ? (
+                <p style={{
+                  width: '266px',
+                  margin: '8px auto 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12px',
+                  color: msg.color,
+                  textAlign: 'left',
+                }}>
+                  {msg.text}
+                </p>
+              ) : null;
+            })()}
 
             <h5
               style={{
@@ -3589,9 +3668,10 @@ export default function OnboardingPage() {
             disciplines and industry screens; the verification step has its own
             Next. Disabled until the disciplines minimum / an industry pick. */}
         {(companyStep === 0 || companyStep === 1 || companyStep === 2) && (() => {
-          const disabled = (
+          const disabled =
+            (companyStep === 0 && handleStatus !== 'available') ||
             (companyStep === 1 && brandDisciplines.length === 0) ||
-            (companyStep === 2 && brandIndustries.length === 0));
+            (companyStep === 2 && brandIndustries.length === 0);
           return (
             <button
               type="button"
@@ -3685,6 +3765,21 @@ export default function OnboardingPage() {
               wrapperStyle={{ marginTop: '40px', width: '266px' }}
               inputProps={{ autoComplete: 'off' }}
             />
+            {(() => {
+              const msg = handleStatusMessage(handleStatus);
+              return msg ? (
+                <p style={{
+                  width: '266px',
+                  margin: '8px auto 0',
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12px',
+                  color: msg.color,
+                  textAlign: 'left',
+                }}>
+                  {msg.text}
+                </p>
+              ) : null;
+            })()}
           </div>
         )}
 
@@ -3923,7 +4018,9 @@ export default function OnboardingPage() {
             The disciplines screen is the last — "Finish", disabled until at
             least one discipline is picked. */}
         {(seekerStep === 0 || seekerStep === 2) && (() => {
-          const disabled = seekerStep === 2 && seekerDisciplines.length === 0;
+          const disabled =
+            (seekerStep === 0 && handleStatus !== 'available') ||
+            (seekerStep === 2 && seekerDisciplines.length === 0);
           return (
             <button
               type="button"
