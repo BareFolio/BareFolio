@@ -6,7 +6,7 @@
 
 **Architecture:** The onboarding UX, availability endpoint, and register-route Gate 1.5 already exist (migration `006` + prior work). This plan changes only the DB trigger (numeric-suffix-always → fail-closed for user-chosen handles, numeric fallback for derived handles) plus a small register-route error classification, and backfills the legacy `chavescerrejon_d14780` handle.
 
-**Tech Stack:** Next.js 16.2.6 (App Router, `'use client'`), TypeScript, Supabase (Postgres, project `mzyhiyleoktpeamwjjse`), Supabase MCP tools for DDL/testing. No JS test runner — TS verified with `npx tsc --noEmit` + `npx eslint`; the trigger is verified on an isolated Supabase branch.
+**Tech Stack:** Next.js 16.2.6 (App Router, `'use client'`), TypeScript, Supabase (Postgres, project `mzyhiyleoktpeamwjjse`), Supabase MCP tools for DDL/testing. No JS test runner — TS verified with `npx tsc --noEmit` + `npx eslint`; the new trigger branch is verified in production with a single failing insert against the existing account (zero cost, self-rolls-back).
 
 **Branch:** `develop`. Supabase project id: `mzyhiyleoktpeamwjjse`.
 
@@ -195,78 +195,23 @@ git commit -m "feat(db): fail-closed handle trigger + legacy handle backfill (re
 
 ---
 
-### Task 2: Verify the trigger on an isolated Supabase branch, then apply to production
+### Task 2: Apply migration 009 to production and verify the new fail-closed branch
 
-**Tools:** Supabase MCP (`create_branch`, `apply_migration`, `execute_sql`, `delete_branch`). Creating a branch may incur cost — confirm with the user / `confirm_cost` before creating.
+**Tools:** Supabase MCP (`apply_migration`, `execute_sql`) on project `mzyhiyleoktpeamwjjse`. **No branch needed** (zero cost, zero residue):
+- The `ELSE` (derived, numeric-suffix) branch is byte-identical to the `006`
+  trigger already running in production for months → no re-test required.
+- The only new code is the user-chosen `RAISE` branch, provable with a **single**
+  failing insert that uses the existing `chavescerrejon` account as the collision
+  partner. A single failing statement rolls itself back — nothing persists.
 
-- [ ] **Step 1: Create a dev branch**
+- [ ] **Step 1: Apply migration 009 to production**
 
-Use `create_branch` (name: `test-username-fail-closed`) on project `mzyhiyleoktpeamwjjse`. Record the returned branch project id as `<BRANCH_ID>`.
+Use `apply_migration` on `mzyhiyleoktpeamwjjse`, name `username_uniqueness_fail_closed`,
+with the full SQL body from Task 1 Step 1. This redefines `handle_new_user` and runs
+the guarded backfill. Safe: the trigger change only affects future inserts; the
+backfill is idempotent and guarded by `NOT EXISTS`.
 
-- [ ] **Step 2: Apply migration 009 to the branch**
-
-Use `apply_migration` on `<BRANCH_ID>` with name `username_uniqueness_fail_closed`
-and the full SQL body from Task 1 Step 1.
-
-- [ ] **Step 3: Test — a second user-chosen identical username RAISES**
-
-Run via `execute_sql` on `<BRANCH_ID>` (single string; the aborted transaction
-discards both inserts):
-
-```sql
-BEGIN;
-INSERT INTO auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role)
-VALUES (gen_random_uuid(), 'faila@example.com',
-        '{"role":"creator","username":"plantestx","first_name":"A"}'::jsonb,
-        '{"provider":"email"}'::jsonb, 'authenticated', 'authenticated');
-INSERT INTO auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role)
-VALUES (gen_random_uuid(), 'failb@example.com',
-        '{"role":"creator","username":"plantestx","first_name":"B"}'::jsonb,
-        '{"provider":"email"}'::jsonb, 'authenticated', 'authenticated');
-ROLLBACK;
-```
-
-Expected: the call ERRORS on the second insert with message containing
-`handle_taken:plantestx` (SQLSTATE 23505). Nothing is committed.
-
-- [ ] **Step 4: Test — derived handles (no username) still auto-suffix**
-
-Run via `execute_sql` on `<BRANCH_ID>`:
-
-```sql
-BEGIN;
-INSERT INTO auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role)
-VALUES (gen_random_uuid(), 'derivedname@example.com',
-        '{"role":"creator"}'::jsonb, '{"provider":"email"}'::jsonb,
-        'authenticated', 'authenticated');
-INSERT INTO auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role)
-VALUES (gen_random_uuid(), 'derivedname@other.com',
-        '{"role":"creator"}'::jsonb, '{"provider":"email"}'::jsonb,
-        'authenticated', 'authenticated');
-SELECT handle FROM public.accounts WHERE handle LIKE 'derivedname%' ORDER BY handle;
-ROLLBACK;
-```
-
-Expected: the SELECT returns `derivedname` and `derivedname2` — no raise; the
-second derived signup succeeds with a numeric suffix.
-
-- [ ] **Step 5: Test — the backfill renamed the legacy account**
-
-Run via `execute_sql` on `<BRANCH_ID>`:
-
-```sql
-SELECT handle FROM public.accounts WHERE handle IN ('chavescerrejon', 'chavescerrejon_d14780');
-```
-
-Expected: one row, `chavescerrejon` (the `_d14780` handle is gone). Re-running the
-Task 1 backfill `UPDATE` on the branch is a no-op (0 rows).
-
-- [ ] **Step 6: Apply migration 009 to PRODUCTION**
-
-Only after Steps 3–5 pass. Use `apply_migration` on `mzyhiyleoktpeamwjjse` with
-name `username_uniqueness_fail_closed` and the same SQL body.
-
-- [ ] **Step 7: Confirm production state**
+- [ ] **Step 2: Confirm the backfill renamed the legacy account**
 
 Run via `execute_sql` on `mzyhiyleoktpeamwjjse`:
 
@@ -274,11 +219,40 @@ Run via `execute_sql` on `mzyhiyleoktpeamwjjse`:
 SELECT handle FROM public.accounts WHERE handle LIKE 'chaves%';
 ```
 
-Expected: a single row `chavescerrejon`.
+Expected: a single row `chavescerrejon` (the `_d14780` handle is gone).
 
-- [ ] **Step 8: Delete the test branch**
+- [ ] **Step 3: Test — a user-chosen handle that collides with an existing one RAISES**
 
-Use `delete_branch` on `<BRANCH_ID>` to stop branch costs.
+Now `chavescerrejon` exists. A new user-chosen signup claiming it must fail. Run via
+`execute_sql` on `mzyhiyleoktpeamwjjse` (single failing statement → self-rolls-back,
+no residue):
+
+```sql
+INSERT INTO auth.users (id, email, raw_user_meta_data, raw_app_meta_data, aud, role)
+VALUES (gen_random_uuid(), 'collision-test@example.com',
+        '{"role":"creator","username":"chavescerrejon","first_name":"X"}'::jsonb,
+        '{"provider":"email"}'::jsonb, 'authenticated', 'authenticated');
+```
+
+Expected: the call ERRORS with a message containing `handle_taken:chavescerrejon`
+(SQLSTATE 23505). The insert aborts; no `auth.users`, `public.users`, or
+`public.accounts` row is created.
+
+- [ ] **Step 4: Confirm no residue from the failed insert**
+
+Run via `execute_sql` on `mzyhiyleoktpeamwjjse`:
+
+```sql
+SELECT count(*) AS accounts_count,
+       (SELECT count(*) FROM auth.users WHERE email = 'collision-test@example.com') AS orphan_auth,
+       (SELECT count(*) FROM public.accounts WHERE lower(handle) = 'chavescerrejon') AS chaves_count
+FROM public.accounts;
+```
+
+Expected: `orphan_auth = 0`, `chaves_count = 1`, and `accounts_count` unchanged
+(1). If `orphan_auth > 0`, delete it:
+`DELETE FROM auth.users WHERE email = 'collision-test@example.com';` and note the
+GoTrue-rollback caveat in the design's Verification section.
 
 ---
 
