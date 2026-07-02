@@ -102,11 +102,23 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from('invite_codes').update({ used_at: null }).eq('code', inviteCode);
     const msg = createErr?.message ?? 'unknown';
     const isDuplicate = /already registered|already exists|duplicate/i.test(msg);
-    if (!isDuplicate) console.error('[auth/register] createUser error:', msg);
-    return NextResponse.json(
-      { error: isDuplicate ? 'email_exists' : 'server_error' },
-      { status: isDuplicate ? 409 : 500 },
-    );
+    if (isDuplicate) {
+      return NextResponse.json({ error: 'email_exists' }, { status: 409 });
+    }
+    // The fail-closed handle_new_user trigger raises on a handle collision. Gate
+    // 1.5 already pre-checked availability, so this only happens on a race between
+    // that check and the insert. Re-check the handle so a genuine collision
+    // surfaces as username_taken rather than a generic server_error.
+    const { data: takenRows } = await supabaseAdmin
+      .from('accounts')
+      .select('id')
+      .eq('handle', handle)
+      .limit(1);
+    if (takenRows && takenRows.length > 0) {
+      return NextResponse.json({ error: 'username_taken' }, { status: 409 });
+    }
+    console.error('[auth/register] createUser error:', msg);
+    return NextResponse.json({ error: 'server_error' }, { status: 500 });
   }
 
   // Success: stamp who used the code and consume the OTP row.
