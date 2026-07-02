@@ -37,10 +37,10 @@ const geist = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL('https://barefolio.com'),
   title: {
-    default: 'BareFolio — All your creative world in one place',
+    default: 'BareFolio',
     template: '%s | BareFolio',
   },
-  description: "BareFolio is a creative portfolio platform for designers, photographers, art directors, and filmmakers. Showcase your work, share your process, and connect with the people who move the creative industry.",
+  description: "All your creative world in one place. BareFolio is a creative portfolio platform for designers, photographers, art directors, and filmmakers. Showcase your work, share your process, and connect with the people who move the creative industry.",
   keywords: ["creative portfolio", "portfolio platform", "designers", "photographers", "art directors", "filmmakers", "creative professionals", "visual portfolio"],
   alternates: {
     canonical: 'https://barefolio.com',
