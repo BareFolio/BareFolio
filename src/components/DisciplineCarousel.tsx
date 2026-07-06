@@ -100,9 +100,10 @@ export default function DisciplineCarousel() {
     stage.addEventListener('pointercancel', onUp);
     stage.addEventListener('pointerleave', onLeave);
 
+    const cards = cardRefs.current; // stable array ref; snapshot for cleanup
     const enters: Array<() => void> = [];
     const leaves: Array<() => void> = [];
-    cardRefs.current.forEach((el, i) => {
+    cards.forEach((el, i) => {
       if (!el) return;
       const en = () => { hov = i; };
       const lv = () => { if (hov === i) hov = -1; };
@@ -120,7 +121,7 @@ export default function DisciplineCarousel() {
       stage.removeEventListener('pointerup', onUp);
       stage.removeEventListener('pointercancel', onUp);
       stage.removeEventListener('pointerleave', onLeave);
-      cardRefs.current.forEach((el, i) => {
+      cards.forEach((el, i) => {
         if (!el) return;
         el.removeEventListener('pointerenter', enters[i]);
         el.removeEventListener('pointerleave', leaves[i]);
