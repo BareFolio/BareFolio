@@ -763,10 +763,11 @@ function Block03() {
             >
               Join the Waitlist<span className="pill-arrow"><span>→</span></span>
             </a>
-            {/* Phones centered in card — percentage widths guarantee fit, no clipping */}
+            {/* Phones centered in card — percentage widths guarantee fit, no clipping.
+                On mobile both phones are nudged 5% to the right, together. */}
             <div style={{
               display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-              marginTop: '24px',
+              marginTop: '24px', transform: 'translateX(5%)',
             }}>
               <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
                 style={{ width: '56%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />

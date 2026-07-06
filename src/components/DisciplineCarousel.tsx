@@ -131,7 +131,13 @@ export default function DisciplineCarousel() {
   }, []);
 
   return (
-    <section style={{ background: '#fafafa', padding: '40px 0 0' }}>
+    <section className="disc-carousel-section" style={{ background: '#fafafa' }}>
+      <style>{`
+        .disc-carousel-section { padding: 40px 0 0; }
+        @media (max-width: 767px) {
+          .disc-carousel-section { padding: 40px 0 80px; }
+        }
+      `}</style>
       <div
         ref={stageRef}
         style={{
