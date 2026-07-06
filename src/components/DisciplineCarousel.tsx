@@ -191,7 +191,8 @@ export default function DisciplineCarousel() {
               {c.media && (/\.(mp4|webm|mov)$/i.test(c.media) ? (
                 <video
                   src={c.media}
-                  muted loop autoPlay playsInline
+                  poster={c.media.replace(/\.(mp4|webm|mov)$/i, '.jpg')}
+                  muted loop autoPlay playsInline preload="metadata"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
