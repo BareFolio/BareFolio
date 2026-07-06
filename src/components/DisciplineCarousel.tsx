@@ -17,6 +17,10 @@ export default function DisciplineCarousel() {
   const subRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const geoRef = useRef<GeoConfig>(GEO);
+  // Touch devices have no real hover: pointerenter fires on tap and would leave
+  // a card stuck "hovered" (scaled up, autoplay paused). Read in the pointer
+  // handlers so mobile just keeps flowing — grow/pause only happen on desktop.
+  const isMobileRef = useRef(false);
 
   // Track viewport size → pick the device geometry. Kept in a ref so the
   // animation loop reads the latest config without re-subscribing, and mirrored
@@ -25,6 +29,7 @@ export default function DisciplineCarousel() {
     const check = () => {
       const m = window.innerWidth < 768;
       geoRef.current = m ? MOBILE_GEO : GEO;
+      isMobileRef.current = m;
       setIsMobile(m);
     };
     check();
@@ -128,7 +133,7 @@ export default function DisciplineCarousel() {
     const leaves: Array<() => void> = [];
     cards.forEach((el, i) => {
       if (!el) return;
-      const en = () => { hov = i; };
+      const en = () => { if (isMobileRef.current) return; hov = i; };
       const lv = () => { if (hov === i) hov = -1; };
       el.addEventListener('pointerenter', en);
       el.addEventListener('pointerleave', lv);
@@ -201,7 +206,7 @@ export default function DisciplineCarousel() {
           );
         })}
 
-        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '69%' : '65%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '63%' : '62%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
           <div ref={discRef} style={{ fontSize: 12, letterSpacing: '3.5px', fontWeight: 300, textTransform: 'uppercase', color: '#9a9a9a' }}>
             {CARDS[0].discipline}
           </div>
