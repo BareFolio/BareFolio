@@ -2,26 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { scaleAt, integ, wrap, cardBox, wheelDrivesCarousel } from './carousel-geometry';
 
 describe('scaleAt', () => {
-  it('is 1 at the center and 0.5 at step 4 (approved edge card)', () => {
+  it('is 1 at the center and 0.5 at step 2 (edge card)', () => {
     expect(scaleAt(0)).toBe(1);
-    expect(scaleAt(4)).toBeCloseTo(0.5, 6);
+    expect(scaleAt(2)).toBeCloseTo(0.5, 6);
   });
-  it('ramps to 0 across (4,5] and stays 0 beyond', () => {
-    expect(scaleAt(4.5)).toBeCloseTo(0.25, 6);
-    expect(scaleAt(5)).toBe(0);
-    expect(scaleAt(6)).toBe(0);
+  it('ramps to 0 across (2,3] and stays 0 beyond', () => {
+    expect(scaleAt(2.5)).toBeCloseTo(0.25, 6);
+    expect(scaleAt(3)).toBe(0);
+    expect(scaleAt(4)).toBe(0);
   });
   it('is symmetric', () => {
-    expect(scaleAt(-3)).toBeCloseTo(scaleAt(3), 6);
+    expect(scaleAt(-1)).toBeCloseTo(scaleAt(1), 6);
   });
 });
 
 describe('integ', () => {
-  it('matches the piecewise integral and is continuous at 4', () => {
+  it('matches the piecewise integral and is continuous at 2 and 3', () => {
     expect(integ(0)).toBe(0);
-    expect(integ(2)).toBeCloseTo(1.75, 6);
-    expect(integ(4)).toBeCloseTo(3.0, 6);
-    expect(integ(5)).toBeCloseTo(3.25, 6);
+    expect(integ(1)).toBeCloseTo(0.875, 6);
+    expect(integ(2)).toBeCloseTo(1.5, 6);
+    expect(integ(3)).toBeCloseTo(1.75, 6);
+    expect(integ(5)).toBeCloseTo(1.75, 6);
   });
 });
 
