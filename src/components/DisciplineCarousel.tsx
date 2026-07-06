@@ -47,7 +47,8 @@ export default function DisciplineCarousel() {
         }
         if (a < cu) { cu = a; ci = i; }
       }
-      const c = CARDS[ci];
+      // hovered card drives the title; otherwise the centered card does
+      const c = CARDS[hov >= 0 ? hov : ci];
       if (c.discipline !== lastDisc && discRef.current) { discRef.current.textContent = c.discipline; lastDisc = c.discipline; }
       if (c.sub !== lastSub && subRef.current) { subRef.current.textContent = c.sub; lastSub = c.sub; }
     };
@@ -130,11 +131,11 @@ export default function DisciplineCarousel() {
   }, []);
 
   return (
-    <section style={{ background: '#fafafa', padding: '40px 0' }}>
+    <section style={{ background: '#fafafa', padding: '40px 0 0' }}>
       <div
         ref={stageRef}
         style={{
-          position: 'relative', width: '100%', aspectRatio: '2000 / 860',
+          position: 'relative', width: '100%', aspectRatio: '2000 / 720',
           overflow: 'hidden', touchAction: 'pan-y', cursor: 'grab', userSelect: 'none',
         }}
       >
@@ -153,13 +154,20 @@ export default function DisciplineCarousel() {
                 boxShadow: '0 16px 40px rgba(0,0,0,.28)', opacity: 0, background: bg,
               }}
             >
-              {c.media && (
+              {c.media && (/\.(mp4|webm|mov)$/i.test(c.media) ? (
                 <video
                   src={c.media}
                   muted loop autoPlay playsInline
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
-              )}
+              ) : (
+                <img
+                  src={c.media}
+                  alt=""
+                  loading="lazy"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ))}
             </div>
           );
         })}
