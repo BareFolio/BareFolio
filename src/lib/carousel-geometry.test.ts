@@ -26,6 +26,22 @@ describe('integ', () => {
   });
 });
 
+describe('desktop span S=4 (the original wide fan)', () => {
+  it('scaleAt is 1 at center, 0.5 at step 4, 0 from step 5 out', () => {
+    expect(scaleAt(0, 4)).toBe(1);
+    expect(scaleAt(4, 4)).toBeCloseTo(0.5, 6);
+    expect(scaleAt(4.5, 4)).toBeCloseTo(0.25, 6);
+    expect(scaleAt(5, 4)).toBe(0);
+    expect(scaleAt(6, 4)).toBe(0);
+  });
+  it('integ matches the piecewise integral, continuous at 4 and 5', () => {
+    expect(integ(0, 4)).toBe(0);
+    expect(integ(4, 4)).toBeCloseTo(3.0, 6);
+    expect(integ(5, 4)).toBeCloseTo(3.25, 6);
+    expect(integ(7, 4)).toBeCloseTo(3.25, 6);
+  });
+});
+
 describe('wrap', () => {
   it('wraps an index-offset into [-N/2, N/2)', () => {
     expect(wrap(0, 37)).toBe(0);
