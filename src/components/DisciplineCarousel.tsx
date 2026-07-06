@@ -162,7 +162,7 @@ export default function DisciplineCarousel() {
       <style>{`
         .disc-carousel-section { padding: 40px 0 0; }
         @media (max-width: 767px) {
-          .disc-carousel-section { padding: 40px 0 32px; }
+          .disc-carousel-section { padding: 40px 0 16px; }
         }
       `}</style>
       <div
