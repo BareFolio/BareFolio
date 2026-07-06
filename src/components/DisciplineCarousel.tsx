@@ -201,7 +201,7 @@ export default function DisciplineCarousel() {
           );
         })}
 
-        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '72%' : '67%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '69%' : '65%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
           <div ref={discRef} style={{ fontSize: 12, letterSpacing: '3.5px', fontWeight: 300, textTransform: 'uppercase', color: '#9a9a9a' }}>
             {CARDS[0].discipline}
           </div>
