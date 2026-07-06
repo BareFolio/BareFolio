@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Lenis from 'lenis';
 import PublicFooter from '@/components/PublicFooter';
+import DisciplineCarousel from '@/components/DisciplineCarousel';
 
 /* ─── helpers ──────────────────────────────────────────────────── */
 function rng(v: number, a: number, b: number) {
@@ -20,6 +22,237 @@ function useIsMobile() {
     return () => window.removeEventListener('resize', check);
   }, []);
   return m;
+}
+
+/* ─── Reveal-on-scroll ─────────────────────────────────────────────
+   Wraps content and fades + slides it up the first time it enters the
+   viewport. Renders a plain <div>, so it can stand in for any block/grid
+   child without breaking layout. `delay` (ms) staggers siblings. Honors
+   prefers-reduced-motion by showing content immediately with no motion. */
+function Reveal({
+  children, delay = 0, y = 24, style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  y?: number;
+  style?: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Defer out of the effect body so it doesn't cascade-render synchronously.
+      const id = requestAnimationFrame(() => setShown(true));
+      return () => cancelAnimationFrame(id);
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) { setShown(true); io.disconnect(); }
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        ...style,
+        opacity: shown ? 1 : 0,
+        transform: shown ? 'translateY(0)' : `translateY(${y}px)`,
+        transition:
+          `opacity 0.7s cubic-bezier(0.22,1,0.36,1) ${delay}ms,` +
+          ` transform 0.7s cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ─── Smooth scroll (Lenis) ────────────────────────────────────────
+   Module-level handle so the scroll-snapping carousel and the "back to
+   top" control can drive Lenis directly instead of fighting it with a
+   native window.scrollTo. Null until SmoothScroll mounts — and stays
+   null when the user prefers reduced motion. */
+let lenis: Lenis | null = null;
+
+/** Scroll to an absolute Y using Lenis when active, else native smooth. */
+function smoothScrollTo(target: number, opts?: { duration?: number }) {
+  if (lenis) lenis.scrollTo(target, { duration: opts?.duration ?? 0.8 });
+  else window.scrollTo({ top: target, behavior: 'smooth' });
+}
+
+/** Mounts Lenis inertia scrolling for the whole page. Renders nothing.
+    Skipped entirely under prefers-reduced-motion so the page keeps native
+    (instant) scrolling for users who opt out of motion. */
+function SmoothScroll() {
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const l = new Lenis({
+      duration: 1.1,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      autoRaf: true,
+    });
+    lenis = l;
+    return () => { l.destroy(); lenis = null; };
+  }, []);
+  return null;
+}
+
+/* ─── Line-by-line headline reveal ─────────────────────────────────
+   Renders each line as its own block and staggers them up + in as the
+   headline enters view — the "text reveal" seen on the reference site.
+   `lines` are plain strings; visual styling comes from `lineStyle`.
+   Honors prefers-reduced-motion (shows all lines at once, no motion). */
+function RevealLines({ lines, style, lineStyle, delayStep = 80 }: {
+  lines: string[];
+  style?: React.CSSProperties;
+  lineStyle?: React.CSSProperties;
+  delayStep?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const id = requestAnimationFrame(() => setShown(true));
+      return () => cancelAnimationFrame(id);
+    }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { setShown(true); io.disconnect(); }
+      }
+    }, { threshold: 0.2, rootMargin: '0px 0px -10% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={style}>
+      {lines.map((line, i) => (
+        <span key={i} style={{
+          ...lineStyle,
+          display: 'block',
+          opacity: shown ? 1 : 0,
+          transform: shown ? 'translateY(0)' : 'translateY(0.45em)',
+          transition:
+            `opacity 0.7s cubic-bezier(0.22,1,0.36,1) ${i * delayStep}ms,` +
+            ` transform 0.7s cubic-bezier(0.22,1,0.36,1) ${i * delayStep}ms`,
+        }}>{line}</span>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Character-by-character headline reveal ────────────────────────
+   Splits text into individual characters and fades each up with a small
+   per-character stagger, so the whole phrase "draws itself in" quickly and
+   fluidly. `lines` is an array of lines; each line is an array of coloured
+   segments so we can keep the grey tail ("nothing else.") and the desktop
+   line breaks. Renders <span> roots (display:block) so it stays valid HTML
+   inside an <h1>. Honors prefers-reduced-motion (all chars shown at once). */
+type CharSeg = { text: string; color?: string };
+function RevealChars({
+  lines, style, spread = 480, duration = 0.4, y = '0.3em',
+}: {
+  lines: CharSeg[][];
+  style?: React.CSSProperties;
+  spread?: number;    // ms window over which random per-char delays are spread
+  duration?: number;  // s of each character's own transition
+  y?: string;         // initial vertical offset per character
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [shown, setShown] = useState(false);
+
+  // Random per-character delays. Generated in an effect (Math.random is impure,
+  // so it can't run during render) and stored in state. The rAF defer keeps us
+  // clear of the set-state-in-effect rule. Delays land before `shown` flips, so
+  // the reveal order is stable and never re-randomizes mid-animation.
+  const [delays, setDelays] = useState<number[]>([]);
+  useEffect(() => {
+    let total = 0;
+    for (const segs of lines)
+      for (const seg of segs)
+        for (const ch of Array.from(seg.text)) if (ch !== ' ') total++;
+    const arr = Array.from({ length: total },
+      () => Math.round(Math.random() * spread));
+    const id = requestAnimationFrame(() => setDelays(arr));
+    return () => cancelAnimationFrame(id);
+  }, [lines, spread]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const id = requestAnimationFrame(() => setShown(true));
+      return () => cancelAnimationFrame(id);
+    }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { setShown(true); io.disconnect(); }
+      }
+    }, { threshold: 0.35, rootMargin: '0px 0px -8% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  let idx = 0;
+  const charSpan = (ch: string, color?: string) => {
+    const d = delays[idx] ?? 0;
+    const key = idx++;
+    return (
+      <span
+        key={key}
+        style={{
+          color,
+          display: 'inline-block',
+          opacity: shown ? 1 : 0,
+          transform: shown ? 'translateY(0)' : `translateY(${y})`,
+          transition:
+            `opacity ${duration}s cubic-bezier(0.22,1,0.36,1) ${d}ms,` +
+            ` transform ${duration}s cubic-bezier(0.22,1,0.36,1) ${d}ms`,
+          willChange: 'opacity, transform',
+        }}
+      >{ch}</span>
+    );
+  };
+
+  return (
+    <span ref={ref} style={{ display: 'block', ...style }}>
+      {lines.map((segs, li) => (
+        <span key={li} style={{ display: 'block' }}>
+          {segs.map((seg, si) => {
+            const words = seg.text.split(' ');
+            return (
+              <React.Fragment key={si}>
+                {words.map((word, wi) => (
+                  <React.Fragment key={wi}>
+                    {/* keep a word whole so it never breaks mid-word on wrap */}
+                    <span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+                      {Array.from(word).map((ch) => charSpan(ch, seg.color))}
+                    </span>
+                    {wi < words.length - 1 ? ' ' : null}
+                  </React.Fragment>
+                ))}
+                {/* space between segments on the same line */}
+                {si < segs.length - 1 ? ' ' : null}
+              </React.Fragment>
+            );
+          })}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /* ─── Bottom Glass Nav ────────────────────────────────────────── */
@@ -44,7 +277,7 @@ function BottomNav({ onGetAccess, hidden }: {
         }}>
         <button
           type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => smoothScrollTo(0, { duration: 0.9 })}
           aria-label="Back to top"
           className="flex items-center gap-2.5 bg-transparent border-none p-0 cursor-pointer"
         >
@@ -53,8 +286,10 @@ function BottomNav({ onGetAccess, hidden }: {
         </button>
         <div className="w-px h-5 mx-1" style={{ background: 'rgba(0,0,0,0.15)' }} />
         <button onClick={onGetAccess}
-          className="pill-btn text-[13px] font-semibold text-white px-5 py-2 rounded-full transition-colors"
-          style={{ background: 'rgba(16,16,16,0.85)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', border: 'none' }}>
+          className="pill-btn text-[13px] font-semibold text-white px-5 py-2 rounded-full"
+          style={{ background: 'rgba(16,16,16,0.85)', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', border: 'none', transition: 'background 0.2s ease' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#101010')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(16,16,16,0.85)')}>
           Join the waitlist<span className="pill-arrow"><span>→</span></span>
         </button>
       </nav>
@@ -85,13 +320,18 @@ function Block02() {
   const abajoRRef  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Ranges are in the REMAPPED progress below: p≈0→0.5 is the slide-over
+    // (Block02 climbing over the hero), p≈0.5→1 is the pin. Reveals start early
+    // (during the overlap) and the last one lands at ~0.90, so everything is
+    // fully formed a touch before the block releases into the next section —
+    // no all-at-once pop, no frozen wait, no hard jump at the end.
     const layers: [React.RefObject<HTMLDivElement | null>, number, number, number][] = [
-      [centroLRef, 0.24, 0.42, 80],
-      [centroRRef, 0.28, 0.46, -80],
-      [arribaLRef, 0.36, 0.54, isMobile ? -60 : -200],
-      [arribaRRef, 0.40, 0.58, isMobile ? 60 : 200],
-      [abajoLRef,  0.48, 0.66, -200],
-      [abajoRRef,  0.52, 0.70, 200],
+      [centroLRef, 0.10, 0.34, 80],
+      [centroRRef, 0.14, 0.38, -80],
+      [arribaLRef, 0.28, 0.54, isMobile ? -60 : -200],
+      [arribaRRef, 0.32, 0.58, isMobile ? 60 : 200],
+      [abajoLRef,  0.50, 0.78, -200],
+      [abajoRRef,  0.58, 0.90, 200],
     ];
     // Drive the animation from BOTH a requestAnimationFrame loop and the scroll
     // event. Safari coalesces/defers scroll events during momentum (inertia)
@@ -105,9 +345,15 @@ function Block02() {
     const render = () => {
       const el = containerRef.current;
       if (!el) return;
-      const scrolled   = -(el.getBoundingClientRect().top);
-      const scrollable = el.offsetHeight - window.innerHeight;
-      const p = Math.max(0, Math.min(1, scrolled / scrollable));
+      const vh         = window.innerHeight;
+      const rectTop    = el.getBoundingClientRect().top;
+      const scrollable = el.offsetHeight - vh;
+      // Progress spans the WHOLE journey: from when Block02 first enters from
+      // below (rectTop = +vh, i.e. still sliding UP over the hero) through to the
+      // end of its pin (rectTop = -scrollable). So the reveal is created bit by
+      // bit DURING the overlap and finishes gently before the block releases —
+      // instead of only starting once the hero is already fully covered.
+      const p = Math.max(0, Math.min(1, (vh - rectTop) / (vh + scrollable)));
       if (p === lastP) return;
       lastP = p;
       for (const [ref, a, b, dx] of layers) {
@@ -154,8 +400,12 @@ function Block02() {
               fontSize: '20px', lineHeight: 1.3, letterSpacing: '-1px',
               color: '#101010', margin: 0,
             }}>
-              One space for your work, your inspiration, and the people who need to find you,{' '}
-              <span style={{ color: '#a3a3a3' }}>nothing else.</span>
+              <RevealChars
+                lines={[[
+                  { text: 'One space for your work, your inspiration, and the people who need to find you,' },
+                  { text: 'nothing else.', color: '#a3a3a3' },
+                ]]}
+              />
             </h1>
           ) : (
             <h1 style={{
@@ -163,9 +413,13 @@ function Block02() {
               fontSize: '32px', lineHeight: 1.125, letterSpacing: '-1px',
               color: '#101010', margin: 0, whiteSpace: 'nowrap',
             }}>
-              One space for your work, your inspiration,<br />
-              and the people who need to find you,<br />
-              <span style={{ color: '#a3a3a3', fontWeight: 400 }}>nothing else.</span>
+              <RevealChars
+                lines={[
+                  [{ text: 'One space for your work, your inspiration,' }],
+                  [{ text: 'and the people who need to find you,' }],
+                  [{ text: 'nothing else.', color: '#a3a3a3' }],
+                ]}
+              />
             </h1>
           )}
         </div>
@@ -288,7 +542,7 @@ function Block02b() {
       <section style={{ background: '#fafafa', padding: '10px 0 40px' }}>
         <div style={{ padding: '0 24px' }}>
 
-          <div style={{ padding: '0 0 20px', borderBottom: '1px solid #e5e5e5' }}>
+          <Reveal delay={0} style={{ padding: '0 0 20px', borderBottom: '1px solid #e5e5e5' }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
               letterSpacing: '1px', textTransform: 'uppercase' as const,
@@ -301,9 +555,9 @@ function Block02b() {
             <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
               Designers, photographers, art directors, motion designers, illustrators. Your portfolio, your process, and your professional presence — all in one place, without engagement algorithms deciding who sees you.
             </p>
-          </div>
+          </Reveal>
 
-          <div style={{ padding: '20px 0', borderBottom: '1px solid #e5e5e5' }}>
+          <Reveal delay={110} style={{ padding: '20px 0', borderBottom: '1px solid #e5e5e5' }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
               letterSpacing: '1px', textTransform: 'uppercase' as const,
@@ -316,9 +570,9 @@ function Block02b() {
             <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
               Studios, agencies, and brands looking to hire. Discover creators by discipline and style, contact them directly, and post briefs to the people who match what you're looking for.
             </p>
-          </div>
+          </Reveal>
 
-          <div style={{ padding: '20px 0 0' }}>
+          <Reveal delay={220} style={{ padding: '20px 0 0' }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
               letterSpacing: '1px', textTransform: 'uppercase' as const,
@@ -331,7 +585,7 @@ function Block02b() {
             <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
               Discover creators by discipline, style, and process. Contact them directly, post briefs to find exactly who you need — without intermediaries between you and the right talent.
             </p>
-          </div>
+          </Reveal>
 
         </div>
       </section>
@@ -345,7 +599,7 @@ function Block02b() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr 1px 1fr' }}>
 
           {/* Creators */}
-          <div style={{ padding: '0 32px 0 0' }}>
+          <Reveal delay={0} style={{ padding: '0 32px 0 0' }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
               letterSpacing: '1px', textTransform: 'uppercase' as const,
@@ -359,13 +613,13 @@ function Block02b() {
             <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
               Designers, photographers, art directors, motion designers, illustrators. Your portfolio, your process, and your professional presence — all in one place, without engagement algorithms deciding who sees you.
             </p>
-          </div>
+          </Reveal>
 
           {/* Divider */}
           <div style={{ background: '#e5e5e5' }} />
 
           {/* Studios & Brands */}
-          <div style={{ padding: '0 32px' }}>
+          <Reveal delay={110} style={{ padding: '0 32px' }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
               letterSpacing: '1px', textTransform: 'uppercase' as const,
@@ -379,13 +633,13 @@ function Block02b() {
             <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
               Studios, agencies, and brands looking to hire. Discover creators by discipline and style, contact them directly, and post briefs to the people who match what you're looking for.
             </p>
-          </div>
+          </Reveal>
 
           {/* Divider */}
           <div style={{ background: '#e5e5e5' }} />
 
           {/* Seekers */}
-          <div style={{ padding: '0 0 0 32px' }}>
+          <Reveal delay={220} style={{ padding: '0 0 0 32px' }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
               letterSpacing: '1px', textTransform: 'uppercase' as const,
@@ -399,7 +653,7 @@ function Block02b() {
             <p style={{ fontFamily: 'var(--font-sans)', fontWeight: 400, fontSize: 13, lineHeight: 1.65, color: '#737373', margin: 0 }}>
               Discover creators by discipline, style, and process. Contact them directly, post briefs to find exactly who you need — without intermediaries between you and the right talent.
             </p>
-          </div>
+          </Reveal>
 
         </div>
       </div>
@@ -407,76 +661,6 @@ function Block02b() {
   );
 }
 
-/* ── Marquee row (module-level — must NOT be inside Block02c) ─── */
-function MarqueeRow({ items, direction, fontSize }: {
-  items: string[];
-  direction: 'left' | 'right';
-  fontSize: string;
-}) {
-  const doubled = [...items, ...items];
-  const anim = direction === 'left'
-    ? 'marquee-left 28s linear infinite'
-    : 'marquee-right 32s linear infinite';
-
-  return (
-    <div style={{ overflow: 'hidden' }}>
-      <div style={{
-        display: 'inline-flex', alignItems: 'center',
-        whiteSpace: 'nowrap' as const,
-        animation: anim,
-      }}>
-        {doubled.map((d, i) => (
-          <React.Fragment key={i}>
-            <span style={{
-              fontFamily: 'var(--font-display)', fontWeight: 400,
-              fontSize, letterSpacing: '-0.5px',
-              color: i % 2 === 0 ? '#101010' : '#a3a3a3',
-              padding: '0 20px',
-            }}>{d}</span>
-            <span style={{
-              color: '#e5e5e5', fontSize,
-              fontFamily: 'var(--font-display)',
-            }}>·</span>
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   BLOQUE 02c — Disciplines marquee
-   ═══════════════════════════════════════════════════════════════════ */
-function Block02c() {
-  const isMobile = useIsMobile();
-
-  const row1 = [
-    'Photography', 'Art Direction', 'Graphic Design',
-    'Illustration', 'Film', 'Motion', 'Branding', 'Architecture',
-  ];
-  const row2 = [
-    'Fashion', 'Typography', 'UX / UI', 'Editorial',
-    'Industrial Design', 'Packaging', 'Furniture Design', 'Interior Design', 'Photography',
-  ];
-
-  const fontSize = isMobile ? '22px' : 'clamp(22px, 3vw, 36px)';
-
-  return (
-    <section style={{ background: '#fafafa', padding: isMobile ? '40px 0' : '60px 0', overflow: 'hidden' }}>
-      <p style={{
-        fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11,
-        letterSpacing: '1px', textTransform: 'uppercase' as const,
-        color: '#a3a3a3', margin: '0 0 20px', padding: isMobile ? '0 24px' : '0 52px',
-      }}>
-        Built for every visual discipline
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <MarqueeRow items={row1} direction="left" fontSize={fontSize} />
-        <MarqueeRow items={row2} direction="right" fontSize={fontSize} />
-      </div>
-    </section>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    BLOQUE 03
@@ -509,33 +693,38 @@ function Block03() {
           gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
           gap: '12px', marginBottom: '12px',
         }}>
-          {pillars.map(({ num, title, body }) => (
-            <div key={num} style={{ background: '#f4f4f4', borderRadius: '20px', padding: isMobile ? '28px 24px 32px' : '32px 28px 36px' }}>
-              <div style={{
-                fontSize: isMobile ? '40px' : '46px', fontWeight: 400, color: '#101010',
-                lineHeight: 1, marginBottom: '4px',
-                fontFamily: 'var(--font-display)', letterSpacing: '-1px',
-              }}>{num}</div>
-              <div style={{
-                fontSize: isMobile ? '18px' : '20px', fontWeight: 400, color: '#101010',
-                marginBottom: '12px', lineHeight: 1.2,
-                fontFamily: 'var(--font-display)', letterSpacing: '-1px',
-              }}>{title}</div>
-              <p style={{
-                fontSize: isMobile ? '14px' : '16px', color: '#737373',
-                lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line',
-              }}>{body}</p>
-            </div>
+          {pillars.map(({ num, title, body }, i) => (
+            <Reveal key={num} delay={i * 120}>
+              <div className="hover-lift" style={{
+                background: '#f4f4f4', borderRadius: '20px', height: '100%',
+                padding: isMobile ? '28px 24px 32px' : '32px 28px 36px',
+              }}>
+                <div style={{
+                  fontSize: isMobile ? '40px' : '46px', fontWeight: 400, color: '#101010',
+                  lineHeight: 1, marginBottom: '4px',
+                  fontFamily: 'var(--font-display)', letterSpacing: '-1px',
+                }}>{num}</div>
+                <div style={{
+                  fontSize: isMobile ? '18px' : '20px', fontWeight: 400, color: '#101010',
+                  marginBottom: '12px', lineHeight: 1.2,
+                  fontFamily: 'var(--font-display)', letterSpacing: '-1px',
+                }}>{title}</div>
+                <p style={{
+                  fontSize: isMobile ? '14px' : '16px', color: '#737373',
+                  lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line',
+                }}>{body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
 
         {/* Dark card */}
         {isMobile ? (
           /* Mobile: stacked — text then phones */
+          <Reveal style={{ marginTop: '64px' }}>
           <div style={{
             background: '#181818', borderRadius: '20px',
             padding: '36px 24px 0', overflow: 'hidden',
-            marginTop: '64px',
           }}>
             <p style={{
               fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
@@ -585,29 +774,29 @@ function Block03() {
                 style={{ width: '62%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-20%' }} />
             </div>
           </div>
+          </Reveal>
         ) : (
           /* Desktop: side-by-side with absolute phones */
+          <Reveal style={{ marginTop: '64px' }}>
           <div style={{
             background: '#181818', borderRadius: '20px',
             padding: '56px 52px', position: 'relative',
             overflow: 'visible', minHeight: '360px',
             display: 'flex', alignItems: 'center',
-            marginTop: '64px',
           }}>
             <div style={{ flex: '0 0 52%', maxWidth: '52%', position: 'relative', zIndex: 2 }}>
               <p style={{
                 fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
                 textTransform: 'uppercase', color: '#fafafa', marginBottom: '24px',
               }}>Why BareFolio exists</p>
-              <h3 style={{
-                fontSize: 'clamp(22px, 2.6vw, 40px)', fontWeight: 400, color: '#FFFFFF',
-                lineHeight: 1.15, letterSpacing: '-1px', marginBottom: '20px',
-                fontFamily: 'var(--font-display)',
-              }}>
-                The creative portfolio platform<br />
-                built for the way visual creators<br />
-                actually work.
-              </h3>
+              <RevealLines
+                lines={['The creative portfolio platform', 'built for the way visual creators', 'actually work.']}
+                style={{ marginBottom: '20px' }}
+                lineStyle={{
+                  fontSize: 'clamp(22px, 2.6vw, 40px)', fontWeight: 400, color: '#FFFFFF',
+                  lineHeight: 1.15, letterSpacing: '-1px', fontFamily: 'var(--font-display)',
+                }}
+              />
               <p style={{
                 fontSize: '16px', color: 'rgba(255,255,255,0.4)',
                 lineHeight: 1.19, margin: '0 0 28px', maxWidth: '390px', letterSpacing: '1px',
@@ -650,6 +839,7 @@ function Block03() {
               </div>
             </div>
           </div>
+          </Reveal>
         )}
 
       </div>
@@ -684,7 +874,7 @@ function Block04() {
       if (target === null) return;
       if (Math.abs(window.scrollY - target) > 2) {
         isSnapping.current = true;
-        window.scrollTo({ top: target, behavior: 'smooth' });
+        smoothScrollTo(target, { duration: 0.6 });
         setTimeout(() => { isSnapping.current = false; }, 700);
       }
     };
@@ -708,10 +898,18 @@ function Block04() {
   }, []);
 
   const p1o = 1 - eo(rng(p, 0.20, 0.30));
-  const p2o = eo(rng(p, 0.20, 0.30)) * (1 - eo(rng(p, 0.70, 0.80)));
-  const p3o = eo(rng(p, 0.70, 0.80));
+  const p2o = eo(rng(p, 0.20, 0.30)) * (1 - eo(rng(p, 0.52, 0.62)));
+  const p3o = eo(rng(p, 0.52, 0.62));
   const opacities = [p1o, p2o, p3o];
   const activePanel = p3o > 0.5 ? 2 : p2o > 0.5 ? 1 : 0;
+
+  // Video slide-over: each higher panel starts fully below its own frame and
+  // slides up to cover the previous one as you scroll forward (and slides back
+  // down to uncover it on the way up). z-index stacks so the incoming clip
+  // always passes ON TOP of the outgoing one — no cross-fade.
+  const t1 = eo(rng(p, 0.20, 0.30));
+  const t2 = eo(rng(p, 0.52, 0.62));
+  const coverY = [0, (1 - t1) * 100, (1 - t2) * 100];
 
   const panels = [
     {
@@ -747,7 +945,7 @@ function Block04() {
   ];
 
   return (
-    <div ref={containerRef} style={{ height: '300vh', background: '#fafafa' }}>
+    <div ref={containerRef} style={{ height: '450vh', background: '#fafafa', position: 'relative', zIndex: 1 }}>
 
       {isMobile ? (
         /* ── Mobile: pills left | video + text right ──────── */
@@ -778,40 +976,51 @@ function Block04() {
 
           {/* Right: video stacked above text */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
-            {/* Video */}
+            {/* Video — slide-over stack (incoming clip covers the previous) */}
             <div style={{ position: 'relative', height: '42vh', flexShrink: 0, borderRadius: '16px', overflow: 'hidden' }}>
               {panels.map((panel, i) => (
-                <div key={i} style={{ position: 'absolute', inset: 0, opacity: opacities[i] }}>
+                <div key={i} style={{
+                  position: 'absolute', inset: 0, zIndex: i + 1,
+                  transform: `translate3d(0, ${coverY[i]}%, 0)`,
+                  willChange: 'transform',
+                }}>
                   <video src={panel.video} autoPlay muted loop playsInline disablePictureInPicture
-                    style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f4f4f4', display: 'block' }} />
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 </div>
               ))}
             </div>
 
-            {/* Text */}
+            {/* Text — staggered rise as each panel appears */}
             <div style={{ position: 'relative', flexShrink: 0, height: '240px', overflow: 'hidden' }}>
-              {panels.map((panel, i) => (
-                <div key={i} style={{
-                  position: 'absolute', top: 0, left: 0, right: 0,
-                  opacity: opacities[i],
-                  pointerEvents: opacities[i] < 0.05 ? 'none' : 'auto',
-                }}>
-                  <p style={{
-                    fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
-                    textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 10px',
-                  }}>{panel.tag}</p>
-                  <h2 style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 'clamp(22px, 6vw, 28px)', fontWeight: 400,
-                    lineHeight: 1.1, letterSpacing: '-1px', margin: '0 0 12px',
+              {panels.map((panel, i) => {
+                const op = opacities[i];
+                const rise = (px: number) => `translate3d(0, ${(1 - op) * px}px, 0)`;
+                const tr = 'opacity 0.25s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1)';
+                return (
+                  <div key={i} style={{
+                    position: 'absolute', top: 0, left: 0, right: 0,
+                    opacity: op,
+                    pointerEvents: op < 0.05 ? 'none' : 'auto',
                   }}>
-                    <span style={{ color: '#101010' }}>{panel.titleBlack}</span>{' '}
-                    <span style={{ color: '#a3a3a3' }}>{panel.titleGray}</span>
-                  </h2>
-                  <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.5, margin: '0 0 8px' }}>{panel.paras[0]}</p>
-                  <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.5, margin: 0 }}>{panel.paras[1]}</p>
-                </div>
-              ))}
+                    <p style={{
+                      fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
+                      textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 10px',
+                      transform: rise(8), transition: tr,
+                    }}>{panel.tag}</p>
+                    <h2 style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'clamp(22px, 6vw, 28px)', fontWeight: 400,
+                      lineHeight: 1.1, letterSpacing: '-1px', margin: '0 0 12px',
+                      transform: rise(18), transition: tr,
+                    }}>
+                      <span style={{ color: '#101010' }}>{panel.titleBlack}</span>{' '}
+                      <span style={{ color: '#a3a3a3' }}>{panel.titleGray}</span>
+                    </h2>
+                    <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.5, margin: '0 0 8px', transform: rise(28), transition: tr }}>{panel.paras[0]}</p>
+                    <p style={{ fontSize: '14px', color: '#737373', lineHeight: 1.5, margin: 0, transform: rise(34), transition: tr }}>{panel.paras[1]}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -837,41 +1046,54 @@ function Block04() {
               ))}
             </div>
             <div style={{ position: 'relative', flex: 1, minHeight: '320px' }}>
-              {panels.map((panel, i) => (
-                <div key={i} style={{
-                  position: 'absolute', top: 0, left: 0, right: 0,
-                  opacity: opacities[i],
-                  pointerEvents: opacities[i] < 0.05 ? 'none' : 'auto',
-                }}>
-                  <p style={{
-                    fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
-                    textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 20px',
-                  }}>{panel.tag}</p>
-                  <h2 style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 'clamp(28px, 3.2vw, 50px)', fontWeight: 400,
-                    lineHeight: 1.08, letterSpacing: '-1px', margin: '0 0 28px',
+              {panels.map((panel, i) => {
+                const op = opacities[i];
+                const rise = (px: number) => `translate3d(0, ${(1 - op) * px}px, 0)`;
+                const tr = 'opacity 0.3s ease, transform 0.45s cubic-bezier(0.22,1,0.36,1)';
+                return (
+                  <div key={i} style={{
+                    position: 'absolute', top: 0, left: 0, right: 0,
+                    opacity: op,
+                    pointerEvents: op < 0.05 ? 'none' : 'auto',
                   }}>
-                    <span style={{ color: '#101010' }}>{panel.titleBlack}</span>
-                    <br />
-                    <span style={{ color: '#a3a3a3' }}>{panel.titleGray}</span>
-                  </h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {panel.paras.map((para, j) => (
-                      <p key={j} style={{ fontSize: '16px', color: '#737373', lineHeight: 1.19, margin: 0, letterSpacing: '1px' }}>{para}</p>
-                    ))}
+                    <p style={{
+                      fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
+                      textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 20px',
+                      transform: rise(10), transition: tr,
+                    }}>{panel.tag}</p>
+                    <h2 style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'clamp(28px, 3.2vw, 50px)', fontWeight: 400,
+                      lineHeight: 1.08, letterSpacing: '-1px', margin: '0 0 28px',
+                      transform: rise(24), transition: tr,
+                    }}>
+                      <span style={{ color: '#101010' }}>{panel.titleBlack}</span>
+                      <br />
+                      <span style={{ color: '#a3a3a3' }}>{panel.titleGray}</span>
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {panel.paras.map((para, j) => (
+                        <p key={j} style={{
+                          fontSize: '16px', color: '#737373', lineHeight: 1.19, margin: 0, letterSpacing: '1px',
+                          transform: rise(36 + j * 8), transition: tr,
+                        }}>{para}</p>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-          {/* Right column: videos */}
-          <div style={{ flex: 1, position: 'relative', height: 'min(74vh, 700px)' }}>
+          {/* Right column: videos — slide-over stack (incoming covers previous) */}
+          <div style={{
+            flex: 1, position: 'relative', height: 'min(74vh, 700px)',
+            borderRadius: '20px', overflow: 'hidden',
+          }}>
             {panels.map((panel, i) => (
               <div key={i} style={{
-                position: 'absolute', inset: 0,
-                borderRadius: '20px', overflow: 'hidden',
-                opacity: opacities[i],
+                position: 'absolute', inset: 0, zIndex: i + 1,
+                transform: `translate3d(0, ${coverY[i]}%, 0)`,
+                willChange: 'transform',
               }}>
                 <video src={panel.video} autoPlay muted loop playsInline disablePictureInPicture
                   style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
@@ -896,6 +1118,7 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
     return (
       <section style={{ background: '#fafafa', padding: '12px 0 40px' }}>
         <div style={{ padding: '0 16px' }}>
+          <Reveal>
           <div style={{ background: cardBg, borderRadius: '20px', overflow: 'hidden' }}>
             {/* Image on top */}
             <div style={{ position: 'relative', height: '220px', overflow: 'hidden' }}>
@@ -909,10 +1132,6 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
             </div>
             {/* Text + button */}
             <div style={{ padding: '4px 24px 32px' }}>
-              <p style={{
-                fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
-                textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 10px',
-              }}>Early Access</p>
               <h2 style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: '28px', fontWeight: 400,
@@ -945,6 +1164,7 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
               </a>
             </div>
           </div>
+          </Reveal>
         </div>
       </section>
     );
@@ -953,6 +1173,7 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
   return (
     <section style={{ background: '#fafafa', padding: '12px 0 60px' }}>
       <div style={{ padding: '0 20px' }}>
+        <Reveal>
         <div style={{ background: cardBg, borderRadius: '20px', display: 'flex', overflow: 'hidden', height: '504px' }}>
           {/* Left */}
           <div style={{
@@ -960,10 +1181,6 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
             <div>
-              <p style={{
-                fontSize: '12px', fontWeight: 600, letterSpacing: '1px',
-                textTransform: 'uppercase', color: '#a3a3a3', margin: '0 0 12px',
-              }}>Early Access</p>
               <h2 style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(22px, 2.4vw, 36px)', fontWeight: 400,
@@ -1009,11 +1226,50 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
           </div>
         </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   BLOQUE 01 (mobile) — pinned hero video
+   The video stays truly fixed (sticky top:0) for the whole hero+Block02
+   region while Block02 (opaque, higher z-index) rises up and covers it.
+   No parallax: the video must not move — only the block slides over it.
+   ═══════════════════════════════════════════════════════════════════ */
+function MobileHeroVideo() {
+  return (
+    <section style={{
+      position: 'sticky', top: 0, height: '100vh', width: '100%',
+      overflow: 'hidden', zIndex: 0,
+    }}>
+      <video
+        src="/landing/home-mobile.mp4"
+        poster="/landing/home-mobile-poster.jpg"
+        autoPlay muted loop playsInline preload="auto" disablePictureInPicture
+        style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%', objectFit: 'cover',
+        }}
+      />
+      {/* No bottom gradient — Block02 slides up over the video with a hard edge. */}
+      {/* Scroll indicator */}
+      <div style={{
+        position: 'absolute', bottom: 140, left: '50%',
+        transform: 'translateX(-50%)',
+        animation: 'scrollBounce 2s ease-in-out infinite',
+        zIndex: 10, pointerEvents: 'none',
+      }}>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+          stroke="#101010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </div>
+    </section>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    Landing Page UI
@@ -1039,58 +1295,95 @@ function LandingPage() {
 
   return (
     <div style={{ background: '#fafafa' }} className="font-sans">
+      <SmoothScroll />
+
+      {/* Keyframes used by the hero scroll indicator (both layouts) */}
+      <style>{`
+        @keyframes scrollBounce {
+          0%, 100% { transform: translateX(-50%) translateY(0px); }
+          50%       { transform: translateX(-50%) translateY(7px); }
+        }
+        @keyframes marquee-left {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        @keyframes marquee-right {
+          from { transform: translateX(-50%); }
+          to   { transform: translateX(0); }
+        }
+      `}</style>
 
       {/* BLOQUE 01 — Full-screen video hero */}
-      <section style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
-        <style>{`
-          @keyframes scrollBounce {
-            0%, 100% { transform: translateX(-50%) translateY(0px); }
-            50%       { transform: translateX(-50%) translateY(7px); }
-          }
-          @keyframes marquee-left {
-            from { transform: translateX(0); }
-            to   { transform: translateX(-50%); }
-          }
-          @keyframes marquee-right {
-            from { transform: translateX(-50%); }
-            to   { transform: translateX(0); }
-          }
-        `}</style>
-        <video
-          key={isMobile ? 'hero-mobile' : 'hero-desktop'}
-          src={isMobile ? '/landing/home-mobile.mp4' : '/landing/home.mp4'}
-          poster={isMobile ? '/landing/home-mobile-poster.jpg' : '/landing/home-poster.jpg'}
-          autoPlay muted loop playsInline preload="auto" disablePictureInPicture
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: '220px', pointerEvents: 'none',
-          background: 'linear-gradient(to bottom, transparent 0%, #FAFAFA 100%)',
-        }} />
-        {/* Scroll indicator */}
-        <div style={{
-          position: 'absolute', bottom: isMobile ? 140 : 104, left: '50%',
-          transform: 'translateX(-50%)',
-          animation: 'scrollBounce 2s ease-in-out infinite',
-          zIndex: 10, pointerEvents: 'none',
-        }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-            stroke="#101010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </div>
-      </section>
-
-      <Block02 />
+      {isMobile ? (
+        /* Mobile: EXACT same trick as Block04 → footer. The hero lives in its
+           own tall spacer with a sticky inner frame (pinned for HERO_PIN − 100vh),
+           and Block02 is pulled UP over it with a negative margin + higher
+           z-index, so the video stays fixed while the opaque Block02 slides over
+           it edge-to-edge. HERO_PIN 200vh = full 100vh slide-over, no net length
+           change (the −100vh margin cancels the extra spacer). Raise HERO_PIN to
+           add a "hero alone" pause before Block02 starts rising. */
+        <>
+          <div style={{ height: '200vh', position: 'relative', zIndex: 0 }}>
+            <MobileHeroVideo />
+          </div>
+          <div style={{ position: 'relative', zIndex: 1, marginTop: '-100vh' }}>
+            <Block02 />
+          </div>
+        </>
+      ) : (
+        /* Desktop: SAME trick as mobile — hero video sits sticky in its own
+           200vh spacer (pinned for 100vh) and Block02 is pulled UP over it with
+           a −100vh margin + higher z-index, so the video stays fixed while the
+           opaque Block02 slides over it edge-to-edge. */
+        <>
+          <div style={{ height: '200vh', position: 'relative', zIndex: 0 }}>
+            <section style={{
+              position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden',
+            }}>
+              <video
+                src="/landing/home.mp4"
+                poster="/landing/home-poster.jpg"
+                autoPlay muted loop playsInline preload="auto" disablePictureInPicture
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              {/* No bottom gradient — Block02 slides up with a hard edge. */}
+              {/* Scroll indicator */}
+              <div style={{
+                position: 'absolute', bottom: 104, left: '50%',
+                transform: 'translateX(-50%)',
+                animation: 'scrollBounce 2s ease-in-out infinite',
+                zIndex: 10, pointerEvents: 'none',
+              }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                  stroke="#101010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+            </section>
+          </div>
+          <div style={{ position: 'relative', zIndex: 1, marginTop: '-100vh' }}>
+            <Block02 />
+          </div>
+        </>
+      )}
 
       <Block02b />
 
-      <Block02c />
+      <DisciplineCarousel />
 
       <Block03 />
       <Block04 />
-      <Block05 onGetAccess={goToWaitlist} />
-      <div ref={footerRef}><PublicFooter /></div>
+
+      {/* Final block slides UP and OVER the carousel's last pinned frame — full
+          100vh climb, so the footer covers the whole screen (like it used to).
+          Block04 is now 450vh (pin region 350vh): panel 3 is fully revealed at
+          p≈0.62 (local scroll ≈217vh), the footer only ENTERS the viewport at
+          ≈250vh — leaving a ~33vh window where panel 3 sits fully visible alone —
+          then climbs a full 100vh to cover the screen as Block04 releases (350vh).
+          FOOTER_OVERLAP −100vh = full-screen climb. */}
+      <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
+        <Block05 onGetAccess={goToWaitlist} />
+        <div ref={footerRef}><PublicFooter /></div>
+      </div>
 
       <BottomNav
         onGetAccess={goToWaitlist}
