@@ -8,7 +8,7 @@ import { cardBox, wrap, wheelDrivesCarousel, GEO, type GeoConfig } from '@/lib/c
     screen margins, a flatter arch (so side cards don't dip into the caption),
     and cards nudged up so the discipline/subdiscipline caption sits clear
     below them. The card count and scale curve (scaleAt/integ) are shared. */
-const MOBILE_GEO: GeoConfig = { PACK: 26, ARCH_K: 0.005, YC: 33, BASE_W: 0.30, HOVER: GEO.HOVER };
+const MOBILE_GEO: GeoConfig = { PACK: 26, ARCH_K: 0.005, YC: 33, BASE_W: 0.30, SPAN: 2, HOVER: GEO.HOVER };
 
 export default function DisciplineCarousel() {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -207,7 +207,7 @@ export default function DisciplineCarousel() {
           );
         })}
 
-        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '63%' : '62%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '63%' : '67%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
           <div ref={discRef} style={{ fontSize: 12, letterSpacing: '3.5px', fontWeight: 300, textTransform: 'uppercase', color: '#9a9a9a' }}>
             {CARDS[0].discipline}
           </div>
