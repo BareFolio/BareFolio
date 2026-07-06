@@ -7,7 +7,8 @@ import { cardBox, wrap, wheelDrivesCarousel, GEO, type GeoConfig } from '@/lib/c
 /** Desktop uses the shared GEO. Mobile needs bigger cards that reach the
     screen margins, a flatter arch (so side cards don't dip into the caption),
     and cards nudged up so the discipline/subdiscipline caption sits clear
-    below them. The card count and scale curve (scaleAt/integ) are shared. */
+    below them. The fan span differs too — SPAN feeds scaleAt/integ, so desktop
+    keeps its wide 9-card fan (SPAN 4) while mobile shows a tighter 5 (SPAN 2). */
 const MOBILE_GEO: GeoConfig = { PACK: 26, ARCH_K: 0.005, YC: 33, BASE_W: 0.30, SPAN: 2, HOVER: GEO.HOVER };
 
 export default function DisciplineCarousel() {
