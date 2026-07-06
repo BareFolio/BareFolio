@@ -684,7 +684,7 @@ function Block03() {
   ];
 
   return (
-    <section style={{ background: '#fafafa', padding: isMobile ? '40px 0 40px' : '60px 0 100px' }}>
+    <section style={{ background: '#fafafa', padding: isMobile ? '16px 0 40px' : '20px 0 100px' }}>
       <div style={{ padding: isMobile ? '0 16px' : '0 20px' }}>
 
         {/* Pillar cards */}
