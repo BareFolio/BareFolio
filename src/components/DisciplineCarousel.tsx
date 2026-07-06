@@ -1,14 +1,36 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CARDS } from '@/lib/disciplines';
-import { cardBox, wrap, wheelDrivesCarousel, GEO } from '@/lib/carousel-geometry';
+import { cardBox, wrap, wheelDrivesCarousel, GEO, type GeoConfig } from '@/lib/carousel-geometry';
+
+/** Desktop uses the shared GEO. Mobile needs bigger cards that reach the
+    screen margins, a flatter arch (so side cards don't dip into the caption),
+    and cards nudged up so the discipline/subdiscipline caption sits clear
+    below them. The card count and scale curve (scaleAt/integ) are shared. */
+const MOBILE_GEO: GeoConfig = { PACK: 26, ARCH_K: 0.005, YC: 33, BASE_W: 0.30, HOVER: GEO.HOVER };
 
 export default function DisciplineCarousel() {
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const discRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const geoRef = useRef<GeoConfig>(GEO);
+
+  // Track viewport size → pick the device geometry. Kept in a ref so the
+  // animation loop reads the latest config without re-subscribing, and mirrored
+  // to state so the JSX (stage aspect ratio, caption position) re-renders.
+  useEffect(() => {
+    const check = () => {
+      const m = window.innerWidth < 768;
+      geoRef.current = m ? MOBILE_GEO : GEO;
+      setIsMobile(m);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -20,7 +42,7 @@ export default function DisciplineCarousel() {
     const layout = () => {
       W = stage.clientWidth;
       H = stage.clientHeight;
-      bw = GEO.BASE_W * W;
+      bw = geoRef.current.BASE_W * W;
       bh = (bw * 4) / 3;
       for (const el of cardRefs.current) {
         if (el) { el.style.width = `${bw}px`; el.style.height = `${bh}px`; }
@@ -33,7 +55,7 @@ export default function DisciplineCarousel() {
       for (let i = 0; i < N; i++) {
         const u = wrap(i - cur, N);
         const a = Math.abs(u);
-        const box = cardBox(u, W, H, i === hov);
+        const box = cardBox(u, W, H, i === hov, geoRef.current);
         const el = cardRefs.current[i];
         if (!el) continue;
         if (!box.visible) {
@@ -141,7 +163,8 @@ export default function DisciplineCarousel() {
       <div
         ref={stageRef}
         style={{
-          position: 'relative', width: '100%', aspectRatio: '2000 / 720',
+          position: 'relative', width: '100%',
+          aspectRatio: isMobile ? '1 / 1' : '2000 / 720',
           overflow: 'hidden', touchAction: 'pan-y', cursor: 'grab', userSelect: 'none',
         }}
       >
@@ -178,11 +201,11 @@ export default function DisciplineCarousel() {
           );
         })}
 
-        <div style={{ position: 'absolute', left: 0, right: 0, top: '67%', textAlign: 'center', pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: isMobile ? '72%' : '67%', textAlign: 'center', pointerEvents: 'none', padding: '0 12px' }}>
           <div ref={discRef} style={{ fontSize: 12, letterSpacing: '3.5px', fontWeight: 300, textTransform: 'uppercase', color: '#9a9a9a' }}>
             {CARDS[0].discipline}
           </div>
-          <div ref={subRef} style={{ fontSize: 22, fontWeight: 500, color: '#101010', marginTop: 5 }}>
+          <div ref={subRef} style={{ fontSize: isMobile ? 19 : 22, fontWeight: 500, color: '#101010', marginTop: 5, whiteSpace: 'nowrap' }}>
             {CARDS[0].sub}
           </div>
         </div>

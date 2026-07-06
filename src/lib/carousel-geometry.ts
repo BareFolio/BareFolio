@@ -43,26 +43,40 @@ export interface CardBox {
   visible: boolean;
 }
 
+/** The subset of GEO knobs that control card placement. Allows the component
+    to pass a device-specific config (e.g. bigger, flatter arch on mobile).
+    Declared with plain `number` fields (not `Pick<typeof GEO>`, whose `as const`
+    literals would reject any value other than the desktop defaults). */
+export interface GeoConfig {
+  PACK: number;
+  ARCH_K: number;
+  YC: number;
+  BASE_W: number;
+  HOVER: number;
+}
+
 /**
  * Position for a card whose signed step-offset from center is `u`.
  * The component draws it as translate(cx - wPx/2, cy - hPx/2) scale(scale),
- * with transform-origin center.
+ * with transform-origin center. `geo` defaults to the shared desktop knobs.
  */
-export function cardBox(u: number, stageW: number, stageH: number, hovered: boolean): CardBox {
+export function cardBox(
+  u: number, stageW: number, stageH: number, hovered: boolean, geo: GeoConfig = GEO,
+): CardBox {
   const a = Math.abs(u);
   let s = scaleAt(a);
-  if (hovered && s > 0) s *= GEO.HOVER;
+  if (hovered && s > 0) s *= geo.HOVER;
 
-  const wPx = GEO.BASE_W * stageW;
+  const wPx = geo.BASE_W * stageW;
   const hPx = (wPx * 4) / 3;
 
   if (s <= 0.004) {
     return { cxPx: 0, cyPx: 0, wPx, hPx, scale: 0, z: 0, visible: false };
   }
 
-  const off = GEO.PACK * integ(a) * (u < 0 ? -1 : 1); // % from center
+  const off = geo.PACK * integ(a) * (u < 0 ? -1 : 1); // % from center
   const cxPx = ((50 + off) / 100) * stageW;
-  const cyPx = ((GEO.YC + GEO.ARCH_K * off * off) / 100) * stageH;
+  const cyPx = ((geo.YC + geo.ARCH_K * off * off) / 100) * stageH;
 
   return {
     cxPx,
