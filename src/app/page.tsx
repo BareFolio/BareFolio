@@ -1172,10 +1172,10 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
   }
 
   return (
-    <section style={{ background: '#fafafa', padding: '12px 0 60px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '0 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Reveal style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ background: cardBg, borderRadius: '20px', display: 'flex', overflow: 'hidden', flex: 1, minHeight: '504px' }}>
+    <section style={{ background: '#fafafa', padding: '12px 0 60px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{ padding: '0 20px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Reveal style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ background: cardBg, borderRadius: '20px', display: 'flex', overflow: 'hidden', flex: 1, minHeight: 0 }}>
           {/* Left */}
           <div style={{
             flex: '0 0 48%', padding: '36px 52px',
