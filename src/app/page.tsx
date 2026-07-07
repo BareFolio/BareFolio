@@ -1117,10 +1117,10 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
 
   if (isMobile) {
     return (
-      <section style={{ background: '#fafafa', padding: '12px 0 40px' }}>
-        <div style={{ padding: '0 16px' }}>
-          <Reveal>
-          <div style={{ background: cardBg, borderRadius: '20px', overflow: 'hidden' }}>
+      <section style={{ background: '#fafafa', padding: '12px 0 40px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '0 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Reveal style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: cardBg, borderRadius: '20px', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' }}>
             {/* Image on top */}
             <div style={{ position: 'relative', height: '220px', overflow: 'hidden' }}>
               <img src="/landing/recursos/Bloque 05_final.webp" alt=""
@@ -1172,10 +1172,10 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
   }
 
   return (
-    <section style={{ background: '#fafafa', padding: '12px 0 60px' }}>
-      <div style={{ padding: '0 20px' }}>
-        <Reveal>
-        <div style={{ background: cardBg, borderRadius: '20px', display: 'flex', overflow: 'hidden', height: '504px' }}>
+    <section style={{ background: '#fafafa', padding: '12px 0 60px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Reveal style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: cardBg, borderRadius: '20px', display: 'flex', overflow: 'hidden', flex: 1, minHeight: '504px' }}>
           {/* Left */}
           <div style={{
             flex: '0 0 48%', padding: '36px 52px',
@@ -1381,7 +1381,10 @@ function LandingPage() {
           ≈250vh — leaving a ~33vh window where panel 3 sits fully visible alone —
           then climbs a full 100vh to cover the screen as Block04 releases (350vh).
           FOOTER_OVERLAP −100vh = full-screen climb. */}
-      <div style={{ position: 'relative', zIndex: 2, marginTop: '-100vh' }}>
+      <div style={{
+        position: 'relative', zIndex: 2, marginTop: '-100vh',
+        minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f4f4f4',
+      }}>
         <Block05 onGetAccess={goToWaitlist} />
         <div ref={footerRef}><PublicFooter /></div>
       </div>
