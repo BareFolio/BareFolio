@@ -172,20 +172,6 @@ export default function CookieBanner() {
             display: 'flex', flexDirection: 'column', gap: 10,
           }}
         >
-          {/* Crisp folder-tab outline traced over the same silhouette — keeps the tab
-              readable without a second glass layer. */}
-          {shape && (
-            <svg
-              width={shape.w}
-              height={shape.h}
-              viewBox={`0 0 ${shape.w} ${shape.h}`}
-              aria-hidden="true"
-              style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-            >
-              <path d={shape.d} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth={1.25} />
-            </svg>
-          )}
-
           {/* Folder-tab label, sitting inside the protruding tab band */}
           <div style={{
             position: 'absolute', top: 5, left: 14,
