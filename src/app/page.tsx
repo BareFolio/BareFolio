@@ -1249,7 +1249,7 @@ function MobileHeroVideo() {
       <video
         src="/landing/home-mobile.mp4"
         poster="/landing/home-mobile-poster.jpg"
-        autoPlay muted loop playsInline preload="auto" disablePictureInPicture
+        autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%', objectFit: 'cover',
@@ -1344,7 +1344,7 @@ function LandingPage() {
               <video
                 src="/landing/home.mp4"
                 poster="/landing/home-poster.jpg"
-                autoPlay muted loop playsInline preload="auto" disablePictureInPicture
+                autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               {/* No bottom gradient — Block02 slides up with a hard edge. */}
               {/* Scroll indicator */}
