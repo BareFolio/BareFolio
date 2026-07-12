@@ -441,6 +441,8 @@ function Block02() {
           <img
             src="/landing/recursos/Bloque 2_01.png"
             alt="BareFolio creative portfolio app — portfolio, inspiration and professional network in one place"
+            loading="lazy"
+            decoding="async"
             style={{
               height: isMobile ? 'min(480px, 56vh)' : 'min(740px, 94vh)',
               width: 'auto',
@@ -460,7 +462,7 @@ function Block02() {
             willChange: 'opacity, transform',
             width: isMobile ? '110px' : '230px',
           }}>
-            <img src="/landing/recursos/Bloque 2_Centro Izquierda.png" alt=""
+            <img src="/landing/recursos/Bloque 2_Centro Izquierda.png" alt="" loading="lazy" decoding="async"
               style={{ width: '100%', borderRadius: '16px', boxShadow: '0 8px 28px rgba(0,0,0,0.12)' }} />
           </div>
           <div ref={centroRRef} style={{
@@ -472,7 +474,7 @@ function Block02() {
             willChange: 'opacity, transform',
             width: isMobile ? '110px' : '230px',
           }}>
-            <img src="/landing/recursos/Bloque 2_centro derecha.png" alt=""
+            <img src="/landing/recursos/Bloque 2_centro derecha.png" alt="" loading="lazy" decoding="async"
               style={{ width: '100%', borderRadius: '16px', boxShadow: '0 8px 28px rgba(0,0,0,0.12)' }} />
           </div>
         </div>
@@ -489,7 +491,7 @@ function Block02() {
               willChange: 'opacity, transform',
               width: isMobile ? '72px' : '234px',
             }}>
-              <img src="/landing/recursos/Bloque 2_Arriba Izquierda.png" alt=""
+              <img src="/landing/recursos/Bloque 2_Arriba Izquierda.png" alt="" loading="lazy" decoding="async"
                 style={{ width: '100%', borderRadius: '12px', boxShadow: '0 8px 28px rgba(0,0,0,0.10)' }} />
             </div>
             <div ref={arribaRRef} style={{
@@ -501,7 +503,7 @@ function Block02() {
               willChange: 'opacity, transform',
               width: isMobile ? '72px' : '248px',
             }}>
-              <img src="/landing/recursos/Bloque 2_Arriba derecha.png" alt=""
+              <img src="/landing/recursos/Bloque 2_Arriba derecha.png" alt="" loading="lazy" decoding="async"
                 style={{ width: '100%', borderRadius: '12px', boxShadow: '0 8px 28px rgba(0,0,0,0.10)' }} />
             </div>
           </>
@@ -515,7 +517,7 @@ function Block02() {
             willChange: 'opacity, transform',
             width: isMobile ? '120px' : '200px',
           }}>
-            <img src="/landing/recursos/Bloque 2_Abajo izquierda.png" alt=""
+            <img src="/landing/recursos/Bloque 2_Abajo izquierda.png" alt="" loading="lazy" decoding="async"
               style={{ width: '100%', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.09)' }} />
           </div>
           <div ref={abajoRRef} style={{
@@ -527,7 +529,7 @@ function Block02() {
             willChange: 'opacity, transform',
             width: isMobile ? '120px' : '230px',
           }}>
-            <img src="/landing/recursos/Bloque 2_Abajo derecha.png" alt=""
+            <img src="/landing/recursos/Bloque 2_Abajo derecha.png" alt="" loading="lazy" decoding="async"
               style={{ width: '100%', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.09)' }} />
           </div>
         </div>
@@ -776,9 +778,9 @@ function Block03() {
               display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
               marginTop: '24px', transform: 'translateX(5%)',
             }}>
-              <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
+              <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt="" loading="lazy" decoding="async"
                 style={{ width: '56%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 2 }} />
-              <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
+              <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt="" loading="lazy" decoding="async"
                 style={{ width: '62%', height: 'auto', display: 'block', flexShrink: 0, position: 'relative', zIndex: 1, marginLeft: '-20%' }} />
             </div>
           </div>
@@ -838,11 +840,11 @@ function Block03() {
               pointerEvents: 'none', zIndex: 1,
             }}>
               <div style={{ position: 'relative', zIndex: 2, flexShrink: 0, order: 1 }}>
-                <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt=""
+                <img src="/landing/recursos/Bloque 03_Arriba Izquierda.png" alt="" loading="lazy" decoding="async"
                   style={{ height: 'clamp(380px, 44vw, 500px)', width: 'auto', display: 'block' }} />
               </div>
               <div style={{ position: 'relative', zIndex: 1, flexShrink: 0, order: 2, marginLeft: '-110px' }}>
-                <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt=""
+                <img src="/landing/recursos/Bloque 03_Abajo Derecha.png" alt="" loading="lazy" decoding="async"
                   style={{ height: 'clamp(420px, 48vw, 540px)', width: 'auto', display: 'block' }} />
               </div>
             </div>
@@ -992,7 +994,7 @@ function Block04() {
                   transform: `translate3d(0, ${coverY[i]}%, 0)`,
                   willChange: 'transform',
                 }}>
-                  <video src={panel.video} autoPlay muted loop playsInline disablePictureInPicture
+                  <video src={panel.video} autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
                     style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                 </div>
               ))}
@@ -1103,7 +1105,7 @@ function Block04() {
                 transform: `translate3d(0, ${coverY[i]}%, 0)`,
                 willChange: 'transform',
               }}>
-                <video src={panel.video} autoPlay muted loop playsInline disablePictureInPicture
+                <video src={panel.video} autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
                   style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
               </div>
             ))}
@@ -1130,7 +1132,7 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
           <div style={{ background: cardBg, borderRadius: '20px', overflow: 'hidden' }}>
             {/* Image on top */}
             <div style={{ position: 'relative', height: '220px', overflow: 'hidden' }}>
-              <img src="/landing/recursos/Bloque 05_final.webp" alt=""
+              <img src="/landing/recursos/Bloque 05_final.webp" alt="" loading="lazy" decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
               {/* Gradient fade into card background */}
               <div style={{
@@ -1230,7 +1232,7 @@ function Block05({ onGetAccess }: { onGetAccess: () => void }) {
               width: '45%', zIndex: 1, pointerEvents: 'none',
               background: `linear-gradient(to right, ${cardBg} 0%, transparent 100%)`,
             }} />
-            <img src="/landing/recursos/Bloque 05_final.webp" alt=""
+            <img src="/landing/recursos/Bloque 05_final.webp" alt="" loading="lazy" decoding="async"
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', display: 'block' }} />
           </div>
         </div>
