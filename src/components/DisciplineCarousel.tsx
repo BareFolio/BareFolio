@@ -17,6 +17,12 @@ export default function DisciplineCarousel() {
   const discRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  // The carousel sits well below the fold, but its cards autoplay, so mounting
+  // them on load makes all clips download immediately (~6.6MB). Gate video
+  // mounting on a one-way "near viewport" latch: until then each card shows only
+  // its poster (a lazy <img>, so nothing downloads on initial load); once the
+  // section approaches the viewport, the real <video>s mount and autoplay.
+  const [inView, setInView] = useState(false);
   const geoRef = useRef<GeoConfig>(GEO);
   // Touch devices have no real hover: pointerenter fires on tap and would leave
   // a card stuck "hovered" (scaled up, autoplay paused). Read in the pointer
@@ -36,6 +42,23 @@ export default function DisciplineCarousel() {
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Latch inView true once the carousel nears the viewport, then stop listening.
+  // A scroll check (same pattern as the landing footer) rather than an
+  // IntersectionObserver so it also fires under Lenis's smoothed scrolling.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const check = () => {
+      if (stage.getBoundingClientRect().top < window.innerHeight + 600) {
+        setInView(true);
+        window.removeEventListener('scroll', check);
+      }
+    };
+    check(); // in case the page loads already near the carousel
+    window.addEventListener('scroll', check, { passive: true });
+    return () => window.removeEventListener('scroll', check);
   }, []);
 
   useEffect(() => {
@@ -190,12 +213,23 @@ export default function DisciplineCarousel() {
               }}
             >
               {c.media && (/\.(mp4|webm|mov)$/i.test(c.media) ? (
-                <video
-                  src={c.media}
-                  poster={c.media.replace(/\.(mp4|webm|mov)$/i, '.jpg')}
-                  muted loop autoPlay playsInline preload="metadata"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                inView ? (
+                  <video
+                    src={c.media}
+                    poster={c.media.replace(/\.(mp4|webm|mov)$/i, '.jpg')}
+                    muted loop autoPlay playsInline preload="metadata"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  /* Pre-view placeholder — the video's own poster, kept lazy so
+                     the carousel downloads nothing until it nears the viewport. */
+                  <img
+                    src={c.media.replace(/\.(mp4|webm|mov)$/i, '.jpg')}
+                    alt=""
+                    loading="lazy"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )
               ) : (
                 <img
                   src={c.media}
