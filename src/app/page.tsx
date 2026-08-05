@@ -1275,13 +1275,81 @@ function MobileHeroVideo() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   BLOQUE 01 (desktop) — pinned hero video
+   Same pinned/slide-over trick as the mobile hero, with the desktop clip.
+   ═══════════════════════════════════════════════════════════════════ */
+function DesktopHeroVideo() {
+  return (
+    <section style={{
+      position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden',
+    }}>
+      <video
+        src="/landing/home.mp4"
+        poster="/landing/home-poster.jpg"
+        autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+      {/* No bottom gradient — Block02 slides up with a hard edge. */}
+      {/* Scroll indicator */}
+      <div style={{
+        position: 'absolute', bottom: 104, left: '50%',
+        transform: 'translateX(-50%)',
+        animation: 'scrollBounce 2s ease-in-out infinite',
+        zIndex: 10, pointerEvents: 'none',
+      }}>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+          stroke="#101010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BLOQUE 01 — poster-only hero (SSR + pre-hydration)
+   Rendered until the client knows the viewport, so the server ships NO
+   <video>: only the correct poster per viewport via <picture> (pure CSS,
+   no JS). This stops mobile from downloading the 8MB desktop clip — and
+   the desktop poster from loading on mobile — before hydration swaps in the
+   one device-correct hero video. Same sticky frame as the real heroes so
+   the swap is seamless with no layout shift.
+   ═══════════════════════════════════════════════════════════════════ */
+function HeroPoster() {
+  return (
+    <section style={{
+      position: 'sticky', top: 0, height: '100vh', width: '100%',
+      overflow: 'hidden', zIndex: 0,
+    }}>
+      <picture>
+        <source media="(max-width: 767px)" srcSet="/landing/home-mobile-poster.jpg" />
+        <img
+          src="/landing/home-poster.jpg"
+          alt=""
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </picture>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    Landing Page UI
    ═══════════════════════════════════════════════════════════════════ */
 function LandingPage() {
   const router = useRouter();
-  const isMobile = useIsMobile();
+  // null on the server and until the first client effect, so the hero ships as a
+  // poster only (no <video>) and exactly one device-correct clip mounts after we
+  // know the viewport — mobile never fetches the desktop hero, and vice-versa.
+  const [heroDevice, setHeroDevice] = useState<'mobile' | 'desktop' | null>(null);
   const [footerVisible, setFooterVisible] = useState(false);
   const footerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const check = () => setHeroDevice(window.innerWidth < 768 ? 'mobile' : 'desktop');
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     const check = () => {
@@ -1316,58 +1384,30 @@ function LandingPage() {
         }
       `}</style>
 
-      {/* BLOQUE 01 — Full-screen video hero */}
-      {isMobile ? (
-        /* Mobile: EXACT same trick as Block04 → footer. The hero lives in its
-           own tall spacer with a sticky inner frame (pinned for HERO_PIN − 100vh),
-           and Block02 is pulled UP over it with a negative margin + higher
-           z-index, so the video stays fixed while the opaque Block02 slides over
-           it edge-to-edge. HERO_PIN 200vh = full 100vh slide-over, no net length
-           change (the −100vh margin cancels the extra spacer). Raise HERO_PIN to
-           add a "hero alone" pause before Block02 starts rising. */
-        <>
-          <div style={{ height: '200vh', position: 'relative', zIndex: 0 }}>
-            <MobileHeroVideo />
-          </div>
-          <div style={{ position: 'relative', zIndex: 1, marginTop: '-100vh' }}>
-            <Block02 />
-          </div>
-        </>
-      ) : (
-        /* Desktop: SAME trick as mobile — hero video sits sticky in its own
-           200vh spacer (pinned for 100vh) and Block02 is pulled UP over it with
-           a −100vh margin + higher z-index, so the video stays fixed while the
-           opaque Block02 slides over it edge-to-edge. */
-        <>
-          <div style={{ height: '200vh', position: 'relative', zIndex: 0 }}>
-            <section style={{
-              position: 'sticky', top: 0, width: '100%', height: '100vh', overflow: 'hidden',
-            }}>
-              <video
-                src="/landing/home.mp4"
-                poster="/landing/home-poster.jpg"
-                autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-              {/* No bottom gradient — Block02 slides up with a hard edge. */}
-              {/* Scroll indicator */}
-              <div style={{
-                position: 'absolute', bottom: 104, left: '50%',
-                transform: 'translateX(-50%)',
-                animation: 'scrollBounce 2s ease-in-out infinite',
-                zIndex: 10, pointerEvents: 'none',
-              }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-                  stroke="#101010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </div>
-            </section>
-          </div>
-          <div style={{ position: 'relative', zIndex: 1, marginTop: '-100vh' }}>
-            <Block02 />
-          </div>
-        </>
-      )}
+      {/* BLOQUE 01 — Full-screen video hero.
+          The hero lives in its own tall spacer with a sticky inner frame (pinned
+          for 200vh − 100vh), and Block02 is pulled UP over it with a negative
+          margin + higher z-index, so the hero stays fixed while the opaque
+          Block02 slides over it edge-to-edge. The −100vh margin cancels the extra
+          spacer, so there is no net length change.
+
+          The inner frame is chosen by heroDevice: a poster-only frame on the
+          server / before hydration (no <video> shipped), then exactly one
+          device-correct clip once the viewport is known — so mobile never
+          downloads the 8MB desktop clip. The spacer + climb are identical in all
+          three cases, so the swap causes no layout shift. */}
+      <>
+        <div style={{ height: '200vh', position: 'relative', zIndex: 0 }}>
+          {heroDevice === 'mobile'
+            ? <MobileHeroVideo />
+            : heroDevice === 'desktop'
+              ? <DesktopHeroVideo />
+              : <HeroPoster />}
+        </div>
+        <div style={{ position: 'relative', zIndex: 1, marginTop: '-100vh' }}>
+          <Block02 />
+        </div>
+      </>
 
       <Block02b />
 
