@@ -317,12 +317,19 @@ ALTER TABLE public.staff_audit_log ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.staff_members, public.staff_audit_log, public.staff_audit_feed
   FROM anon, authenticated;
 
+-- El middleware resuelve la sesión con la clave anon y la sesión del propio
+-- usuario, así que `authenticated` necesita el privilegio de tabla SELECT; RLS
+-- es lo que luego lo acota a su propia fila. Sin este GRANT la policy es
+-- inoperante (RLS filtra filas, no concede privilegios) y nadie podría entrar.
+GRANT SELECT ON public.staff_members TO authenticated;
+
 CREATE POLICY staff_members_self_read ON public.staff_members
   FOR SELECT TO authenticated USING (id = auth.uid());
 ```
 
 La única policy permite a un miembro leer **su propia** fila, lo justo para
-resolver su sesión. Todo lo demás pasa por `service_role`.
+resolver su sesión. `staff_audit_log` y `staff_audit_feed` se quedan sin `GRANT`:
+son inaccesibles para `anon`/`authenticated` y solo se leen vía `service_role`.
 
 **Bootstrap (documentado, ejecución manual y única)**
 
